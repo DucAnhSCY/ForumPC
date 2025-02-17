@@ -1,0 +1,183 @@
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+    font-family: Arial, sans-serif;
+}
+
+body {
+    background-color: #f5f5f5;
+}
+
+/* Header Styles */
+.header {
+    background-color: #1a1a1a;
+    padding: 1rem;
+    color: white;
+}
+
+.logo {
+    font-size: 2rem;
+    font-weight: bold;
+    color: #fff;
+    text-decoration: none;
+}
+
+.nav-bar {
+    margin-top: 1rem;
+}
+
+.nav-link {
+    color: #fff;
+    text-decoration: none;
+    margin-right: 1.5rem;
+}
+
+/* Main Content Container */
+.container {
+    max-width: 1200px;
+    margin: 2rem auto;
+    padding: 0 1rem;
+    display: flex;
+    gap: 2rem;
+}
+
+/* Thread List */
+.thread-list {
+    background-color: white;
+    padding: 1rem;
+    border-radius: 5px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    flex: 2;
+}
+
+.thread-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 1rem 0;
+    border-bottom: 1px solid #eee;
+}
+
+.thread-info {
+    flex: 2;
+}
+
+.thread-stats {
+    flex: 1;
+    text-align: center;
+}
+
+.thread-title {
+    font-weight: bold;
+    color: #333;
+    text-decoration: none;
+}
+
+.thread-author {
+    color: #666;
+    font-size: 0.9rem;
+}
+
+/* Sidebar */
+.sidebar {
+    width: 300px;
+    background-color: white;
+    padding: 1rem;
+    border-radius: 5px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+.widget {
+    margin-bottom: 1.5rem;
+}
+
+.widget-title {
+    font-weight: bold;
+    margin-bottom: 1rem;
+}
+
+/* Footer */
+.footer {
+    background-color: #1a1a1a;
+    color: white;
+    padding: 2rem;
+    text-align: center;
+    margin-top: 2rem;
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+    .container {
+        flex-direction: column;
+    }
+
+    .sidebar {
+        width: 100%;
+        margin-top: 1rem;
+    }
+}
+
+.nav-bar {
+    display: flex;
+    justify-content: space-between;
+    width: 100%;
+}
+
+.nav-links {
+    display: flex;
+    gap: 1.5rem;
+}
+
+.login-link {
+    margin-left: auto;
+    cursor: pointer;
+}
+
+.popup {
+    display: none;
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    background: white;
+    padding: 20px;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+    border-radius: 5px;
+}
+
+.popup input {
+    display: block;
+    width: 100%;
+    margin-bottom: 10px;
+    padding: 8px;
+}
+
+.popup button {
+    width: 100%;
+    padding: 10px;
+    background: #1a1a1a;
+    color: white;
+    border: none;
+    cursor: pointer;
+}
+
+.popup .register-link {
+    text-align: center;
+    margin-top: 10px;
+    cursor: pointer;
+    color: blue;
+}
+
+.close-btn {
+    position: absolute;
+    top: 5px;
+    right: 5px;
+    background: red;
+    color: white;
+    border: none;
+    cursor: pointer;
+    padding: 3px 6px;
+    font-size: 12px;
+    border-radius: 50%;
+}
