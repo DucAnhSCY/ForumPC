@@ -328,3 +328,60 @@ body {
 .members-page .member:last-child {
     border-bottom: none;
 }
+/* Categories page styles */
+.categories-page {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 20px;
+    background-color: #fff;
+    padding: 20px;
+    border-radius: 5px;
+    box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+}
+
+.category-box {
+    flex: 1 1 calc(33.333% - 20px);
+    background-color: #f9f9f9;
+    padding: 20px;
+    border-radius: 5px;
+    box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+    text-align: center;
+}
+
+.category-box h2 {
+    font-size: 24px;
+    margin-bottom: 10px;
+}
+
+.category-box p {
+    font-size: 16px;
+    color: #666;
+}
+
+/* Newest Updates and Posts Styles */
+.newest-updates, .newest-posts {
+    background-color: #fff;
+    padding: 20px;
+    border-radius: 5px;
+    box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+    margin-bottom: 20px;
+}
+
+.newest-updates h2, .newest-posts h2 {
+    font-size: 24px;
+    margin-bottom: 10px;
+}
+
+.newest-updates ul, .newest-posts ul {
+    list-style-type: none;
+    padding: 0;
+}
+
+.newest-updates li, .newest-posts li {
+    padding: 10px;
+    border-bottom: 1px solid #ccc;
+}
+
+.newest-updates li:last-child, .newest-posts li:last-child {
+    border-bottom: none;
+}
