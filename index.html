@@ -4,83 +4,153 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>DE_FORUMS</title>
-    <link rel="stylesheet" href="style/styles.css"> <!-- Link to external CSS file -->
+    <link rel="stylesheet" href="style/styles.css">
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <script>
         function togglePopup(id) {
             document.getElementById(id).style.display = 'block';
-            document.body.style.overflow = 'hidden'; // Ngăn cuộn trang
+            document.body.style.overflow = 'hidden';
         }
+
         function closePopup(id) {
             document.getElementById(id).style.display = 'none';
-            document.body.style.overflow = 'auto'; // Cho phép cuộn trang
+            document.body.style.overflow = 'auto';
         }
 
-        function handleLogin() {
-            // Hiển thị thông báo đăng nhập thành công
-            Swal.fire({
-                title: 'Đăng nhập thành công!',
-                text: 'Chào mừng bạn đến với DE_FORUMS!',
-                icon: 'success',
-                confirmButtonText: 'OK'
-            });
-            closePopup('loginPopup'); // Đóng popup sau khi thông báo
+        async function handleLogin() {
+            // ... (Your login logic)
         }
+
+        async function handleRegister() { // New function for registration
+            const username = document.getElementById('register-username').value;
+            const email = document.getElementById('register-email').value;
+            const password = document.getElementById('register-password').value;
+
+            try {
+                const response = await fetch('https://localhost:7125/api/RegisteredUser/Insert', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        username: username,
+                        email: email,
+                        password: password,
+                        status: 'Active'
+                    })
+                });
+
+                if (!response.ok) {
+                    const errorText = await response.text();
+                    console.error('Registration failed:', response.status, errorText);
+
+                    try {
+                        const errorData = JSON.parse(errorText);
+                        if (errorData.errors) {
+                            let errorMessage = "";
+                            for (const key in errorData.errors) {
+                                errorMessage += errorData.errors[key].join("\n") + "\n";
+                            }
+                            Swal.fire({  // Use SweetAlert for errors
+                                title: 'Registration Failed',
+                                text: errorMessage,
+                                icon: 'error'
+                            });
+                        } else if (errorData.title) {
+                            Swal.fire({
+                                title: 'Registration Failed',
+                                text: errorData.title,
+                                icon: 'error'
+                            });
+                        } else {
+                            Swal.fire({
+                                title: 'Registration Failed',
+                                text: errorText,
+                                icon: 'error'
+                            });
+                        }
+                    } catch (parseError) {
+                        Swal.fire({
+                            title: 'Registration Failed',
+                            text: errorText,
+                            icon: 'error'
+                        });
+                        console.error("Error parsing error response:", parseError);
+                    }
+                    return;
+                }
+
+                const data = await response.json();
+                console.log('Registered:', data);
+                Swal.fire({  // Success message with SweetAlert
+                    title: 'Registration Successful!',
+                    text: 'You have successfully registered.',
+                    icon: 'success'
+                }).then(() => {
+                    closePopup('registerPopup'); // Close popup after successful registration
+                });
+                document.getElementById('register-username').value = '';
+                document.getElementById('register-email').value = '';
+                document.getElementById('register-password').value = '';
+
+            } catch (error) {
+                console.error('Fetch error:', error);
+                Swal.fire({
+                    title: 'Network Error',
+                    text: 'A network error occurred.',
+                    icon: 'error'
+                });
+            }
+        }
+
 
         function loadContent(page) {
-            fetch(page)
-                .then(response => response.text())
-                .then(data => {
-                    document.getElementById('content').innerHTML = data;
-                })
-                .catch(error => console.error('Error loading content:', error));
+            // ... (Your existing loadContent function)
         }
     </script>
 </head>
 <body>
-<header class="header">
-    <div class="container">
-        <a href="#" class="logo">DE_FORUMS</a>
-        <nav class="nav-bar">
-            <div class="nav-links">
-                <a href="#" class="nav-link" onclick="loadContent('Home.html')">Home</a>
-                <a href="#" class="nav-link" onclick="loadContent('Categories.html')">Categories</a>
-                <a href="#" class="nav-link" onclick="loadContent('Members.html')">Members</a>
-            </div>
-            <a class="nav-link login-link" onclick="togglePopup('loginPopup'); closePopup('registerPopup');">Login</a>
-        </nav>
+    <header class="header">
+        <div class="container">
+            <a href="#" class="logo">DE_FORUMS</a>
+            <nav class="nav-bar">
+                <div class="nav-links">
+                    <a href="#" class="nav-link" onclick="loadContent('Home.html')">Home</a>
+                    <a href="#" class="nav-link" onclick="loadContent('Categories.html')">Categories</a>
+                    <a href="#" class="nav-link" onclick="loadContent('Members.html')">Members</a>
+                </div>
+                <a class="nav-link login-link" onclick="togglePopup('loginPopup'); closePopup('registerPopup');">Login</a>
+            </nav>
+        </div>
+    </header>
+
+    <div id="content">
+        </div>
+
+    <div class="popup" id="loginPopup">
+        <form onsubmit="handleLogin(); return false;">
+            <h2>Login</h2>
+            <input type="text" placeholder="Username" required>
+            <input type="password" placeholder="Password" required>
+            <button type="submit">Login</button>
+            <p class="register-link" onclick="togglePopup('registerPopup'); closePopup('loginPopup');">Doesn't have an account? Create one.</p>
+        </form>
     </div>
-</header>
 
-<div id="content">
-    <!-- Content will be loaded here -->
-</div>
-
-<div class="popup" id="loginPopup">
-    <form onsubmit="handleLogin(); return false;">
-        <h2>Login</h2>
-        <input type="text" placeholder="Username" required>
-        <input type="password" placeholder="Password" required>
-        <button type="submit">Login</button>
-        <p class="register-link" onclick="togglePopup('registerPopup'); closePopup('loginPopup');">Doesn't have an account? Create one.</p>
-    </form>
-</div>
-
-<div class="popup" id="registerPopup">
-    <form onsubmit="closePopup('registerPopup'); return false;">
-        <h2>Register</h2>
-        <input type="text" placeholder="Username" required>
-        <input type="email" placeholder="Enter Email" required>
-        <input type="password" placeholder="Password" required>
-        <input type="password" placeholder="Re-enter password" required>
-        <button type="submit">Register</button>
-    </form>
-</div>
-
-<footer class="footer">
-    <div class="container">
-        <p>&copy; 2025 de_forums by Group 6.</p>
+    <div class="popup" id="registerPopup">
+        <form onsubmit="handleRegister(); return false;">  <h2>Register</h2>
+            <input type="text" id="register-username" placeholder="Username" required>
+            <input type="email" id="register-email" placeholder="Enter Email" required>
+            <input type="password" id="register-password" placeholder="Password" required>
+            <input type="password" placeholder="Re-enter password" required>
+            <button type="submit">Register</button>
+        </form>
     </div>
-</footer>
+
+    <footer class="footer">
+        <div class="container">
+            <p>&copy; 2025 de_forums by Group 6.</p>
+        </div>
+    </footer>
 </body>
 </html>
