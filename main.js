@@ -47,11 +47,19 @@ function login() {
     let password = document.getElementById("login-password").value;
 
     if (username === "" || password === "") {
-        alert("Please enter both username and password!");
+        Swal.fire({
+            icon: 'error',
+            title: 'Oops...',
+            text: 'Please enter both username and password!',
+        });
         return;
     }
 
-    alert(`Logging in as ${username}`);
+    Swal.fire({
+        icon: 'success',
+        title: 'Success',
+        text: `Logging in as ${username}`,
+    });
     closePopup("login-popup");
 }
 
@@ -63,15 +71,27 @@ function register() {
     let email = document.getElementById("register-email").value;
 
     if (username === "" || password === "" || password2 === "" || email === "") {
-        alert("Please fill out all fields!");
+        Swal.fire({
+            icon: 'error',
+            title: 'Oops...',
+            text: 'Please fill out all fields!',
+        });
         return;
     }
 
     if (password !== password2) {
-        alert("Passwords do not match!");
+        Swal.fire({
+            icon: 'error',
+            title: 'Oops...',
+            text: 'Passwords do not match!',
+        });
         return;
     }
 
-    alert(`Registering ${username} with email ${email}`);
+    Swal.fire({
+        icon: 'success',
+        title: 'Success',
+        text: `Registering ${username} with email ${email}`,
+    });
     closePopup("register-popup");
 }
