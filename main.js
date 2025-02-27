@@ -50,50 +50,62 @@ function togglePopup(id) {
 
 // Login Function
 async function login() {
+    console.log("Login function triggered"); 
+
     let email = document.getElementById("login-email").value;
     let password = document.getElementById("login-password").value;
 
     if (email === "" || password === "") {
-        Swal.fire({
-            icon: 'error',
-            title: 'Oops...',
-            text: 'Please enter both email and password!',
-        });
+        alert("Please enter both email and password!");
         return;
     }
 
     try {
-        const response = await fetch('https://localhost:7125/api/RegisteredUser/Login', {
+        const response = await fetch('http://localhost:5195/api/RegisteredUser/Login', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ email: email, password: password })
+            body: JSON.stringify({ email, password })
         });
 
+        if (response.status === 401) {
+            alert("Invalid email or password.");
+            return;
+        }
+
         if (!response.ok) {
-            Swal.fire({
-                icon: 'error',
-                title: 'Oops...',
-                text: 'Login failed: Invalid credentials.',
-            });
+            const errorText = await response.text();
+            console.error("Login failed:", errorText);
+            alert("Login failed: " + errorText);
             return;
         }
 
         const data = await response.json();
-        Swal.fire({
-            icon: 'success',
-            title: 'Success',
-            text: `Welcome, ${data.username}!`,
-        });
+        console.log("Login successful:", data);
+
+        // Store session data
+        sessionStorage.setItem('isAuthenticated', 'true');
+        sessionStorage.setItem('email', data.email); 
+        sessionStorage.setItem('token', data.token); 
+
+        // Check if username exists in response, otherwise extract from email
+        let username = data.username || email.split('@')[0]; // Fallback if API does not return username
+        sessionStorage.setItem('username', username);
+
+        // Update NavBar
+        updateNavBar();
+
+        // Show welcome message and close popup
+        alert(`Welcome, ${username}!`);
         closePopup("login-popup");
+
     } catch (error) {
         console.error("Login error:", error);
-        Swal.fire({
-            icon: 'error',
-            title: 'Oops...',
-            text: 'A network error occurred.',
-        });
+        alert("A network error occurred. Please try again.");
     }
 }
+
+
+
 
 // Register Function
 async function register() {
@@ -113,7 +125,7 @@ async function register() {
     }
 
     try {
-        const response = await fetch('https://localhost:7125/api/RegisteredUser/Insert', {
+        const response = await fetch('http://localhost:5195/api/RegisteredUser/Insert', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ username, email, password })
@@ -132,61 +144,48 @@ async function register() {
     }
 }
 
-
 // Update NavBar based on authentication status
 function updateNavBar() {
     let isAuthenticated = sessionStorage.getItem('isAuthenticated');
     let username = sessionStorage.getItem('username');
+    let email = sessionStorage.getItem('email');
+
+    console.log("isAuthenticated:", isAuthenticated);
+    console.log("username:", username);
 
     const loginLink = document.querySelector('.login-link');
     const logoutLink = document.querySelector('.logout-link');
-    const usernameDisplay = document.querySelector('.username-display');
+    const userDisplay = document.querySelector('.username-display');
+    const topRightUser = document.getElementById('top-right-username'); 
 
     if (isAuthenticated === 'true') {
-        loginLink.style.display = 'none';
-        logoutLink.style.display = 'block';
-        usernameDisplay.textContent = username;
-        usernameDisplay.style.display = 'block';
+        // Hide Login Button & Show Logout Button
+        if (loginLink) loginLink.style.display = 'none';
+        if (logoutLink) logoutLink.style.display = 'block';
+
+        // Hide username in navbar and show in top-right corner
+        if (userDisplay) userDisplay.style.display = 'none';
+        if (topRightUser) {
+            topRightUser.textContent = username || email;
+            topRightUser.classList.remove('hide');
+        }
     } else {
-        loginLink.style.display = 'block';
-        logoutLink.style.display = 'none';
-        usernameDisplay.style.display = 'none';
+        // Show Login Button & Hide Logout Button
+        if (loginLink) loginLink.style.display = 'block';
+        if (logoutLink) logoutLink.style.display = 'none';
+
+        // Hide top-right username
+        if (topRightUser) topRightUser.classList.add('hide');
     }
 }
 
-// Show content based on the selected page
-function showContent(page) {
-    const contentDivs = document.querySelectorAll('.content-section');
-    contentDivs.forEach(div => div.style.display = 'none');
-
-    const targetDivId = page.replace('.html', '-content');
-    let targetDiv = document.getElementById(targetDivId);
-
-    if (targetDiv) {
-        targetDiv.style.display = 'block';
-    } else {
-        fetch(page)
-            .then(response => response.text())
-            .then(html => {
-                const newDiv = document.createElement('div');
-                newDiv.id = targetDivId;
-                newDiv.classList.add('content-section');
-                newDiv.innerHTML = html;
-                document.getElementById('content').appendChild(newDiv);
-                newDiv.style.display = 'block';
-            })
-            .catch(error => {
-                Swal.fire({ title: 'Error', text: 'Failed to load content.', icon: 'error' });
-            });
-    }
-}
 
 // Logout function
 function logout() {
-    sessionStorage.removeItem('isAuthenticated');
-    sessionStorage.removeItem('username');
+    sessionStorage.clear();
     updateNavBar();
     showContent('home.html');
+    alert("You have logged out.");
 }
 
 // Initialize the page
