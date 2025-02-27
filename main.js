@@ -103,20 +103,12 @@ async function register() {
     let password2 = document.getElementById("register-password2").value;
 
     if (username === "" || email === "" || password === "" || password2 === "") {
-        Swal.fire({
-            icon: 'error',
-            title: 'Oops...',
-            text: 'Please fill out all fields!',
-        });
+        showErrorPopup('Please fill out all fields!');
         return;
     }
 
     if (password !== password2) {
-        Swal.fire({
-            icon: 'error',
-            title: 'Oops...',
-            text: 'Passwords do not match!',
-        });
+        showErrorPopup('Passwords do not match!');
         return;
     }
 
@@ -124,39 +116,22 @@ async function register() {
         const response = await fetch('https://localhost:7125/api/RegisteredUser/Insert', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-                username: username,
-                email: email,
-                password: password
-            })
+            body: JSON.stringify({ username, email, password })
         });
 
         if (!response.ok) {
             const errorText = await response.text();
-            console.error("Server Error:", errorText);
-            Swal.fire({
-                icon: 'error',
-                title: 'Oops...',
-                text: 'Registration failed: ' + errorText,
-            });
+            showErrorPopup('Registration failed: ' + errorText);
             return;
         }
 
-        Swal.fire({
-            icon: 'success',
-            title: 'Success',
-            text: 'Registration successful! Please log in.',
-        });
+        showSuccessPopup('Registration successful! Please log in.');
         closePopup("register-popup");
     } catch (error) {
-        console.error("Registration error:", error);
-        Swal.fire({
-            icon: 'error',
-            title: 'Oops...',
-            text: 'A network error occurred.',
-        });
+        showErrorPopup('A network error occurred.');
     }
 }
+
 
 // Update NavBar based on authentication status
 function updateNavBar() {
@@ -226,3 +201,25 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     });
 });
+
+function showSuccessPopup(message) {
+    let popup = document.createElement("div");
+    popup.className = "popup success-popup";
+    popup.innerHTML = `<div class="popup-content">
+        <span class="close-icon" onclick="this.parentElement.parentElement.remove()">&times;</span>
+        <p>${message}</p>
+    </div>`;
+    document.body.appendChild(popup);
+    setTimeout(() => popup.remove(), 3000);
+}
+
+function showErrorPopup(message) {
+    let popup = document.createElement("div");
+    popup.className = "popup error-popup";
+    popup.innerHTML = `<div class="popup-content">
+        <span class="close-icon" onclick="this.parentElement.parentElement.remove()">&times;</span>
+        <p>${message}</p>
+    </div>`;
+    document.body.appendChild(popup);
+    setTimeout(() => popup.remove(), 3000);
+}

@@ -525,6 +525,29 @@ footer{
 }
 
 
+.success-popup {
+    background-color: #28a745;
+    color: white;
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    padding: 15px;
+    border-radius: 5px;
+    box-shadow: 0px 0px 10px #28a745;
+    z-index: 1000;
+}
+
+.error-popup {
+    background-color: #dc3545;
+    color: white;
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    padding: 15px;
+    border-radius: 5px;
+    box-shadow: 0px 0px 10px #dc3545;
+    z-index: 1000;
+}
 
 
 
