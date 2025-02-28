@@ -8,16 +8,20 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css">
     <link rel="preconnect" href="https://fonts.gstatic.com">
     <link href="https://fonts.googleapis.com/css2?family=Titillium+Web:ital@1&display=swap" rel="stylesheet">
-</head>
-<!-- Login Popup -->
+</head>     
+
+<script src="main.js"></script>
+
+<body>
+    <!-- Login Popup -->
 <div id="login-popup" class="popup hide">
     <div class="popup-content">
         <span class="close-icon" onclick="closePopup('login-popup')">&times;</span>
         <h2>Login</h2>
-        <input type="text" placeholder="Username" id="login-username">
+        <input type="email" placeholder="Email" id="login-email">
         <input type="password" placeholder="Password" id="login-password">
         <button onclick="login()">Login</button>
-        <p>Doesn't have an account? <a href="#" onclick="switchToRegister()">Create one.</a></p>
+        <p>Don't have an account? <a href="#" onclick="switchToRegister()">Register</a></p>
     </div>
 </div>
 
@@ -27,30 +31,31 @@
         <span class="close-icon" onclick="closePopup('register-popup')">&times;</span>
         <h2>Register</h2>
         <input type="text" placeholder="Username" id="register-username">
-        <input type="password" placeholder="Password" id="register-password">
-        <input type="password" placeholder="Re-enter Password" id="register-password2">
         <input type="email" placeholder="Email" id="register-email">
+        <input type="password" placeholder="Password" id="register-password">
+        <input type="password" placeholder="Confirm Password" id="register-password2">
         <button onclick="register()">Register</button>
     </div>
 </div>
-
-<script src="main.js"></script>
-
-<body>
     <header>
         <!--NavBar Section-->
         <div class="navbar">
-            <nav class="navigation hide" id="navigation">
-                <span class="close-icon" id="close-icon" onclick="showIconBar()"><i class="fa fa-close"></i></span>
+            <nav class="navigation" id="navigation">
+                <span class="close-icon" id="close-icon" onclick="showIconBar()">
+                    <i class="fa fa-close"></i>
+                </span>
                 <ul class="nav-list">
                     <li class="nav-item"><a href="forums.html">Forums</a></li>
                     <li class="nav-item"><a href="posts.html">Posts</a></li>
                     <li class="nav-item"><a href="detail.html">Detail</a></li>
-                    <li class="nav-item"><a href="#" onclick="showLogin()">Login</a></li>
-                </ul>                
+                    <li class="nav-item"><a href="categories.html">Categories</a></li>
+                    <li class="nav-item login-link"><a href="#" onclick="showLogin()">Login</a></li>
+                    <li class="nav-item logout-link hide"><a href="#" onclick="logout()">Logout</a></li>
+                </ul>
             </nav>
             <a class="bar-icon" id="iconBar" onclick="hideIconBar()"><i class="fa fa-bars"></i></a>
             <div class="brand">My Forum</div>
+            <div id="top-right-username" class="top-right-username hide"></div>            
         </div>
         <!--SearchBox Section-->
         <div class="search-box">
@@ -66,6 +71,36 @@
         </div>
     </header>
     <div class="container">
+        <!-- Create Thread Section (Visible Only for Logged-In Users) -->
+        <div id="create-thread-section" class="hide">
+            <button id="create-thread-btn" class="create-thread-btn" onclick="showThreadBox()">Create Thread</button>
+            <div id="thread-box" class="hide">
+                <textarea id="thread-title" placeholder="Enter thread title..."></textarea>
+                <textarea id="thread-content" placeholder="Enter thread content..."></textarea>
+                <button onclick="submitThread()">Submit Thread</button>
+                <button onclick="closeThreadBox()">Cancel</button>
+            </div>
+            <!-- Create Thread Section (Visible Only for Logged-In Users) -->
+        <div id="create-thread-section" class="hide">
+            <button id="create-thread-btn" class="create-thread-btn" onclick="showThreadBox()">Create Thread</button>
+            <div id="thread-box" class="hide">
+                <textarea id="thread-title" placeholder="Enter thread title..."></textarea>
+                <textarea id="thread-content" placeholder="Enter thread content..."></textarea>
+                <button onclick="submitThread()">Submit Thread</button>
+                <button onclick="closeThreadBox()">Cancel</button>
+            </div>
+    </div>
+
+    <!-- Posts Table (Threads will be displayed here) -->
+    <div class="posts-table">
+        <div class="table-head">
+            <div class="status">Status</div>
+            <div class="subjects">Subjects</div>
+            <div class="replies">Replies/Views</div>
+            <div class="last-reply">Last Reply</div>
+        </div>
+    </div>
+        </div>
         <!--Navigation-->
         <div class="navigate">
             <span><a href="">MyForum - Forums</a> >> <a href="">random subforum</a></span>
@@ -94,169 +129,8 @@
                     <br>By <b><a href="">User</a></b>
                 </div>
             </div>
-            <!--starts here-->
-            <div class="table-row">
-                <div class="status"><i class="fa fa-fire"></i></div>
-                <div class="subjects">
-                    <a href="">Is learning Python on 2021 worth it?</a>
-                    <br>
-                    <span>Started by <b><a href="">User</a></b> .</span>
-                </div>
-                <div class="replies">
-                    2 replies <br> 125 views
-                </div>
-
-                <div class="last-reply">
-                    Oct 12 2021
-                    <br>By <b><a href="">User</a></b>
-                </div>
-            </div>
-
-            <div class="table-row">
-                <div class="status"><i class="fa fa-fire"></i></div>
-                <div class="subjects">
-                    <a href="">Is learning Python on 2021 worth it?</a>
-                    <br>
-                    <span>Started by <b><a href="">User</a></b> .</span>
-                </div>
-                <div class="replies">
-                    2 replies <br> 125 views
-                </div>
-
-                <div class="last-reply">
-                    Oct 12 2021
-                    <br>By <b><a href="">User</a></b>
-                </div>
-            </div>
-
-            <div class="table-row">
-                <div class="status"><i class="fa fa-book"></i></div>
-                <div class="subjects">
-                    <a href="">Is learning Python on 2021 worth it?</a>
-                    <br>
-                    <span>Started by <b><a href="">User</a></b> .</span>
-                </div>
-                <div class="replies">
-                    2 replies <br> 125 views
-                </div>
-
-                <div class="last-reply">
-                    Oct 12 2021
-                    <br>By <b><a href="">User</a></b>
-                </div>
-            </div>
-
-            <div class="table-row">
-                <div class="status"><i class="fa fa-rocket"></i></div>
-                <div class="subjects">
-                    <a href="">Is learning Python on 2021 worth it?</a>
-                    <br>
-                    <span>Started by <b><a href="">User</a></b> .</span>
-                </div>
-                <div class="replies">
-                    2 replies <br> 125 views
-                </div>
-
-                <div class="last-reply">
-                    Oct 12 2021
-                    <br>By <b><a href="">User</a></b>
-                </div>
-            </div>
-
-            <div class="table-row">
-                <div class="status"><i class="fa fa-frown-o"></i></div>
-                <div class="subjects">
-                    <a href="">Is learning Python on 2021 worth it?</a>
-                    <br>
-                    <span>Started by <b><a href="">User</a></b> .</span>
-                </div>
-                <div class="replies">
-                    2 replies <br> 125 views
-                </div>
-
-                <div class="last-reply">
-                    Oct 12 2021
-                    <br>By <b><a href="">User</a></b>
-                </div>
-            </div>
-
-
-            <div class="table-row">
-                <div class="status"><i class="fa fa-fire"></i></div>
-                <div class="subjects">
-                    <a href="">Is learning Python on 2021 worth it?</a>
-                    <br>
-                    <span>Started by <b><a href="">User</a></b> .</span>
-                </div>
-                <div class="replies">
-                    2 replies <br> 125 views
-                </div>
-
-                <div class="last-reply">
-                    Oct 12 2021
-                    <br>By <b><a href="">User</a></b>
-                </div>
-            </div>
-
-            <div class="table-row">
-                <div class="status"><i class="fa fa-fire"></i></div>
-                <div class="subjects">
-                    <a href="">Is learning Python on 2021 worth it?</a>
-                    <br>
-                    <span>Started by <b><a href="">User</a></b> .</span>
-                </div>
-                <div class="replies">
-                    2 replies <br> 125 views
-                </div>
-
-                <div class="last-reply">
-                    Oct 12 2021
-                    <br>By <b><a href="">User</a></b>
-                </div>
-            </div>
-
-            <div class="table-row">
-                <div class="status"><i class="fa fa-lock"></i></div>
-                <div class="subjects">
-                    <a href="">Is learning Python on 2021 worth it?</a>
-                    <br>
-                    <span>Started by <b><a href="">User</a></b> .</span>
-                </div>
-                <div class="replies">
-                    2 replies <br> 125 views
-                </div>
-
-                <div class="last-reply">
-                    Oct 12 2021
-                    <br>By <b><a href="">User</a></b>
-                </div>
-            </div>
-
-            <div class="table-row">
-                <div class="status"><i class="fa fa-fire"></i></div>
-                <div class="subjects">
-                    <a href="">Is learning Python on 2021 worth it?</a>
-                    <br>
-                    <span>Started by <b><a href="">User</a></b> .</span>
-                </div>
-                <div class="replies">
-                    2 replies <br> 125 views
-                </div>
-
-                <div class="last-reply">
-                    Oct 12 2021
-                    <br>By <b><a href="">User</a></b>
-                </div>
-            </div>
-            <!--ends here-->
-        </div>
-        <!--Pagination starts-->
-            <div class="pagination">
-                pages: <a href="">1</a><a href="">2</a><a href="">3</a>
-            </div>
-        <!--pagination ends-->
     </div>
-
+        
     <div class="note">
         <span><i class="fa fa-frown-o"></i>&nbsp; 0 Engagement Topic</span>&nbsp;&nbsp;&nbsp;<a href=""><i class="fa fa-share-square"></i></a><br>
         <span><i class="fa fa-book"></i>&nbsp; Low Engagement Topic</span>&nbsp;&nbsp;&nbsp;<a href=""><i class="fa fa-share-square"></i></a><br>

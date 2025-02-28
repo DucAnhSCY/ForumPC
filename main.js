@@ -148,37 +148,38 @@ async function register() {
 function updateNavBar() {
     let isAuthenticated = sessionStorage.getItem('isAuthenticated');
     let username = sessionStorage.getItem('username');
-    let email = sessionStorage.getItem('email');
-
-    console.log("isAuthenticated:", isAuthenticated);
-    console.log("username:", username);
 
     const loginLink = document.querySelector('.login-link');
     const logoutLink = document.querySelector('.logout-link');
-    const userDisplay = document.querySelector('.username-display');
-    const topRightUser = document.getElementById('top-right-username'); 
+    const topRightUser = document.getElementById('top-right-username');
 
     if (isAuthenticated === 'true') {
-        // Hide Login Button & Show Logout Button
         if (loginLink) loginLink.style.display = 'none';
-        if (logoutLink) logoutLink.style.display = 'block';
+        if (logoutLink) logoutLink.classList.remove('hide');
 
-        // Hide username in navbar and show in top-right corner
-        if (userDisplay) userDisplay.style.display = 'none';
         if (topRightUser) {
-            topRightUser.textContent = username || email;
+            topRightUser.textContent = `${username}`;
             topRightUser.classList.remove('hide');
         }
     } else {
-        // Show Login Button & Hide Logout Button
         if (loginLink) loginLink.style.display = 'block';
-        if (logoutLink) logoutLink.style.display = 'none';
+        if (logoutLink) logoutLink.classList.add('hide');
 
-        // Hide top-right username
         if (topRightUser) topRightUser.classList.add('hide');
     }
 }
 
+// Logout function
+function logout() {
+    sessionStorage.clear();
+    updateNavBar();
+    alert("You have logged out.");
+    // Redirect user to login popup
+    showLogin();
+}
+
+// Ensure NavBar updates on page load
+document.addEventListener('DOMContentLoaded', updateNavBar);
 
 // Logout function
 function logout() {
@@ -222,3 +223,154 @@ function showErrorPopup(message) {
     document.body.appendChild(popup);
     setTimeout(() => popup.remove(), 3000);
 }
+
+// Show Create Thread Section for Logged-In Users
+function showThreadButton() {
+    let isAuthenticated = sessionStorage.getItem('isAuthenticated');
+    if (isAuthenticated === 'true') {
+        document.getElementById("create-thread-section").classList.remove("hide");
+    }
+}
+// Show Thread Creation Box
+function showThreadBox() {
+    document.getElementById("thread-box").classList.remove("hide");
+}
+// Close Thread Box
+function closeThreadBox() {
+    document.getElementById("thread-box").classList.add("hide");
+}
+// Submit Thread (Dummy Function for Now)
+function submitThread() {
+    let title = document.getElementById("thread-title").value;
+    let content = document.getElementById("thread-content").value;
+
+    if (!title || !content) {
+        alert("Please enter both a title and content.");
+        return;
+    }
+
+    alert(`Thread Created!\nTitle: ${title}\nContent: ${content}`);
+    closeThreadBox();
+}
+// Ensure Create Thread Button Appears for Logged-In Users
+document.addEventListener('DOMContentLoaded', showThreadButton);
+
+const API_BASE_URL = "http://localhost:5195/api/Thread"; // Change if your backend is on a different port
+
+// Load existing threads when the page loads
+document.addEventListener("DOMContentLoaded", function () {
+    updateNavBar();
+    showThreadButton();
+    loadThreads();
+});
+
+// Function to show the Create Thread section only if the user is logged in
+function showThreadButton() {
+    let isAuthenticated = sessionStorage.getItem("isAuthenticated");
+    if (isAuthenticated === "true") {
+        document.getElementById("create-thread-section").classList.remove("hide");
+    }
+}
+
+// Show the Thread Creation Box
+function showThreadBox() {
+    document.getElementById("thread-box").classList.remove("hide");
+}
+
+// Close Thread Box
+function closeThreadBox() {
+    document.getElementById("thread-box").classList.add("hide");
+}
+
+// Load existing threads from the API
+async function loadThreads() {
+    try {
+        const response = await fetch(API_BASE_URL);
+        if (!response.ok) throw new Error("Failed to fetch threads");
+
+        const threads = await response.json();
+        displayThreads(threads);
+    } catch (error) {
+        console.error("Error loading threads:", error);
+    }
+}
+
+// Display threads inside the posts section
+function displayThreads(threads) {
+    const postsContainer = document.querySelector(".posts-table");
+
+    // Clear existing threads before adding new ones
+    postsContainer.innerHTML = `
+        <div class="table-head">
+            <div class="status">Status</div>
+            <div class="subjects">Subjects</div>
+            <div class="replies">Replies/Views</div>
+            <div class="last-reply">Last Reply</div>
+        </div>
+    `;
+
+    threads.forEach(thread => {
+        postsContainer.innerHTML += `
+            <div class="table-row">
+                <div class="status"><i class="fa fa-comment"></i></div>
+                <div class="subjects">
+                    <a href="detail.html?id=${thread.id}">${thread.title}</a>
+                    <br>
+                    <span>Started by <b>${thread.regUserId ? `User ${thread.regUserId}` : `Moderator ${thread.modId}`}</b></span>
+                </div>
+                <div class="replies">0 replies <br> 0 views</div>
+                <div class="last-reply">Just now</div>
+            </div>
+        `;
+    });
+}
+
+// Submit a new thread
+async function submitThread() {
+    let title = document.getElementById("thread-title").value;
+    let content = document.getElementById("thread-content").value;
+    let userId = sessionStorage.getItem("userId"); // Get logged-in user's ID
+    let username = sessionStorage.getItem("username");
+    let categoryId = 1; // Default category (Change as needed)
+
+    if (!title || !content) {
+        alert("Please enter both a title and content.");
+        return;
+    }
+
+    try {
+        const response = await fetch(`${API_BASE_URL}/Insert?title=${title}&content=${content}&categoryId=${categoryId}&regUserId=${userId}`, {
+            method: "POST"
+        });
+
+        if (!response.ok) {
+            const errorText = await response.text();
+            throw new Error(errorText);
+        }
+
+        const result = await response.json();
+        alert("Thread created successfully!");
+
+        // Add the new thread to the list dynamically
+        const postsContainer = document.querySelector(".posts-table");
+        postsContainer.innerHTML += `
+            <div class="table-row">
+                <div class="status"><i class="fa fa-comment"></i></div>
+                <div class="subjects">
+                    <a href="detail.html?id=${result.thread.id}">${result.thread.title}</a>
+                    <br>
+                    <span>Started by <b>${username}</b></span>
+                </div>
+                <div class="replies">0 replies <br> 0 views</div>
+                <div class="last-reply">Just now</div>
+            </div>
+        `;
+
+        closeThreadBox();
+    } catch (error) {
+        console.error("Error creating thread:", error);
+        alert("Failed to create thread.");
+    }
+}
+
+

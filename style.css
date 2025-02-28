@@ -282,108 +282,7 @@ footer{
 /*            posts.html                       */
 /* ########################################### */
 
-/* posts table's head  */
-.table-head{
-    display: flex;
-}
 
-.table-head div{
-    padding: 5px;
-    margin: 2px;
-    background-color: #2C2C2C;
-    font-weight: bold;
-}
-
-.table-head .status{
-    flex: 5%;
-}
-
-.table-head .subjects{
-    flex: 70%;
-}
-
-.table-head .replies{
-    flex: 10%;
-}
-
-.table-head .last-reply{
-    flex: 15%;
-}
-
-/* posts table's body  */
-
-.table-row{
-    display: flex;
-}
-
-.table-row .status, .table-row .subjects, .table-row .replies, .table-row .last-reply{
-    padding: 5px;
-    margin: 2px;
-    background-color: #131415;
-}
-
-.table-row .status{
-    flex: 5%;
-    font-size: 30px;
-    text-align: center;
-}
-
-.table-row .subjects{
-    flex: 70%;
-}
-
-.table-row .replies{
-    flex: 10%;
-}
-
-.table-row .last-reply{
-    flex: 15%;
-}
-
-/* navigation path*/
-.navigate{
-    margin-block: 20px;
-    font-weight: lighter;
-    font-size: 24px;
-}
-
-.navigate a{
-    color: #fff;
-}
-
-.navigate a:hover{
-    color:#FF0042;
-    font-weight: bolder;
-}
-
-/* Pagination*/
-
-.pagination{
-    padding: 20px;
-    font-size: 15px;
-}
-
-.pagination a{
-    color: #fff;
-    margin-inline: 5px;
-    padding: 5px 10px;
-    border: solid 0.5px #fff;
-}
-
-.pagination a:hover{
-    opacity: 0.5;
-}
-
-.note{
-    background-color:#111314;
-    padding: 20px;
-    display: block;
-}
-
-.note span{
-    font-size: 20px;
-    margin-block: 5px;
-}
 
 
 /* ########################################### */
@@ -560,6 +459,85 @@ footer{
     padding: 5px 10px;
     border-radius: 5px;
 }
+
+#create-thread-section {
+    width: 100%;
+    text-align: center;
+    margin: 20px 0;
+    padding: 20px;
+    background: #111314; /* Match the forum theme */
+    border-top: 2px solid #007BFF;
+    border-bottom: 2px solid #007BFF;
+}
+
+.create-thread-btn {
+    padding: 12px 20px;
+    font-size: 18px;
+    background-color: #222;
+    color: white;
+    border: none;
+    cursor: pointer;
+    border-radius: 5px;
+    width: 90%;
+    max-width: 1000px;
+    margin: 10px auto;
+    display: block;
+}
+
+
+#thread-box {
+    width: 100%;
+    padding: 20px;
+    background: #222;
+    border-radius: 5px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 10px;
+}
+
+#thread-box textarea {
+    width: 100%;
+    max-width: 10000px;
+    height: 150px; /* Same height for both title & content */
+    padding: 10px;
+    background: #333;
+    color: white;
+    border: none;
+    border-radius: 5px;
+    font-size: 16px;
+    resize: none; /* Prevent resizing to keep consistency */
+}
+
+#thread-box button {
+    padding: 10px 15px;
+    font-size: 16px;
+    cursor: pointer;
+    border-radius: 5px;
+    width: 90%;
+    max-width: 400px;
+}
+
+#thread-box button:first-of-type {
+    background-color: #28a745;
+    color: white;
+    border: none;
+}
+
+#thread-box button:first-of-type:hover {
+    background-color: #218838;
+}
+
+#thread-box button:last-of-type {
+    background-color: #dc3545;
+    color: white;
+    border: none;
+}
+
+#thread-box button:last-of-type:hover {
+    background-color: #c82333;
+}
+
 
 
 

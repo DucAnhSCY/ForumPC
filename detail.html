@@ -9,15 +9,19 @@
     <link rel="preconnect" href="https://fonts.gstatic.com">
     <link href="https://fonts.googleapis.com/css2?family=Titillium+Web:ital@1&display=swap" rel="stylesheet">
 </head>
-<!-- Login Popup -->
+
+<script src="main.js"></script>
+
+<body>
+    <!-- Login Popup -->
 <div id="login-popup" class="popup hide">
     <div class="popup-content">
         <span class="close-icon" onclick="closePopup('login-popup')">&times;</span>
         <h2>Login</h2>
-        <input type="text" placeholder="Username" id="login-username">
+        <input type="email" placeholder="Email" id="login-email">
         <input type="password" placeholder="Password" id="login-password">
         <button onclick="login()">Login</button>
-        <p>Doesn't have an account? <a href="#" onclick="switchToRegister()">Create one.</a></p>
+        <p>Don't have an account? <a href="#" onclick="switchToRegister()">Register</a></p>
     </div>
 </div>
 
@@ -27,30 +31,31 @@
         <span class="close-icon" onclick="closePopup('register-popup')">&times;</span>
         <h2>Register</h2>
         <input type="text" placeholder="Username" id="register-username">
-        <input type="password" placeholder="Password" id="register-password">
-        <input type="password" placeholder="Re-enter Password" id="register-password2">
         <input type="email" placeholder="Email" id="register-email">
+        <input type="password" placeholder="Password" id="register-password">
+        <input type="password" placeholder="Confirm Password" id="register-password2">
         <button onclick="register()">Register</button>
     </div>
 </div>
-
-<script src="main.js"></script>
-
-<body>
     <header>
         <!--NavBar Section-->
         <div class="navbar">
-            <nav class="navigation hide" id="navigation">
-                <span class="close-icon" id="close-icon" onclick="showIconBar()"><i class="fa fa-close"></i></span>
+            <nav class="navigation" id="navigation">
+                <span class="close-icon" id="close-icon" onclick="showIconBar()">
+                    <i class="fa fa-close"></i>
+                </span>
                 <ul class="nav-list">
                     <li class="nav-item"><a href="forums.html">Forums</a></li>
                     <li class="nav-item"><a href="posts.html">Posts</a></li>
                     <li class="nav-item"><a href="detail.html">Detail</a></li>
-                    <li class="nav-item"><a href="#" onclick="showLogin()">Login</a></li>
-                </ul>                
+                    <li class="nav-item"><a href="categories.html">Categories</a></li>
+                    <li class="nav-item login-link"><a href="#" onclick="showLogin()">Login</a></li>
+                    <li class="nav-item logout-link hide"><a href="#" onclick="logout()">Logout</a></li>
+                </ul>
             </nav>
             <a class="bar-icon" id="iconBar" onclick="hideIconBar()"><i class="fa fa-bars"></i></a>
             <div class="brand">My Forum</div>
+            <div id="top-right-username" class="top-right-username hide"></div>            
         </div>
         <!--SearchBox Section-->
         <div class="search-box">
