@@ -114,6 +114,13 @@ async function register() {
     let password = document.getElementById("register-password").value;
     let password2 = document.getElementById("register-password2").value;
 
+    // Email validation using Regex
+    let emailPattern = /^[^@\s]+@[^@\s]+\.[^@\s]+$/;
+    if (!emailPattern.test(email)) {
+        showErrorPopup('Invalid email format.');
+        return;
+    }
+
     if (username === "" || email === "" || password === "" || password2 === "") {
         showErrorPopup('Please fill out all fields!');
         return;
@@ -131,9 +138,10 @@ async function register() {
             body: JSON.stringify({ username, email, password })
         });
 
+        const result = await response.json();
+
         if (!response.ok) {
-            const errorText = await response.text();
-            showErrorPopup('Registration failed: ' + errorText);
+            showErrorPopup(result.message);
             return;
         }
 
