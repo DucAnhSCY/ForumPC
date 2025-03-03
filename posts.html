@@ -72,65 +72,20 @@
     </header>
     <div class="container">
         <!-- Create Thread Section (Visible Only for Logged-In Users) -->
-        <div id="create-thread-section" class="hide">
-            <button id="create-thread-btn" class="create-thread-btn" onclick="showThreadBox()">Create Thread</button>
-            <div id="thread-box" class="hide">
-                <textarea id="thread-title" placeholder="Enter thread title..."></textarea>
-                <textarea id="thread-content" placeholder="Enter thread content..."></textarea>
-                <button onclick="submitThread()">Submit Thread</button>
-                <button onclick="closeThreadBox()">Cancel</button>
-            </div>
-            <!-- Create Thread Section (Visible Only for Logged-In Users) -->
-        <div id="create-thread-section" class="hide">
-            <button id="create-thread-btn" class="create-thread-btn" onclick="showThreadBox()">Create Thread</button>
-            <div id="thread-box" class="hide">
-                <textarea id="thread-title" placeholder="Enter thread title..."></textarea>
-                <textarea id="thread-content" placeholder="Enter thread content..."></textarea>
-                <button onclick="submitThread()">Submit Thread</button>
-                <button onclick="closeThreadBox()">Cancel</button>
-            </div>
+    <div id="create-thread-section" class="hide">
+        <button id="create-thread-btn" class="create-thread-btn" onclick="showThreadBox()">Create Thread</button>
+        <div id="thread-box" class="hide">
+            <select id="category-dropdown">
+                <option value="">Select a category</option>
+            </select>
+            <textarea id="thread-title" placeholder="Enter thread title..."></textarea>
+            <textarea id="thread-content" placeholder="Enter thread content..."></textarea>
+            <button onclick="submitThread()">Submit Thread</button>
+            <button onclick="closeThreadBox()">Cancel</button>
     </div>
+</div>
 
-    <!-- Posts Table (Threads will be displayed here) -->
-    <div class="posts-table">
-        <div class="table-head">
-            <div class="status">Status</div>
-            <div class="subjects">Subjects</div>
-            <div class="replies">Replies/Views</div>
-            <div class="last-reply">Last Reply</div>
-        </div>
-    </div>
-        </div>
-        <!--Navigation-->
-        <div class="navigate">
-            <span><a href="">MyForum - Forums</a> >> <a href="">random subforum</a></span>
-        </div>
-        <!--Display posts table-->
-        <div class="posts-table">
-            <div class="table-head">
-                <div class="status">Status</div>
-                <div class="subjects">Subjects</div>
-                <div class="replies">Replies/Views</div>
-                <div class="last-reply">Last Reply</div>
-            </div>
-            <div class="table-row">
-                <div class="status"><i class="fa fa-fire"></i></div>
-                <div class="subjects">
-                    <a href="">Is learning Python on 2021 worth it?</a>
-                    <br>
-                    <span>Started by <b><a href="">User</a></b> .</span>
-                </div>
-                <div class="replies">
-                    2 replies <br> 125 views
-                </div>
-
-                <div class="last-reply">
-                    Oct 12 2021
-                    <br>By <b><a href="">User</a></b>
-                </div>
-            </div>
-    </div>
-        
+    </div>        
     <div class="note">
         <span><i class="fa fa-frown-o"></i>&nbsp; 0 Engagement Topic</span>&nbsp;&nbsp;&nbsp;<a href=""><i class="fa fa-share-square"></i></a><br>
         <span><i class="fa fa-book"></i>&nbsp; Low Engagement Topic</span>&nbsp;&nbsp;&nbsp;<a href=""><i class="fa fa-share-square"></i></a><br>
