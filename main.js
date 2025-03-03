@@ -68,14 +68,14 @@ async function login() {
         });
 
         if (response.status === 401) {
-            alert("Invalid email or password.");
+            showErrorPopup("Invalid email or password.");
             return;
         }
 
         if (!response.ok) {
             const errorText = await response.text();
             console.error("Login failed:", errorText);
-            alert("Login failed: " + errorText);
+            showErrorPopup("Login failed: " + errorText);
             return;
         }
 
@@ -95,7 +95,7 @@ async function login() {
         updateNavBar();
 
         // Show welcome message and close popup
-        alert(`Welcome, ${username}!`);
+        showSuccessPopup(`Welcome, ${username}!`);
         closePopup("login-popup");
 
     } catch (error) {
@@ -485,3 +485,13 @@ document.addEventListener("DOMContentLoaded", function () {
     loadCategories();
     loadCategoryDropdown();
 });
+function showSuccessPopup(message) {
+    let popup = document.createElement("div");
+    popup.className = "popup success-popup";
+    popup.innerHTML = `<div class="popup-content">
+        <span class="close-icon" onclick="this.parentElement.parentElement.remove()">&times;</span>
+        <p>${message}</p>
+    </div>`;
+    document.body.appendChild(popup);
+    setTimeout(() => popup.remove(), 3000);
+}
