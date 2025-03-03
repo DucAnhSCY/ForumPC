@@ -497,4 +497,44 @@ function showSuccessPopup(message) {
     </div>`;
     document.body.appendChild(popup);
     setTimeout(() => popup.remove(), 3000);
+}// Function to load categories into the dropdown
+async function loadCategoryDropdown() {
+    console.log("🔄 Fetching categories for dropdown...");
+
+    try {
+        const response = await fetch("http://localhost:5195/api/Category"); // API call to fetch categories
+
+        if (!response.ok) {
+            throw new Error(`HTTP error! Status: ${response.status}`);
+        }
+
+        const categories = await response.json();
+        console.log("✅ Categories fetched successfully:", categories);
+
+        const dropdown = document.getElementById("category-dropdown");
+
+        if (!dropdown) {
+            console.error("❌ Category dropdown not found in the DOM!");
+            return;
+        }
+
+        // Clear previous options
+        dropdown.innerHTML = `<option value="">Select a category</option>`;
+
+        // Populate dropdown with categories
+        categories.forEach(category => {
+            dropdown.innerHTML += `<option value="${category.id}">${category.name}</option>`;
+        });
+
+        console.log("✅ Category dropdown updated successfully!");
+    } catch (error) {
+        console.error("❌ Error loading categories:", error);
+    }
 }
+
+// Ensure categories are loaded when the page loads
+document.addEventListener("DOMContentLoaded", function () {
+    updateNavBar();
+    loadCategoryDropdown(); // Load categories on page load
+});
+
