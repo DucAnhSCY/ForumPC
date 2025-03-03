@@ -68,14 +68,14 @@ async function login() {
         });
 
         if (response.status === 401) {
-            alert("Invalid email or password.");
+            showErrorPopup("Invalid email or password.");
             return;
         }
 
         if (!response.ok) {
             const errorText = await response.text();
             console.error("Login failed:", errorText);
-            alert("Login failed: " + errorText);
+            showErrorPopup("Login failed: " + errorText);
             return;
         }
 
