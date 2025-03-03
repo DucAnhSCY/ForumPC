@@ -69,14 +69,21 @@
         </div>
     </div>
     <main>
+                <!-- Add Category Section (Only for Admin) -->
+        <div id="add-category-section" class="hide">
+            <div id="category-box" class="hide">
+                <input type="text" id="category-name" placeholder="Enter category name..." />
+                <button onclick="submitCategory()">Submit Category</button>
+                <button onclick="closeCategoryBox()">Cancel</button>
+            </div>
+        </div>
+
+        <!-- Categories List -->
         <h1 id="categories">Categories</h1>
-        <ul>
-            <li>Action</li>
-            <li>Adventure</li>
-            <li>RPG</li>
-            <li>Strategy</li>
-            <li>Sports</li>
+        <ul id="category-list">
+            <!-- Categories will be loaded here -->
         </ul>
+
     </main>
 </body>
 </html>

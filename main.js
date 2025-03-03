@@ -104,9 +104,6 @@ async function login() {
     }
 }
 
-
-
-
 // Register Function
 async function register() {
     let username = document.getElementById("register-username").value;
@@ -189,14 +186,6 @@ function logout() {
 // Ensure NavBar updates on page load
 document.addEventListener('DOMContentLoaded', updateNavBar);
 
-// Logout function
-function logout() {
-    sessionStorage.clear();
-    updateNavBar();
-    showContent('home.html');
-    alert("You have logged out.");
-}
-
 // Initialize the page
 document.addEventListener('DOMContentLoaded', function() {
     updateNavBar();
@@ -239,31 +228,78 @@ function showThreadButton() {
         document.getElementById("create-thread-section").classList.remove("hide");
     }
 }
+
 // Show Thread Creation Box
 function showThreadBox() {
     document.getElementById("thread-box").classList.remove("hide");
 }
+
 // Close Thread Box
 function closeThreadBox() {
     document.getElementById("thread-box").classList.add("hide");
 }
+
 // Submit Thread (Dummy Function for Now)
-function submitThread() {
+async function submitThread() {
     let title = document.getElementById("thread-title").value;
     let content = document.getElementById("thread-content").value;
+    let categoryId = document.getElementById("category-dropdown").value;
+    let userId = sessionStorage.getItem("userId"); // Logged-in user ID
+    let username = sessionStorage.getItem("username"); // Displayed username
+    let role = sessionStorage.getItem("role"); // "User" or "Moderator"
 
-    if (!title || !content) {
-        alert("Please enter both a title and content.");
+    if (!title || !content || !categoryId) {
+        alert("Please fill in all fields, including selecting a category.");
         return;
     }
 
-    alert(`Thread Created!\nTitle: ${title}\nContent: ${content}`);
-    closeThreadBox();
-}
-// Ensure Create Thread Button Appears for Logged-In Users
-document.addEventListener('DOMContentLoaded', showThreadButton);
+    // Determine if the user is a registered user or a moderator
+    let regUserId = role === "User" ? userId : null;
+    let modId = role === "Moderator" ? userId : null;
 
-const API_BASE_URL = "http://localhost:5195/api/Thread"; // Change if your backend is on a different port
+    try {
+        const url = new URL("http://localhost:5195/api/Thread/Insert");
+        url.searchParams.append("title", title);
+        url.searchParams.append("content", content);
+        url.searchParams.append("categoryId", categoryId);
+        if (regUserId) url.searchParams.append("regUserId", regUserId);
+        if (modId) url.searchParams.append("modId", modId);
+
+        console.log("Sending request to:", url.toString()); // Debugging
+
+        const postResponse = await fetch(url, { method: "POST" });
+
+        const responseText = await postResponse.text();
+        console.log("API Response:", responseText); // Debugging
+
+        if (!postResponse.ok) {
+            throw new Error(responseText);
+        }
+
+        const result = JSON.parse(responseText);
+        alert("Thread created successfully!");
+
+        // Add the new thread to the list dynamically
+        const postsContainer = document.querySelector(".posts-table");
+        postsContainer.innerHTML += `
+            <div class="table-row">
+                <div class="status"><i class="fa fa-comment"></i></div>
+                <div class="subjects">
+                    <a href="detail.html?id=${result.thread.id}">${result.thread.title}</a>
+                    <br>
+                    <span>Started by <b>${username}</b></span>
+                </div>
+                <div class="replies">0 replies <br> 0 views</div>
+                <div class="last-reply">Just now</div>
+            </div>
+        `;
+
+        closeThreadBox();
+    } catch (error) {
+        console.error("Error creating thread:", error);
+        alert("Failed to create thread.");
+    }
+}
 
 // Load existing threads when the page loads
 document.addEventListener("DOMContentLoaded", function () {
@@ -272,28 +308,10 @@ document.addEventListener("DOMContentLoaded", function () {
     loadThreads();
 });
 
-// Function to show the Create Thread section only if the user is logged in
-function showThreadButton() {
-    let isAuthenticated = sessionStorage.getItem("isAuthenticated");
-    if (isAuthenticated === "true") {
-        document.getElementById("create-thread-section").classList.remove("hide");
-    }
-}
-
-// Show the Thread Creation Box
-function showThreadBox() {
-    document.getElementById("thread-box").classList.remove("hide");
-}
-
-// Close Thread Box
-function closeThreadBox() {
-    document.getElementById("thread-box").classList.add("hide");
-}
-
 // Load existing threads from the API
 async function loadThreads() {
     try {
-        const response = await fetch(API_BASE_URL);
+        const response = await fetch("http://localhost:5195/api/Thread");
         if (!response.ok) throw new Error("Failed to fetch threads");
 
         const threads = await response.json();
@@ -333,52 +351,137 @@ function displayThreads(threads) {
     });
 }
 
-// Submit a new thread
-async function submitThread() {
-    let title = document.getElementById("thread-title").value;
-    let content = document.getElementById("thread-content").value;
-    let userId = sessionStorage.getItem("userId"); // Get logged-in user's ID
+// Show "Add Category" button only for Admin
+function showCategoryButton() {
     let username = sessionStorage.getItem("username");
-    let categoryId = 1; // Default category (Change as needed)
+    if (username === "admin") {
+        document.getElementById("add-category-section").classList.remove("hide");
+    }
+}
 
-    if (!title || !content) {
-        alert("Please enter both a title and content.");
+// Show category creation box
+function showCategoryBox() {
+    document.getElementById("category-box").classList.remove("hide");
+}
+
+// Close category creation box
+function closeCategoryBox() {
+    document.getElementById("category-box").classList.add("hide");
+}
+
+// Load categories from API
+async function loadCategories() {
+    try {
+        const response = await fetch("http://localhost:5195/api/Category");
+        if (!response.ok) throw new Error("Failed to fetch categories");
+
+        const categories = await response.json();
+        
+        // Update the category list on the Categories page
+        const categoryList = document.getElementById("category-list");
+        if (categoryList) {
+            categoryList.innerHTML = ""; // Clear list before adding
+            categories.forEach(category => {
+                categoryList.innerHTML += `<li>${category.name}</li>`;
+            });
+        }
+    } catch (error) {
+        console.error("Error loading categories:", error);
+    }
+}
+
+// Load categories when the page loads
+document.addEventListener("DOMContentLoaded", loadCategories);
+
+
+// Display categories in the list
+function displayCategories(categories) {
+    const categoryList = document.getElementById("category-list");
+    categoryList.innerHTML = ""; // Clear list before adding
+
+    categories.forEach(category => {
+        categoryList.innerHTML += `<li>${category.name}</li>`;
+    });
+}
+
+// Submit new category (Only for Admin)
+async function submitCategory() {
+    let categoryName = document.getElementById("category-name").value.trim();
+    let username = sessionStorage.getItem("username");
+
+    if (username !== "admin") {
+        alert("Only Admin can create categories.");
+        return;
+    }
+
+    if (!categoryName) {
+        alert("Category name cannot be empty.");
         return;
     }
 
     try {
-        const response = await fetch(`${API_BASE_URL}/Insert?title=${title}&content=${content}&categoryId=${categoryId}&regUserId=${userId}`, {
-            method: "POST"
-        });
+        console.log(`🆕 Attempting to add category: ${categoryName}`);
+        
+        const url = `http://localhost:5195/api/Category/Insert?name=${encodeURIComponent(categoryName)}`;
+        const response = await fetch(url, { method: "POST" });
 
-        if (!response.ok) {
-            const errorText = await response.text();
-            throw new Error(errorText);
-        }
+        if (!response.ok) throw new Error(await response.text());
 
-        const result = await response.json();
-        alert("Thread created successfully!");
+        alert("Category created successfully!");
 
-        // Add the new thread to the list dynamically
-        const postsContainer = document.querySelector(".posts-table");
-        postsContainer.innerHTML += `
-            <div class="table-row">
-                <div class="status"><i class="fa fa-comment"></i></div>
-                <div class="subjects">
-                    <a href="detail.html?id=${result.thread.id}">${result.thread.title}</a>
-                    <br>
-                    <span>Started by <b>${username}</b></span>
-                </div>
-                <div class="replies">0 replies <br> 0 views</div>
-                <div class="last-reply">Just now</div>
-            </div>
-        `;
+        console.log("✅ Category added! Reloading dropdown...");
 
-        closeThreadBox();
+        await loadCategories(); // Reload categories list
+        await loadCategoryDropdown(); // Reload dropdown
+
+        closeCategoryBox();
     } catch (error) {
-        console.error("Error creating thread:", error);
-        alert("Failed to create thread.");
+        console.error("❌ Error creating category:", error);
+        alert("Failed to create category.");
     }
 }
 
 
+
+// Load categories into the dropdown
+async function loadCategoryDropdown() {
+    console.log("🔄 Attempting to load categories into dropdown...");
+
+    try {
+        const response = await fetch("http://localhost:5195/api/Category");
+        
+        if (!response.ok) {
+            throw new Error(`HTTP error! Status: ${response.status}`);
+        }
+
+        const categories = await response.json();
+        console.log("✅ Fetched categories:", categories);
+
+        const dropdown = document.getElementById("category-dropdown");
+
+        if (!dropdown) {
+            console.error("❌ Dropdown not found in the DOM!");
+            return;
+        }
+
+        // Clear existing options
+        dropdown.innerHTML = `<option value="">Select a category</option>`;
+
+        // Populate dropdown with categories
+        categories.forEach(category => {
+            dropdown.innerHTML += `<option value="${category.id}">${category.name}</option>`;
+        });
+
+        console.log("✅ Dropdown updated successfully!");
+    } catch (error) {
+        console.error("❌ Error loading categories:", error);
+    }
+}
+
+
+
+document.addEventListener("DOMContentLoaded", function () {
+    showCategoryButton();
+    loadCategories();
+    loadCategoryDropdown();
+});

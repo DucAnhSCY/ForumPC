@@ -538,6 +538,76 @@ footer{
     background-color: #c82333;
 }
 
+/* ########################################### */
+/*            Categories.html                  */
+/* ########################################### */
 
+#add-category-section {
+    text-align: center;
+    margin: 20px 0;
+}
 
+.add-category-btn {
+    padding: 12px 20px;
+    font-size: 16px;
+    background-color: #007BFF;
+    color: white;
+    border: none;
+    cursor: pointer;
+    border-radius: 5px;
+}
+
+.add-category-btn:hover {
+    background-color: #0056b3;
+}
+
+#category-box {
+    width: 100%;
+    padding: 15px;
+    background: #222;
+    border-radius: 5px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 10px;
+}
+
+#category-box input {
+    width: 90%;
+    max-width: 400px;
+    padding: 10px;
+    background: #333;
+    color: white;
+    border: none;
+    border-radius: 5px;
+}
+
+#category-box button {
+    padding: 10px;
+    margin-top: 5px;
+    font-size: 16px;
+    border-radius: 5px;
+    width: 90%;
+    max-width: 200px;
+}
+
+#category-box button:first-of-type {
+    background-color: #28a745;
+    color: white;
+    border: none;
+}
+
+#category-box button:first-of-type:hover {
+    background-color: #218838;
+}
+
+#category-box button:last-of-type {
+    background-color: #dc3545;
+    color: white;
+    border: none;
+}
+
+#category-box button:last-of-type:hover {
+    background-color: #c82333;
+}
 
