@@ -181,9 +181,12 @@ function updateNavBar() {
 function logout() {
     sessionStorage.clear();
     updateNavBar();
-    alert("You have logged out.");
-    // Redirect user to login popup
-    showLogin();
+    showSuccessPopup("You have logged out.");
+
+    // Redirect to forums.html after logout
+    setTimeout(() => {
+        window.location.href = "forums.html";
+    }, 1500); // Wait 1.5 seconds before redirecting
 }
 
 // Ensure NavBar updates on page load
