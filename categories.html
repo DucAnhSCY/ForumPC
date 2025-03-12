@@ -8,34 +8,10 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css">
     <link rel="preconnect" href="https://fonts.gstatic.com">
     <link href="https://fonts.googleapis.com/css2?family=Titillium+Web:ital@1&display=swap" rel="stylesheet">
+    <script src="main.js" defer></script>
 </head>
-
-<script src="main.js"></script>
 <body>
-    <!-- Login Popup -->
-<div id="login-popup" class="popup hide">
-    <div class="popup-content">
-        <span class="close-icon" onclick="closePopup('login-popup')">&times;</span>
-        <h2>Login</h2>
-        <input type="email" placeholder="Email" id="login-email">
-        <input type="password" placeholder="Password" id="login-password">
-        <button onclick="login()">Login</button>
-        <p>Don't have an account? <a href="#" onclick="switchToRegister()">Register</a></p>
-    </div>
-</div>
 
-<!-- Register Popup -->
-<div id="register-popup" class="popup hide">
-    <div class="popup-content">
-        <span class="close-icon" onclick="closePopup('register-popup')">&times;</span>
-        <h2>Register</h2>
-        <input type="text" placeholder="Username" id="register-username">
-        <input type="email" placeholder="Email" id="register-email">
-        <input type="password" placeholder="Password" id="register-password">
-        <input type="password" placeholder="Confirm Password" id="register-password2">
-        <button onclick="register()">Register</button>
-    </div>
-</div>
     <!--NavBar Section-->
     <div class="navbar">
         <nav class="navigation" id="navigation">
@@ -54,24 +30,25 @@
         <a class="bar-icon" id="iconBar" onclick="hideIconBar()"><i class="fa fa-bars"></i></a>
         <div class="brand">My Forum</div>
         <div id="top-right-username" class="top-right-username hide"></div>
-        
     </div>
+
     <!--SearchBox Section-->
     <div class="search-box">
         <div>
-            <select name="" id="">
+            <select>
                 <option value="Everything">Everything</option>
                 <option value="Titles">Titles</option>
                 <option value="Descriptions">Descriptions</option>
             </select>
-            <input type="text" name="q" placeholder="search ...">
+            <input type="text" placeholder="search ...">
             <button><i class="fa fa-search"></i></button>
         </div>
     </div>
+
     <main>
-                <!-- Add Category Section (Only for Admin) -->
+        <!-- Add Category Section (Only for Admin) -->
         <div id="add-category-section" class="hide">
-            <div id="category-box" class="hide">
+            <div id="category-box">
                 <input type="text" id="category-name" placeholder="Enter category name..." />
                 <button onclick="submitCategory()">Submit Category</button>
                 <button onclick="closeCategoryBox()">Cancel</button>
@@ -79,14 +56,60 @@
         </div>
 
         <!-- Categories List -->
-        <h1 id="categories">Categories</h1>
-        <ul id="category-list">
-            <!-- Categories will be loaded here -->
-        </ul>
-
+        <h1 id="categories"></h1>
+        <main>
+            <!-- Add Category Section (Only for Admin) -->
+            <div id="add-category-section" class="hide">
+                <div id="category-box">
+                    <input type="text" id="category-name" placeholder="Enter category name..." />
+                    <button onclick="submitCategory()">Submit Category</button>
+                    <button onclick="closeCategoryBox()">Cancel</button>
+                </div>
+            </div>
+        
+            <!-- Categories List -->
+            <h1 id="categories">Categories</h1>
+            <div id="category-container" class="category-container">
+                <!-- Categories will be loaded dynamically here -->
+            </div>
+        </main>
+        
     </main>
+
     <footer>
         <span>&copy; 2025 My Forum | All Rights Reserved</span>
     </footer>
+
+    <script>
+        document.addEventListener("DOMContentLoaded", function () {
+            let username = sessionStorage.getItem("username");
+
+            // Show "Add Category" section only for Admin
+            if (username === "admin") {
+                document.getElementById("add-category-section").classList.remove("hide");
+            }
+
+            loadCategories(); // Load categories
+        });
+
+        // Display categories in the list with delete buttons (only for Admin)
+        function displayCategories(categories) {
+            const categoryList = document.getElementById("category-list");
+            categoryList.innerHTML = ""; // Clear previous list
+
+            let username = sessionStorage.getItem("username");
+
+            categories.forEach(category => {
+                const li = document.createElement("li");
+                li.innerHTML = `${category.name}`;
+
+                if (username === "admin") {
+                    li.innerHTML += ` <button class="delete-btn" onclick="deleteCategory(${category.categoryId})">Delete</button>`;
+                }
+
+                categoryList.appendChild(li);
+            });
+        }
+    </script>
 </body>
 </html>

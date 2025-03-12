@@ -635,3 +635,53 @@ footer{
     background-color: #c82333;
 }
 
+/* Categories Container */
+.category-container {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 15px;
+    padding: 20px;
+    justify-content: center;
+}
+
+/* Each Category Box */
+.category-box {
+    background-color: #111314;
+    padding: 20px;
+    border-radius: 8px;
+    text-align: center;
+    min-width: 200px;
+    max-width: 250px;
+    color: white;
+    font-weight: bold;
+    cursor: pointer;
+    transition: 0.3s ease-in-out;
+    box-shadow: 2px 2px 10px rgba(255, 255, 255, 0.2);
+}
+
+.category-box:hover {
+    background-color: #222;
+    box-shadow: 2px 2px 10px rgba(255, 255, 255, 0.5);
+}
+
+/* Category Name */
+.category-name {
+    font-size: 18px;
+    padding: 10px;
+}
+
+/* Delete Button for Admin */
+.delete-btn {
+    margin-top: 10px;
+    padding: 5px 10px;
+    background-color: #dc3545;
+    border: none;
+    color: white;
+    font-size: 14px;
+    cursor: pointer;
+    border-radius: 5px;
+}
+
+.delete-btn:hover {
+    background-color: #c82333;
+}

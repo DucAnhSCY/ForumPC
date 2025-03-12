@@ -379,18 +379,24 @@ async function loadCategories() {
         if (!response.ok) throw new Error("Failed to fetch categories");
 
         const categories = await response.json();
-        
-        // Update the category list on the Categories page
-        const categoryList = document.getElementById("category-list");
-        if (categoryList) {
-            categoryList.innerHTML = ""; // Clear list before adding
-            categories.forEach(category => {
-                categoryList.innerHTML += `<li>${category.name}</li>`;
-            });
-        }
+        displayCategories(categories);
     } catch (error) {
         console.error("Error loading categories:", error);
     }
+}
+
+function displayCategories(categories) {
+    const categoryList = document.getElementById("category-list");
+    categoryList.innerHTML = ""; // Clear list before adding
+
+    categories.forEach(category => {
+        const li = document.createElement("li");
+        li.innerHTML = `
+            ${category.name} 
+            <button class="delete-btn" onclick="deleteCategory(${category.categoryId})">Delete</button>
+        `;
+        categoryList.appendChild(li);
+    });
 }
 
 // Load categories when the page loads
@@ -399,13 +405,31 @@ document.addEventListener("DOMContentLoaded", loadCategories);
 
 // Display categories in the list
 function displayCategories(categories) {
-    const categoryList = document.getElementById("category-list");
-    categoryList.innerHTML = ""; // Clear list before adding
+    const categoryContainer = document.getElementById("category-container");
+    categoryContainer.innerHTML = ""; // Clear previous content
+
+    let username = sessionStorage.getItem("username");
 
     categories.forEach(category => {
-        categoryList.innerHTML += `<li>${category.name}</li>`;
+        const categoryBox = document.createElement("div");
+        categoryBox.classList.add("category-box");
+        categoryBox.innerHTML = `
+            <div class="category-name" onclick="viewCategory(${category.categoryId})">
+                ${category.name}
+            </div>
+            ${username === "admin" ? `<button class="delete-btn" onclick="deleteCategory(${category.categoryId})">Delete</button>` : ""}
+        `;
+
+        categoryContainer.appendChild(categoryBox);
     });
 }
+
+// Placeholder function for future interactions
+function viewCategory(categoryId) {
+    alert(`Category ID: ${categoryId} clicked! Future feature here.`);
+}
+
+
 
 // Submit new category (Only for Admin)
 async function submitCategory() {
@@ -423,26 +447,29 @@ async function submitCategory() {
     }
 
     try {
-        console.log(`🆕 Attempting to add category: ${categoryName}`);
-        
-        const url = `http://localhost:5195/api/Category/Insert?name=${encodeURIComponent(categoryName)}`;
-        const response = await fetch(url, { method: "POST" });
+        const response = await fetch("http://localhost:5195/api/Category/Insert", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ name: categoryName }) // API expects this format
+        });
 
-        if (!response.ok) throw new Error(await response.text());
+        const data = await response.json();
+
+        if (!response.ok) {
+            alert("Error: " + data.message);
+            return;
+        }
 
         alert("Category created successfully!");
-
-        console.log("✅ Category added! Reloading dropdown...");
-
-        await loadCategories(); // Reload categories list
-        await loadCategoryDropdown(); // Reload dropdown
-
+        document.getElementById("category-name").value = ""; // Clear input
+        loadCategories(); // Refresh category list
         closeCategoryBox();
     } catch (error) {
-        console.error("❌ Error creating category:", error);
-        alert("Failed to create category.");
+        console.error("Error creating category:", error);
+        alert("Failed to create category. Check console for details.");
     }
 }
+
 
 
 
@@ -538,3 +565,29 @@ document.addEventListener("DOMContentLoaded", function () {
     loadCategoryDropdown(); // Load categories on page load
 });
 
+async function deleteCategory(categoryId) {
+    let username = sessionStorage.getItem("username");
+    
+    if (username !== "admin") {
+        alert("Only Admin can delete categories.");
+        return;
+    }
+
+    if (!confirm("Are you sure you want to delete this category?")) return;
+
+    try {
+        const response = await fetch(`http://localhost:5195/api/Category/Delete/${categoryId}`, {
+            method: "DELETE"
+        });
+
+        if (!response.ok) {
+            throw new Error(await response.text());
+        }
+
+        alert("Category deleted successfully!");
+        loadCategories(); // Refresh the list
+    } catch (error) {
+        console.error("Error deleting category:", error);
+        alert("Failed to delete category.");
+    }
+}
