@@ -8,7 +8,7 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css">
     <link rel="preconnect" href="https://fonts.gstatic.com">
     <link href="https://fonts.googleapis.com/css2?family=Titillium+Web:ital@1&display=swap" rel="stylesheet">
-</head>     
+</head>
 
 <script src="main.js"></script>
 
@@ -70,38 +70,22 @@
                 <button><i class="fa fa-search"></i></button>
             </div>
         </div>
-    </header>
     <div class="container">
-        <!-- Create Thread Section (Visible Only for Logged-In Users) -->
-        <div id="create-thread-section" class="hide">
-            <button id="create-thread-btn" class="create-thread-btn" onclick="showThreadBox()">Create Thread</button>
-            <div id="thread-box" class="hide">
-                <select id="category-dropdown">
-                    <option value="">Select a category</option>
-                </select>
-                <textarea id="thread-title" placeholder="Enter thread title..."></textarea>
-                <textarea id="thread-content" placeholder="Enter thread content..."></textarea>
-                <button onclick="submitThread()">Submit Thread</button>
-                <button onclick="closeThreadBox()">Cancel</button>
-            </div>
-        </div>
-        
-    <!-- Display Threads -->
-    <div id="thread-list"></div>
-</div>
-
-    </div>        
-    <div class="note">
-        <span><i class="fa fa-frown-o"></i>&nbsp; 0 Engagement Topic</span>&nbsp;&nbsp;&nbsp;<a href=""><i class="fa fa-share-square"></i></a><br>
-        <span><i class="fa fa-book"></i>&nbsp; Low Engagement Topic</span>&nbsp;&nbsp;&nbsp;<a href=""><i class="fa fa-share-square"></i></a><br>
-        <span><i class="fa fa-fire"></i>&nbsp; Popular Topic</span>&nbsp;&nbsp;&nbsp;<a href=""><i class="fa fa-share-square"></i></a><br>
-        <span><i class="fa fa-rocket"></i>&nbsp; High Engagement Topic</span>&nbsp;&nbsp;&nbsp;<a href=""><i class="fa fa-share-square"></i></a><br>
-        <span><i class="fa fa-lock"></i>&nbsp; Closed Topic</span>&nbsp;&nbsp;&nbsp;<a href=""><i class="fa fa-share-square"></i></a><br>
+        <div id="modctrl-container" class="hide">
+            <!-- ModCtrl Content Here -->
+        </div>        
     </div>
-
     <footer>
-        <span>&copy;  Selmi Abderrahim | All Rights Reserved</span>
+        <span>&copy;  My Forums | All Rights Reserved</span>
     </footer>
-    <script src="main.js"></script>
+    <script>
+        document.addEventListener("DOMContentLoaded", function () {
+            let username = sessionStorage.getItem("username");
+            if (username !== "admin") {
+                alert("Access Denied: Only Admin can view this page.");
+                window.location.href = "forums.html"; // Redirect to forums
+            }
+        });
+    </script>
 </body>
 </html>

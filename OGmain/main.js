@@ -180,11 +180,10 @@ async function register() {
 function updateNavBar() {
     let isAuthenticated = sessionStorage.getItem('isAuthenticated');
     let username = sessionStorage.getItem('username');
-    
+
     const loginLink = document.querySelector('.login-link');
     const logoutLink = document.querySelector('.logout-link');
     const topRightUser = document.getElementById('top-right-username');
-    const modCtrlLink = document.querySelector(".nav-item a[href='ModCtrl.html']");
 
     if (isAuthenticated === 'true') {
         if (loginLink) loginLink.style.display = 'none';
@@ -194,26 +193,11 @@ function updateNavBar() {
             topRightUser.textContent = `${username}`;
             topRightUser.classList.remove('hide');
         }
-
-        // Show ModCtrl only for Admin
-        if (modCtrlLink) {
-            if (username === "admin") {
-                modCtrlLink.parentElement.classList.remove("hide");
-            } else {
-                modCtrlLink.parentElement.classList.add("hide");
-            }
-        }
-
     } else {
         if (loginLink) loginLink.style.display = 'block';
         if (logoutLink) logoutLink.classList.add('hide');
 
         if (topRightUser) topRightUser.classList.add('hide');
-
-        // Hide ModCtrl when logged out
-        if (modCtrlLink) {
-            modCtrlLink.parentElement.classList.add("hide");
-        }
     }
 }
 
@@ -462,15 +446,32 @@ async function loadCategories() {
         if (!response.ok) throw new Error("Failed to fetch categories");
 
         const categories = await response.json();
-        
-        // Update the category list on the Categories page
         const categoryList = document.getElementById("category-list");
-        if (categoryList) {
-            categoryList.innerHTML = ""; // Clear list before adding
-            categories.forEach(category => {
-                categoryList.innerHTML += `<li>${category.name}</li>`;
-            });
-        }
+        categoryList.innerHTML = ""; // Clear before adding new
+
+        const username = sessionStorage.getItem("username"); // Get logged-in user
+
+        categories.forEach(category => {
+            const li = document.createElement("li");
+            li.classList.add("category-card");
+
+            const categoryName = document.createElement("p");
+            categoryName.textContent = category.name;
+            categoryName.classList.add("category-name");
+
+            li.appendChild(categoryName);
+
+            // Only show delete button for Admin
+            if (username === "admin") {
+                const deleteBtn = document.createElement("button");
+                deleteBtn.textContent = "Delete";
+                deleteBtn.classList.add("delete-btn");
+                deleteBtn.onclick = () => deleteCategory(category.categoryId);
+                li.appendChild(deleteBtn);
+            }
+
+            categoryList.appendChild(li);
+        });
     } catch (error) {
         console.error("❌ Error loading categories:", error);
     }
@@ -481,32 +482,10 @@ function displayCategories(categories) {
     categoryList.innerHTML = ""; // Clear list before adding
 
     categories.forEach(category => {
-        const li = document.createElement("li");
-        li.innerHTML = `
-            ${category.name} 
-            <button class="delete-btn" onclick="deleteCategory(${category.categoryId})">Delete</button>
-        `;
-        categoryList.appendChild(li);
+        console.log("Category:", category);
+        categoryList.innerHTML += `<li>${category.name}</li>`; // Use correct property name
     });
 }
-
-function displayCategories(categories) {
-    const categoryContainer = document.getElementById("category-container");
-    categoryContainer.innerHTML = ""; // Clear previous content
-
-    let username = sessionStorage.getItem("username");
-
-    categories.forEach(category => {
-        categoryList.innerHTML += `<li>${category.name}</li>`;
-    });
-}
-
-// Placeholder function for future interactions
-function viewCategory(categoryId) {
-    alert(`Category ID: ${categoryId} clicked! Future feature here.`);
-}
-
-
 
 // Submit new category (Only for Admin)
 async function submitCategory() {
@@ -525,29 +504,27 @@ async function submitCategory() {
 
     try {
         console.log(`🆕 Attempting to add category: ${categoryName}`);
-        
-        const url = `http://localhost:5195/api/Category/Insert?name=${encodeURIComponent(categoryName)}`;
-        const response = await fetch(url, { method: "POST" });
 
-        if (!response.ok) {
-            alert("Error: " + data.message);
-            return;
-        }
+        const response = await fetch("http://localhost:5195/api/Category/Insert", {
+            method: "POST",
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ Name: categoryName })
+        });
+
+        if (!response.ok) throw new Error(await response.text());
 
         alert("Category created successfully!");
 
-        console.log("✅ Category added! Reloading dropdown...");
+        console.log("✅ Category added! Reloading list...");
 
-        await loadCategories(); // Reload categories list
-        await loadCategoryDropdown(); // Reload dropdown
+        await loadCategories(); // Reload categories after adding
 
         closeCategoryBox();
     } catch (error) {
-        console.error("Error creating category:", error);
-        alert("Failed to create category. Check console for details.");
+        console.error("❌ Error creating category:", error);
+        alert("Failed to create category.");
     }
 }
-
 
 async function deleteCategory(categoryId) {
     if (!confirm("Are you sure you want to delete this category?")) return;
@@ -612,58 +589,4 @@ async function loadCategoryDropdown() {
     }
 }
 
-function ModCtrlVisibility() {
-    let username = sessionStorage.getItem("username"); // Get logged-in user
-    let modCtrlLink = document.querySelector(".nav-item a[href='ModCtrl.html']");
 
-    if (modCtrlLink) {
-        if (username === "admin") {
-            modCtrlLink.parentElement.classList.remove("hide"); // Show for admin
-        } else {
-            modCtrlLink.parentElement.classList.add("hide"); // Hide for others
-        }
-    }
-}
-function showModCtrlPage() {
-    let username = sessionStorage.getItem("username");
-    let modCtrlContainer = document.getElementById("modctrl-container");
-
-    if (modCtrlContainer) {
-        if (username === "admin") {
-            modCtrlContainer.classList.remove("hide"); // Show page
-        } else {
-            modCtrlContainer.classList.add("hide"); // Hide page
-            alert("Access Denied: Only Admin can view this page.");
-            window.location.href = "forums.html"; // Redirect to forums
-        }
-    }
-}
-
-document.addEventListener("DOMContentLoaded", showModCtrlPage);
-
-async function deleteCategory(categoryId) {
-    let username = sessionStorage.getItem("username");
-    
-    if (username !== "admin") {
-        alert("Only Admin can delete categories.");
-        return;
-    }
-
-    if (!confirm("Are you sure you want to delete this category?")) return;
-
-    try {
-        const response = await fetch(`http://localhost:5195/api/Category/Delete/${categoryId}`, {
-            method: "DELETE"
-        });
-
-        if (!response.ok) {
-            throw new Error(await response.text());
-        }
-
-        alert("Category deleted successfully!");
-        loadCategories(); // Refresh the list
-    } catch (error) {
-        console.error("Error deleting category:", error);
-        alert("Failed to delete category.");
-    }
-}
