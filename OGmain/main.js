@@ -113,7 +113,7 @@ async function login() {
         sessionStorage.setItem('isAuthenticated', 'true');
         sessionStorage.setItem('email', data.email); 
         sessionStorage.setItem('token', data.token);
-        sessionStorage.setItem('userId', data.userId); // Store userId
+        sessionStorage.setItem('userId', data.userId); // Ensure userId is stored
 
         let username = data.username || email.split('@')[0]; 
         sessionStorage.setItem('username', username);
@@ -130,8 +130,6 @@ async function login() {
         alert("A network error occurred. Please try again.");
     }
 }
-
-
 
 // Register Function
 async function register() {
@@ -240,10 +238,16 @@ function showErrorPopup(message) {
 // Show Create Thread Section for Logged-In Users
 function showThreadButton() {
     let isAuthenticated = sessionStorage.getItem('isAuthenticated');
-    if (isAuthenticated === 'true') {
+    let username = sessionStorage.getItem('username'); 
+
+    if (isAuthenticated === 'true' && username) {
+        console.log("✅ User is logged in, showing Create Thread button.");  
         document.getElementById("create-thread-section").classList.remove("hide");
+    } else {
+        console.log("❌ User is NOT logged in, hiding Create Thread button.");
     }
 }
+
 
 // Show Thread Creation Box
 function showThreadBox() {
@@ -281,7 +285,7 @@ async function submitThread() {
         title: title,
         content: content,
         categoryId: parseInt(categoryId),
-        regUserId: parseInt(userId)
+        regUserId: parseInt(userId) // Ensure userId is sent
     };
 
     try {
@@ -305,12 +309,12 @@ async function submitThread() {
         document.getElementById("thread-title").value = "";
         document.getElementById("thread-content").value = "";
 
-        // Add the thread to UI dynamically (below the submit box)
+        // Immediately update UI with correct username
         addThreadToUI({
             title,
             content,
-            categoryName, // Use category name instead of ID
-            createdBy: username // Use stored username
+            categoryName, 
+            creatorName: username 
         });
 
     } catch (error) {
@@ -375,7 +379,7 @@ async function fetchUsers() {
 
 async function fetchThreads() {
     try {
-        await fetchUsers(); // Load users first
+        await fetchUsers(); // Ensure users are loaded first
 
         const response = await fetch("http://localhost:5195/api/Thread");
         if (!response.ok) {
@@ -387,13 +391,14 @@ async function fetchThreads() {
         threadList.innerHTML = ""; // Clear previous threads
 
         threads.forEach(thread => {
-            thread.creatorName = userMap[thread.regUserId] || "Unknown"; // Match ID to username
+            thread.creatorName = userMap[thread.regUserId] || "Unknown"; // Assign username
             addThreadToUI(thread);
         });
     } catch (error) {
         console.error("Error loading threads:", error);
     }
 }
+
 
 
 // Load threads when the page starts
@@ -441,18 +446,32 @@ async function loadCategories() {
         if (!response.ok) throw new Error("Failed to fetch categories");
 
         const categories = await response.json();
-        
-        console.log("✅ Fetched categories:", categories);
-
-        // Update the category list on the Categories page
         const categoryList = document.getElementById("category-list");
-        if (categoryList) {
-            categoryList.innerHTML = ""; // Clear before adding new
-            categories.forEach(category => {
-                console.log("Category:", category);
-                categoryList.innerHTML += `<li>${category.name}</li>`; // Use correct property name
-            });
-        }
+        categoryList.innerHTML = ""; // Clear before adding new
+
+        const username = sessionStorage.getItem("username"); // Get logged-in user
+
+        categories.forEach(category => {
+            const li = document.createElement("li");
+            li.classList.add("category-card");
+
+            const categoryName = document.createElement("p");
+            categoryName.textContent = category.name;
+            categoryName.classList.add("category-name");
+
+            li.appendChild(categoryName);
+
+            // Only show delete button for Admin
+            if (username === "admin") {
+                const deleteBtn = document.createElement("button");
+                deleteBtn.textContent = "Delete";
+                deleteBtn.classList.add("delete-btn");
+                deleteBtn.onclick = () => deleteCategory(category.categoryId);
+                li.appendChild(deleteBtn);
+            }
+
+            categoryList.appendChild(li);
+        });
     } catch (error) {
         console.error("❌ Error loading categories:", error);
     }
@@ -504,6 +523,27 @@ async function submitCategory() {
     } catch (error) {
         console.error("❌ Error creating category:", error);
         alert("Failed to create category.");
+    }
+}
+
+async function deleteCategory(categoryId) {
+    if (!confirm("Are you sure you want to delete this category?")) return;
+
+    try {
+        const response = await fetch(`http://localhost:5195/api/Category/Delete/${categoryId}`, {
+            method: "DELETE"
+        });
+
+        if (!response.ok) {
+            throw new Error("Failed to delete category");
+        }
+
+        alert("Category deleted successfully!");
+        loadCategories(); // Refresh category list
+
+    } catch (error) {
+        console.error("❌ Error deleting category:", error);
+        alert("Failed to delete category.");
     }
 }
 
