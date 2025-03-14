@@ -113,7 +113,7 @@ async function login() {
         sessionStorage.setItem('isAuthenticated', 'true');
         sessionStorage.setItem('email', data.email); 
         sessionStorage.setItem('token', data.token);
-        sessionStorage.setItem('userId', data.userId); // Ensure userId is stored
+        sessionStorage.setItem('userId', data.userId); // Store userId
 
         let username = data.username || email.split('@')[0]; 
         sessionStorage.setItem('username', username);
@@ -130,7 +130,6 @@ async function login() {
         alert("A network error occurred. Please try again.");
     }
 }
-
 // Register Function
 async function register() {
     let username = document.getElementById("register-username").value;
@@ -180,11 +179,10 @@ async function register() {
 function updateNavBar() {
     let isAuthenticated = sessionStorage.getItem('isAuthenticated');
     let username = sessionStorage.getItem('username');
-    
+
     const loginLink = document.querySelector('.login-link');
     const logoutLink = document.querySelector('.logout-link');
     const topRightUser = document.getElementById('top-right-username');
-    const modCtrlLink = document.querySelector(".nav-item a[href='ModCtrl.html']");
 
     if (isAuthenticated === 'true') {
         if (loginLink) loginLink.style.display = 'none';
@@ -194,26 +192,11 @@ function updateNavBar() {
             topRightUser.textContent = `${username}`;
             topRightUser.classList.remove('hide');
         }
-
-        // Show ModCtrl only for Admin
-        if (modCtrlLink) {
-            if (username === "admin") {
-                modCtrlLink.parentElement.classList.remove("hide");
-            } else {
-                modCtrlLink.parentElement.classList.add("hide");
-            }
-        }
-
     } else {
         if (loginLink) loginLink.style.display = 'block';
         if (logoutLink) logoutLink.classList.add('hide');
 
         if (topRightUser) topRightUser.classList.add('hide');
-
-        // Hide ModCtrl when logged out
-        if (modCtrlLink) {
-            modCtrlLink.parentElement.classList.add("hide");
-        }
     }
 }
 
@@ -254,16 +237,10 @@ function showErrorPopup(message) {
 // Show Create Thread Section for Logged-In Users
 function showThreadButton() {
     let isAuthenticated = sessionStorage.getItem('isAuthenticated');
-    let username = sessionStorage.getItem('username'); 
-
-    if (isAuthenticated === 'true' && username) {
-        console.log("✅ User is logged in, showing Create Thread button.");  
+    if (isAuthenticated === 'true') {
         document.getElementById("create-thread-section").classList.remove("hide");
-    } else {
-        console.log("❌ User is NOT logged in, hiding Create Thread button.");
     }
 }
-
 
 // Show Thread Creation Box
 function showThreadBox() {
@@ -283,9 +260,9 @@ async function submitThread() {
     const content = document.getElementById("thread-content").value.trim();
     const categoryDropdown = document.getElementById("category-dropdown");
     const categoryId = categoryDropdown.value;
-    const categoryName = categoryDropdown.options[categoryDropdown.selectedIndex].text; 
+    const categoryName = categoryDropdown.options[categoryDropdown.selectedIndex].text;
     const userId = sessionStorage.getItem("userId");
-    const username = sessionStorage.getItem("username");
+    const username = sessionStorage.getItem("username"); // Get stored username
 
     if (!title || !content || categoryId === "") {
         alert("Please fill in all fields.");
@@ -301,7 +278,7 @@ async function submitThread() {
         title: title,
         content: content,
         categoryId: parseInt(categoryId),
-        regUserId: parseInt(userId) // Ensure userId is sent
+        regUserId: parseInt(userId)
     };
 
     try {
@@ -329,8 +306,8 @@ async function submitThread() {
         addThreadToUI({
             title,
             content,
-            categoryName, 
-            creatorName: username 
+            categoryName, // Use category name instead of ID
+            creatorName: username // Use stored username instead of waiting for API
         });
 
     } catch (error) {
@@ -338,6 +315,7 @@ async function submitThread() {
         alert("A network error occurred. Please try again.");
     }
 }
+
 
 function addThreadToUI(thread) {
     const threadList = document.getElementById("thread-list");
@@ -612,34 +590,6 @@ async function loadCategoryDropdown() {
     }
 }
 
-function ModCtrlVisibility() {
-    let username = sessionStorage.getItem("username"); // Get logged-in user
-    let modCtrlLink = document.querySelector(".nav-item a[href='ModCtrl.html']");
-
-    if (modCtrlLink) {
-        if (username === "admin") {
-            modCtrlLink.parentElement.classList.remove("hide"); // Show for admin
-        } else {
-            modCtrlLink.parentElement.classList.add("hide"); // Hide for others
-        }
-    }
-}
-function showModCtrlPage() {
-    let username = sessionStorage.getItem("username");
-    let modCtrlContainer = document.getElementById("modctrl-container");
-
-    if (modCtrlContainer) {
-        if (username === "admin") {
-            modCtrlContainer.classList.remove("hide"); // Show page
-        } else {
-            modCtrlContainer.classList.add("hide"); // Hide page
-            alert("Access Denied: Only Admin can view this page.");
-            window.location.href = "forums.html"; // Redirect to forums
-        }
-    }
-}
-
-document.addEventListener("DOMContentLoaded", showModCtrlPage);
 
 async function deleteCategory(categoryId) {
     let username = sessionStorage.getItem("username");

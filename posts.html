@@ -49,7 +49,6 @@
                     <li class="nav-item"><a href="posts.html">Posts</a></li>
                     <li class="nav-item"><a href="detail.html">Detail</a></li>
                     <li class="nav-item"><a href="categories.html">Categories</a></li>
-                    <li class="nav-item"><a href="ModCtrl.html">ModCtrl</a></li>
                     <li class="nav-item login-link"><a href="#" onclick="showLogin()">Login</a></li>
                     <li class="nav-item logout-link hide"><a href="#" onclick="logout()">Logout</a></li>
                 </ul>
@@ -73,19 +72,18 @@
     </header>
     <div class="container">
         <!-- Create Thread Section (Visible Only for Logged-In Users) -->
-        <div id="create-thread-section" class="hide">
-            <button id="create-thread-btn" class="create-thread-btn" onclick="showThreadBox()">Create Thread</button>
-            <div id="thread-box" class="hide">
-                <select id="category-dropdown">
-                    <option value="">Select a category</option>
-                </select>
-                <textarea id="thread-title" placeholder="Enter thread title..."></textarea>
-                <textarea id="thread-content" placeholder="Enter thread content..."></textarea>
-                <button onclick="submitThread()">Submit Thread</button>
-                <button onclick="closeThreadBox()">Cancel</button>
-            </div>
+    <div id="create-thread-section" class="hide">
+        <button id="create-thread-btn" class="create-thread-btn" onclick="showThreadBox()">Create Thread</button>
+        <div id="thread-box" class="hide">
+            <select id="category-dropdown">
+                <option value="">Select a category</option>
+            </select>
+            <textarea id="thread-title" placeholder="Enter thread title..."></textarea>
+            <textarea id="thread-content" placeholder="Enter thread content..."></textarea>
+            <button onclick="submitThread()">Submit Thread</button>
+            <button onclick="closeThreadBox()">Cancel</button>
         </div>
-        
+    </div>
     <!-- Display Threads -->
     <div id="thread-list"></div>
 </div>
