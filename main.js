@@ -19,7 +19,8 @@ function initializePage() {
         });
     });
 }
-
+//API
+const api_key ="http://localhost:5105/api/"
 // NavBar
 function hideIconBar() {
     var iconBar = document.getElementById("iconBar");
@@ -83,7 +84,7 @@ async function login() {
     }
 
     try {
-        const response = await fetch('http://localhost:5195/api/RegisteredUser/Login', {
+        const response = await fetch(`${api_key}RegisteredUser/Login`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ email, password })
@@ -155,7 +156,7 @@ async function register() {
     }
 
     try {
-        const response = await fetch('http://localhost:5195/api/RegisteredUser/Insert', {
+        const response = await fetch(`${api_key}RegisteredUser/Insert`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ username, email, password })
@@ -282,7 +283,7 @@ async function submitThread() {
     };
 
     try {
-        const response = await fetch("http://localhost:5195/api/Thread/Insert", {
+        const response = await fetch(`${api_key}Thread/Insert`, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify(threadData)
@@ -355,7 +356,7 @@ function getLoggedInUserId() {
 let userMap = {}; // Store user ID -> Username mapping
 async function fetchUsers() {
     try {
-        const response = await fetch("http://localhost:5195/api/RegisteredUser");
+        const response = await fetch(`${api_key}RegisteredUser`);
         if (!response.ok) {
             throw new Error("Failed to fetch users");
         }
@@ -375,7 +376,7 @@ async function fetchThreads() {
     try {
         await fetchUsers(); // Ensure users are loaded first
 
-        const response = await fetch("http://localhost:5195/api/Thread");
+        const response = await fetch(`${api_key}/Thread`);
         if (!response.ok) {
             throw new Error("Failed to fetch threads");
         }
@@ -436,7 +437,7 @@ function closeCategoryBox() {
 
 async function loadCategories() {
     try {
-        const response = await fetch("http://localhost:5195/api/Category");
+        const response = await fetch(`${api_key}Category`);
         if (!response.ok) throw new Error("Failed to fetch categories");
 
         const categories = await response.json();
@@ -504,7 +505,7 @@ async function submitCategory() {
     try {
         console.log(`🆕 Attempting to add category: ${categoryName}`);
         
-        const url = `http://localhost:5195/api/Category/Insert?name=${encodeURIComponent(categoryName)}`;
+        const url = `${api_key}Category/Insert?name=${encodeURIComponent(categoryName)}`;
         const response = await fetch(url, { method: "POST" });
 
         if (!response.ok) {
@@ -531,7 +532,7 @@ async function deleteCategory(categoryId) {
     if (!confirm("Are you sure you want to delete this category?")) return;
 
     try {
-        const response = await fetch(`http://localhost:5195/api/Category/Delete/${categoryId}`, {
+        const response = await fetch(`${api_key}Category/Delete/${categoryId}`, {
             method: "DELETE"
         });
 
@@ -552,7 +553,7 @@ async function loadCategoryDropdown() {
     console.log("🔄 Loading categories...");
 
     try {
-        const response = await fetch("http://localhost:5195/api/Category");
+        const response = await fetch(`${api_key}Category`);
 
         if (!response.ok) {
             throw new Error(`HTTP error! Status: ${response.status}`);
@@ -602,7 +603,7 @@ async function deleteCategory(categoryId) {
     if (!confirm("Are you sure you want to delete this category?")) return;
 
     try {
-        const response = await fetch(`http://localhost:5195/api/Category/Delete/${categoryId}`, {
+        const response = await fetch(`${api_key}Category/Delete/${categoryId}`, {
             method: "DELETE"
         });
 
