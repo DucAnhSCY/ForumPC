@@ -8,22 +8,11 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css">
     <link rel="preconnect" href="https://fonts.gstatic.com">
     <link href="https://fonts.googleapis.com/css2?family=Titillium+Web:ital@1&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <script src="main.js" defer></script>
 </head>
 <body>
-    <!-- Login Popup -->
-<div id="login-popup" class="popup hide">
-    <div class="popup-content">
-        <span class="close-icon" onclick="closePopup('login-popup')">&times;</span>
-        <h2>Login</h2>
-        <input type="email" placeholder="Email" id="login-email">
-        <input type="password" placeholder="Password" id="login-password">
-        <button onclick="login()">Login</button>
-        <p>Don't have an account? <a href="#" onclick="switchToRegister()">Register</a></p>
-    </div>
-</div>
-
-<!-- Register Popup -->
+    <!-- Register Popup -->
 <div id="register-popup" class="popup hide">
     <div class="popup-content">
         <span class="close-icon" onclick="closePopup('register-popup')">&times;</span>
@@ -46,13 +35,22 @@
                     <li class="nav-item"><a href="posts.html">Posts</a></li>
                     <li class="nav-item"><a href="detail.html">Detail</a></li>
                     <li class="nav-item"><a href="categories.html">Categories</a></li>
-                    <li class="nav-item login-link"><a href="#" onclick="showLogin()">Login</a></li>
-                    <li class="nav-item logout-link hide"><a href="#" onclick="logout()">Logout</a></li>
+                    <li class="nav-item" id="login-item"><a href="login.html">Login</a></li>
+                    <li class="nav-item hide" id="logout-item"><a href="#" onclick="logout()">Logout</a></li>
                 </ul>
             </nav>
             <a class="bar-icon" id="iconBar" onclick="hideIconBar()"><i class="fa fa-bars"></i></a>
             <div class="brand">My Forum</div>
-            <div id="top-right-username" class="top-right-username hide"></div>
+            <div class="user-profile hide" id="user-profile" onclick="toggleProfileDropdown()">
+                <img src="https://cdn.pixabay.com/photo/2015/11/06/13/27/ninja-1027877_960_720.jpg" alt="User Avatar" class="user-avatar">
+                <span class="username-display"></span>
+                <div class="profile-dropdown" id="profile-dropdown">
+                    <div class="profile-dropdown-item" onclick="logout()">
+                        <i class="fa fa-sign-out"></i>
+                        Logout
+                    </div>
+                </div>
+            </div>
             
         </div>
 

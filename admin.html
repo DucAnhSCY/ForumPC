@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Dashboard - My Forum</title>
+    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css">
+    <link rel="preconnect" href="https://fonts.gstatic.com">
+    <link href="https://fonts.googleapis.com/css2?family=Titillium+Web:ital@1&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <script src="main.js" defer></script>
+</head>
+<body>
+    <header>
+        <div class="navbar">
+            <nav class="navigation hide" id="navigation">
+                <span class="close-icon" id="close-icon" onclick="showIconBar()">
+                    <i class="fa fa-close"></i>
+                </span>
+                <ul class="nav-list">
+                    <li class="nav-item"><a href="forums.html">Forums</a></li>
+                    <li class="nav-item"><a href="posts.html">Posts</a></li>
+                    <li class="nav-item"><a href="detail.html">Detail</a></li>
+                    <li class="nav-item"><a href="categories.html">Categories</a></li>
+                    <li class="nav-item" id="login-item"><a href="login.html">Login</a></li>
+                    <li class="nav-item hide" id="logout-item"><a href="#" onclick="logout()">Logout</a></li>
+                </ul>
+            </nav>
+            <a class="bar-icon" id="iconBar" onclick="hideIconBar()"><i class="fa fa-bars"></i></a>
+            <div class="brand">Admin Panel</div>
+            <div class="user-profile hide" id="user-profile" onclick="toggleProfileDropdown()">
+                <img src="https://cdn.pixabay.com/photo/2015/11/06/13/27/ninja-1027877_960_720.jpg" alt="User Avatar" class="user-avatar">
+                <span class="username-display"></span>
+                <div class="profile-dropdown" id="profile-dropdown">
+                    <div class="profile-dropdown-item" onclick="logout()">
+                        <i class="fa fa-sign-out"></i>
+                        Logout
+                    </div>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <div class="admin-container">
+        <!-- Categories Management Section -->
+        <section class="admin-section" id="categories-section">
+            <h2><i class="fa fa-folder"></i> Categories Management</h2>
+            <div class="admin-actions">
+                <button onclick="showAddCategoryForm()" class="admin-btn">
+                    <i class="fa fa-plus"></i> Add Category
+                </button>
+            </div>
+            <div class="admin-table">
+                <table id="categories-table">
+                    <thead>
+                        <tr>
+                            <th>ID</th>
+                            <th>Name</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody id="categories-list">
+                        <!-- Categories will be loaded here -->
+                    </tbody>
+                </table>
+            </div>
+        </section>
+
+        <!-- Users Management Section -->
+        <section class="admin-section" id="users-section">
+            <h2><i class="fa fa-users"></i> Users Management</h2>
+            <div class="admin-actions">
+                <button onclick="showAddAdminForm()" class="admin-btn">
+                    <i class="fa fa-user-plus"></i> Add Admin
+                </button>
+            </div>
+            <div class="admin-table">
+                <table id="users-table">
+                    <thead>
+                        <tr>
+                            <th>ID</th>
+                            <th>Username</th>
+                            <th>Email</th>
+                            <th>Role</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody id="users-list">
+                        <!-- Users will be loaded here -->
+                    </tbody>
+                </table>
+            </div>
+        </section>
+
+        <!-- Posts Management Section -->
+        <section class="admin-section" id="posts-section">
+            <h2><i class="fa fa-comments"></i> Posts Management</h2>
+            <div class="admin-table">
+                <table id="posts-table">
+                    <thead>
+                        <tr>
+                            <th>ID</th>
+                            <th>Title</th>
+                            <th>Author</th>
+                            <th>Category</th>
+                            <th>Date</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody id="posts-list">
+                        <!-- Posts will be loaded here -->
+                    </tbody>
+                </table>
+            </div>
+        </section>
+    </div>
+
+    <!-- Add Category Form -->
+    <div id="add-category-form" class="admin-form hide">
+        <div class="form-content">
+            <h3>Add New Category</h3>
+            <input type="text" id="new-category-name" placeholder="Category Name">
+            <div class="form-actions">
+                <button onclick="submitCategory()" class="submit-btn">Add</button>
+                <button onclick="closeForm('add-category-form')" class="cancel-btn">Cancel</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Add Admin Form -->
+    <div id="add-admin-form" class="admin-form hide">
+        <div class="form-content">
+            <h3>Add New Admin</h3>
+            <input type="text" id="new-admin-username" placeholder="Username">
+            <input type="email" id="new-admin-email" placeholder="Email">
+            <input type="password" id="new-admin-password" placeholder="Password">
+            <div class="form-actions">
+                <button onclick="submitAdmin()" class="submit-btn">Add</button>
+                <button onclick="closeForm('add-admin-form')" class="cancel-btn">Cancel</button>
+            </div>
+        </div>
+    </div>
+
+    <footer>
+        <span>&copy; 2025 My Forum | Admin Panel</span>
+    </footer>
+</body>
+</html> 

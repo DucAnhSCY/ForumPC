@@ -71,96 +71,205 @@ function togglePopup(id) {
     document.body.style.overflow = popup.style.display === 'block' ? 'hidden' : 'auto';
 }
 
-// Login Function
-async function login() {
-    console.log("Login function triggered"); 
+// Popup Message Functions
+function showSuccessPopup(message) {
+    Swal.fire({
+        title: 'Success!',
+        text: message,
+        icon: 'success',
+        toast: true,
+        position: 'top-end',
+        showConfirmButton: false,
+        timer: 3000,
+        timerProgressBar: true,
+        background: '#111314',
+        color: '#fff',
+        iconColor: '#4CAF50'
+    });
+}
 
-    let email = document.getElementById("login-email").value;
-    let password = document.getElementById("login-password").value;
+function showErrorPopup(message) {
+    Swal.fire({
+        title: 'Error!',
+        text: message,
+        icon: 'error',
+        toast: true,
+        position: 'top-end',
+        showConfirmButton: false,
+        timer: 3000,
+        timerProgressBar: true,
+        background: '#111314',
+        color: '#fff',
+        iconColor: '#f44336'
+    });
+}
 
-    if (email === "" || password === "") {
-        alert("Please enter both email and password!");
-        return;
-    }
-
+// Login Functions
+async function login(email, password) {
     try {
-        const response = await fetch(`${api_key}RegisteredUser/Login`, {
+        // Lấy giá trị từ form
+        email = document.getElementById('email').value;
+        password = document.getElementById('password').value;
+
+        if (!email || !password) {
+            showErrorPopup("Please enter both email and password!");
+            return;
+        }
+
+        // Hiển thị loading
+        Swal.fire({
+            title: 'Checking credentials...',
+            allowOutsideClick: false,
+            showConfirmButton: false,
+            didOpen: () => {
+                Swal.showLoading();
+            },
+            background: '#111314',
+            color: '#fff'
+        });
+
+        // Đợi 0.3 giây trước khi thực hiện request
+        await new Promise(resolve => setTimeout(resolve, 300));
+
+        // Kiểm tra admin trước
+        const adminResponse = await fetch(`${api_key}Admin/Login`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ email, password })
         });
 
-        if (response.status === 401) {
+        // Nếu là admin
+        if (adminResponse.ok) {
+            const adminData = await adminResponse.json();
+            
+            // Store admin session data
+            sessionStorage.setItem('isAuthenticated', 'true');
+            sessionStorage.setItem('isAdmin', 'true');
+            sessionStorage.setItem('email', adminData.email);
+            sessionStorage.setItem('token', adminData.token);
+            sessionStorage.setItem('userId', adminData.userId);
+            sessionStorage.setItem('username', 'admin');
+
+            // Update navbar
+            updateNavBar();
+
+            Swal.close();
+            showSuccessPopup(`Welcome, Administrator!`);
+            
+            setTimeout(() => {
+                window.location.href = "admin.html";
+            }, 1500);
+            return;
+        }
+
+        // Nếu không phải admin, kiểm tra user thường
+        const userResponse = await fetch(`${api_key}RegisteredUser/Login`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ email, password })
+        });
+
+        // Đóng loading
+        Swal.close();
+
+        if (userResponse.status === 401) {
             showErrorPopup("Invalid email or password.");
             return;
         }
 
-        if (!response.ok) {
-            const errorText = await response.text();
+        if (!userResponse.ok) {
+            const errorText = await userResponse.text();
             console.error("Login failed:", errorText);
             showErrorPopup("Login failed: " + errorText);
             return;
         }
 
-        const data = await response.json();
-        console.log("Login successful:", data);
+        const userData = await userResponse.json();
 
-        if (!data.userId) {
+        if (!userData.userId) {
             console.error("Error: API response does not contain userId!");
+            showErrorPopup("Login failed: Invalid response from server");
             return;
         }
 
-        // Store session data
+        // Store user session data
         sessionStorage.setItem('isAuthenticated', 'true');
-        sessionStorage.setItem('email', data.email); 
-        sessionStorage.setItem('token', data.token);
-        sessionStorage.setItem('userId', data.userId); // Store userId
+        sessionStorage.setItem('isAdmin', 'false');
+        sessionStorage.setItem('email', userData.email);
+        sessionStorage.setItem('token', userData.token);
+        sessionStorage.setItem('userId', userData.userId);
+        sessionStorage.setItem('username', userData.username || email.split('@')[0]);
 
-        let username = data.username || email.split('@')[0]; 
-        sessionStorage.setItem('username', username);
-
-        // Update NavBar
+        // Cập nhật navbar
         updateNavBar();
 
-        // Show welcome message and close popup
-        showSuccessPopup(`Welcome, ${username}!`);
-        closePopup("login-popup");
+        showSuccessPopup(`Welcome, ${userData.username || email.split('@')[0]}!`);
+        
+        setTimeout(() => {
+            window.location.href = "forums.html";
+        }, 1500);
 
     } catch (error) {
         console.error("Login error:", error);
-        alert("A network error occurred. Please try again.");
+        showErrorPopup("A network error occurred. Please try again.");
     }
 }
-// Register Function
+
+// Function to verify admin access
+function verifyAdminAccess() {
+    const isAdmin = sessionStorage.getItem('username') === 'admin';
+    if (!isAdmin) {
+        showErrorPopup("Access denied. Admin privileges required.");
+        setTimeout(() => {
+            window.location.href = "forums.html";
+        }, 1500);
+        return false;
+    }
+    return true;
+}
+
+// Register Functions
 async function register() {
-    let username = document.getElementById("register-username").value;
-    let email = document.getElementById("register-email").value;
-    let password = document.getElementById("register-password").value;
-    let password2 = document.getElementById("register-password2").value;
-
-    // Email validation using Regex
-    let emailPattern = /^[^@\s]+@[^@\s]+\.[^@\s]+$/;
-    if (!emailPattern.test(email)) {
-        showErrorPopup('Invalid email format.');
-        return;
-    }
-
-    if (username === "" || email === "" || password === "" || password2 === "") {
-        showErrorPopup('Please fill out all fields!');
-        return;
-    }
-
-    if (password !== password2) {
-        showErrorPopup('Passwords do not match!');
-        return;
-    }
-
     try {
+        const username = document.getElementById('username').value;
+        const email = document.getElementById('email').value;
+        const password = document.getElementById('password').value;
+        const password2 = document.getElementById('password2').value;
+
+        let emailPattern = /^[^@\s]+@[^@\s]+\.[^@\s]+$/;
+        if (!emailPattern.test(email)) {
+            showErrorPopup('Invalid email format.');
+            return;
+        }
+
+        if (password !== password2) {
+            showErrorPopup('Passwords do not match!');
+            return;
+        }
+
+        // Hiển thị loading
+        Swal.fire({
+            title: 'Creating account...',
+            allowOutsideClick: false,
+            showConfirmButton: false,
+            didOpen: () => {
+                Swal.showLoading();
+            },
+            background: '#111314',
+            color: '#fff'
+        });
+
+        // Đợi 0.3 giây trước khi thực hiện request
+        await new Promise(resolve => setTimeout(resolve, 300));
+
         const response = await fetch(`${api_key}RegisteredUser/Insert`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ username, email, password })
         });
+
+        // Đóng loading
+        Swal.close();
 
         const result = await response.json();
 
@@ -169,10 +278,39 @@ async function register() {
             return;
         }
 
-        showSuccessPopup('Registration successful! Please log in.');
-        closePopup("register-popup");
+        // Hiển thị thông báo thành công với timer
+        await Swal.fire({
+            icon: 'success',
+            title: 'Registration successful!',
+            text: 'Redirecting to login page...',
+            timer: 2000,
+            timerProgressBar: true,
+            showConfirmButton: false,
+            background: '#111314',
+            color: '#fff'
+        });
+
+        clearRegisterForm();
+        window.location.href = 'login.html';
+
     } catch (error) {
         showErrorPopup('A network error occurred.');
+    }
+}
+
+// Helper Functions
+function clearRegisterForm() {
+    document.getElementById('username').value = '';
+    document.getElementById('email').value = '';
+    document.getElementById('password').value = '';
+    document.getElementById('password2').value = '';
+}
+
+// Authentication check
+function checkAuth() {
+    const isAuthenticated = sessionStorage.getItem('isAuthenticated');
+    if (isAuthenticated === 'true') {
+        window.location.href = 'forums.html';
     }
 }
 
@@ -181,58 +319,66 @@ function updateNavBar() {
     let isAuthenticated = sessionStorage.getItem('isAuthenticated');
     let username = sessionStorage.getItem('username');
 
-    const loginLink = document.querySelector('.login-link');
-    const logoutLink = document.querySelector('.logout-link');
-    const topRightUser = document.getElementById('top-right-username');
+    const loginItem = document.getElementById('login-item');
+    const logoutItem = document.getElementById('logout-item');
+    const userProfile = document.getElementById('user-profile');
+    const usernameDisplay = userProfile ? userProfile.querySelector('.username-display') : null;
 
     if (isAuthenticated === 'true') {
-        if (loginLink) loginLink.style.display = 'none';
-        if (logoutLink) logoutLink.classList.remove('hide');
+        // Ẩn nút login và hiện nút logout
+        if (loginItem) loginItem.classList.add('hide');
+        if (logoutItem) logoutItem.classList.remove('hide');
 
-        if (topRightUser) {
-            topRightUser.textContent = `${username}`;
-            topRightUser.classList.remove('hide');
+        // Hiển thị user profile
+        if (userProfile) {
+            userProfile.classList.remove('hide');
+            if (usernameDisplay) {
+                usernameDisplay.textContent = username;
+            }
         }
     } else {
-        if (loginLink) loginLink.style.display = 'block';
-        if (logoutLink) logoutLink.classList.add('hide');
+        // Hiện nút login và ẩn nút logout
+        if (loginItem) loginItem.classList.remove('hide');
+        if (logoutItem) logoutItem.classList.add('hide');
 
-        if (topRightUser) topRightUser.classList.add('hide');
+        // Ẩn user profile
+        if (userProfile) {
+            userProfile.classList.add('hide');
+        }
     }
 }
 
 // Logout function
 function logout() {
+    // Hiển thị thông báo đang đăng xuất
+    Swal.fire({
+        title: 'Logging out...',
+        allowOutsideClick: false,
+        showConfirmButton: false,
+        didOpen: () => {
+            Swal.showLoading();
+        },
+        background: '#111314',
+        color: '#fff'
+    });
+
+    // Xóa tất cả dữ liệu session
     sessionStorage.clear();
-    updateNavBar();
-    showSuccessPopup("You have logged out.");
-
-    // Redirect to forums.html after logout
-    setTimeout(() => {
+    
+    // Hiển thị thông báo thành công và reload trang
+    Swal.fire({
+        title: 'Success!',
+        text: 'You have been logged out successfully',
+        icon: 'success',
+        showConfirmButton: false,
+        timer: 1500,
+        background: '#111314',
+        color: '#fff'
+    }).then(() => {
+        // Chuyển về trang forums và reload
         window.location.href = "forums.html";
-    }, 1500); // Wait 1.5 seconds before redirecting
-}
-
-function showSuccessPopup(message) {
-    let popup = document.createElement("div");
-    popup.className = "popup success-popup";
-    popup.innerHTML = `<div class="popup-content">
-        <span class="close-icon" onclick="this.parentElement.parentElement.remove()">&times;</span>
-        <p>${message}</p>
-    </div>`;
-    document.body.appendChild(popup);
-    setTimeout(() => popup.remove(), 3000);
-}
-
-function showErrorPopup(message) {
-    let popup = document.createElement("div");
-    popup.className = "popup error-popup";
-    popup.innerHTML = `<div class="popup-content">
-        <span class="close-icon" onclick="this.parentElement.parentElement.remove()">&times;</span>
-        <p>${message}</p>
-    </div>`;
-    document.body.appendChild(popup);
-    setTimeout(() => popup.remove(), 3000);
+        window.location.reload(true); // Force reload from server
+    });
 }
 
 // Show Create Thread Section for Logged-In Users
@@ -618,3 +764,27 @@ async function deleteCategory(categoryId) {
         alert("Failed to delete category.");
     }
 }
+
+// Thêm event listener để cập nhật navbar khi trang load
+document.addEventListener("DOMContentLoaded", function() {
+    updateNavBar();
+});
+
+// Toggle Profile Dropdown
+function toggleProfileDropdown(event) {
+    if (event) {
+        event.stopPropagation(); // Prevent event from bubbling up
+    }
+    const dropdown = document.getElementById('profile-dropdown');
+    dropdown.classList.toggle('show');
+}
+
+// Close dropdown when clicking outside
+document.addEventListener('click', function(event) {
+    const dropdown = document.getElementById('profile-dropdown');
+    const userProfile = document.getElementById('user-profile');
+    
+    if (dropdown && dropdown.classList.contains('show') && !userProfile.contains(event.target)) {
+        dropdown.classList.remove('show');
+    }
+});

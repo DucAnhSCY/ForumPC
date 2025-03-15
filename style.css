@@ -34,6 +34,7 @@ h1{
 
 .subforum{
     margin-top:20px;
+    animation: fadeInUp 0.6s ease-out;
 }
 
 .subforum-title{
@@ -46,6 +47,11 @@ h1{
 .subforum-row{
     display: grid;
     grid-template-columns: 7% 60% 13% 20%;
+    transition: transform 0.3s ease;
+}
+
+.subforum-row:hover {
+    transform: translateY(-5px);
 }
 
 .subforum-column{
@@ -129,55 +135,92 @@ header{
     margin-inline: 10px;
 }
   /* Nav Bar styles */
-.navbar{
-    display:flex;
+.navbar {
+    display: flex;
     align-items: center;
-}
-.navigation{
-    background-color:#52057b;
-    padding: 10px;
-    width: 65%;
-    display: inline-block;
-    border-radius: 5px;
-    max-height: 80px;
-    margin-right:10px;
+    justify-content: space-between;
+    padding: 10px 20px;
+    position: relative;
+    transition: all 0.4s ease-in-out;
+    height: 80px;
+    background-color: rgba(0, 0, 0, 0.3);
 }
 
-.close-icon i{
-    font-size:60px;
+.navigation {
+    background-color: #52057b;
+    padding: 10px;
+    width: 65%;
+    border-radius: 5px;
+    height: 60px;
+    margin-right: 10px;
+    transition: all 0.4s ease-in-out;
+    display: flex;
+    align-items: center;
+}
+
+.navigation.hide {
+    display: none !important;
+}
+
+.close-icon i {
+    font-size: 60px;
     float: left;
     cursor: pointer;
 }
 
-.nav-list{
-    list-style-type:none;
-    overflow: hidden;
+.nav-list {
+    list-style-type: none;
+    margin: 0;
+    padding: 0;
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    flex-wrap: wrap;
+    width: 100%;
+    gap: 5px;
 }
 
-.nav-item a{
-    float: right;
-    display:block;
+.nav-item {
+    height: 100%;
+    display: flex;
+    align-items: center;
+    white-space: nowrap;
+}
+
+.nav-item a {
+    display: flex;
+    align-items: center;
     text-align: center;
-    margin-inline: 20px;
-    font-size: 20px;
-    padding: 10px;
-    color:#fff;
+    padding: 10px 15px;
+    color: #fff !important;
+    text-decoration: none;
+    transition: all 0.3s ease;
+    font-weight: normal;
+    font-family: 'Titillium Web', sans-serif;
+    font-size: 16px;
 }
 
-.nav-item a:hover{
-    background-color: rgb(0,0,0,0.1);
+.nav-item a:hover {
+    background-color: rgba(0,0,0,0.1);
+    transform: translateY(-2px);
 }
 
-.hide{
+.bar-icon {
+    font-size: 60px;
+    display: inline-block;
+    margin-right: 10px;
+    color: #fff;
+    cursor: pointer;
+}
+
+/* Xóa các styles không cần thiết */
+.navigation-overlay,
+.navigation-overlay.show {
     display: none;
 }
 
-.bar-icon{
-    font-size: 60px;
-    display: inline-block;
-    margin-right:10px;
-    color: #fff;
-    cursor: pointer;
+.hide{
+    display: none !important;
 }
 
 @font-face {
@@ -189,6 +232,22 @@ header{
     font-size:60px;
     display: inline-block;
     font-family:aquire;
+    margin: 0;
+    transition: transform 0.4s ease-in-out;
+    transform-origin: left center;
+    height: 60px;
+    display: flex;
+    align-items: center;
+}
+
+/* When navigation is visible, move brand to the right */
+.navigation:not(.hide) + .bar-icon + .brand {
+    transform: translateX(20px);
+}
+
+/* When navigation is hidden, move brand back to original position */
+.navigation.hide + .bar-icon + .brand {
+    transform: translateX(0);
 }
 
 /*Navbar for the smartphones*/
@@ -220,42 +279,94 @@ header{
 }
 
   /* Search Box styles */
-.search-box{
+.search-box {
     border: solid 1px #52057b;
     margin-top: 20px;
-    padding: 40px;
-    display:flex;
+    padding: 20px;
+    display: flex;
     justify-content: center;
-    box-shadow:1px 2px 3px #52057b;
+    box-shadow: 1px 2px 3px #52057b;
+    animation: fadeInUp 0.6s ease-out;
+    background-color: #111314;
+    border-radius: 5px;
 }
 
-.search-box select{
-    padding: 10px;
+.search-box div {
+    display: flex;
+    gap: 10px;
+    align-items: center;
+    max-width: 800px;
+    width: 100%;
 }
 
-.search-box input{
-    padding: 10px;
-}
-
-.search-box button{
-    padding: 10px;
-    background-color:#fff;
-    color:#000000;
-}
-
-.search-box button:hover{
-    background-color: #000000;
+.search-box select {
+    padding: 12px;
+    background-color: #222;
     color: #fff;
-    box-shadow: 1px 2px 3px #fff;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+    font-family: 'Titillium Web', sans-serif;
+    transition: all 0.3s ease;
+    min-width: 120px;
 }
 
-/* search box for smrtphones */
-@media screen and (max-width: 460px){
-    .search-box input, .search-box button, .search-box select{
-        min-width: 300px;
-        margin-top: 5px;
-    }    
+.search-box select:hover {
+    background-color: #333;
+}
 
+.search-box select:focus {
+    outline: none;
+    box-shadow: 0 0 10px rgba(82, 5, 123, 0.5);
+}
+
+.search-box input {
+    padding: 12px;
+    background-color: #222;
+    color: #fff;
+    border: none;
+    border-radius: 5px;
+    flex-grow: 1;
+    font-family: 'Titillium Web', sans-serif;
+    transition: all 0.3s ease;
+}
+
+.search-box input:focus {
+    outline: none;
+    transform: scale(1.02);
+    box-shadow: 0 0 10px rgba(82, 5, 123, 0.5);
+}
+
+.search-box button {
+    padding: 12px 20px;
+    background-color: #52057b;
+    color: #fff;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+.search-box button:hover {
+    background-color: #6a359c;
+    transform: scale(1.05);
+}
+
+.search-box button i {
+    font-size: 16px;
+}
+
+/* search box for smartphones */
+@media screen and (max-width: 460px) {
+    .search-box div {
+        flex-direction: column;
+    }
+    
+    .search-box select,
+    .search-box input,
+    .search-box button {
+        width: 100%;
+    }
 }
 
 /* forum info Styling */
@@ -368,6 +479,14 @@ footer{
     box-shadow: 0px 0px 10px #52057b;
     text-align: center;
     z-index: 1000;
+    opacity: 0;
+    visibility: hidden;
+    transition: all 0.3s ease-in-out;
+}
+
+.popup.show {
+    opacity: 1;
+    visibility: visible;
 }
 
 .popup-content {
@@ -393,10 +512,12 @@ footer{
     border: none;
     cursor: pointer;
     border-radius: 5px;
+    transition: background-color 0.3s ease, transform 0.2s ease;
 }
 
 .popup button:hover {
     background-color: #6a359c;
+    transform: scale(1.05);
 }
 
 .popup p {
@@ -411,10 +532,6 @@ footer{
 
 .popup a:hover {
     text-decoration: underline;
-}
-
-.hide {
-    display: none;
 }
 
 .close-icon {
@@ -434,6 +551,7 @@ footer{
     border-radius: 5px;
     box-shadow: 0px 0px 10px #28a745;
     z-index: 1000;
+    animation: slideInRight 0.4s ease-out;
 }
 
 .error-popup {
@@ -446,6 +564,7 @@ footer{
     border-radius: 5px;
     box-shadow: 0px 0px 10px #dc3545;
     z-index: 1000;
+    animation: slideInRight 0.4s ease-out;
 }
 
 .top-right-username {
@@ -494,6 +613,13 @@ footer{
     flex-direction: column;
     align-items: center;
     gap: 10px;
+    animation: fadeInUp 0.5s ease-out;
+    transition: all 0.3s ease;
+}
+
+#thread-box:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 5px 15px rgba(255, 255, 255, 0.2);
 }
 
 #thread-box textarea {
@@ -516,6 +642,9 @@ footer{
     border-radius: 5px;
     width: 90%;
     max-width: 400px;
+    transition: all 0.3s ease;
+    position: relative;
+    overflow: hidden;
 }
 
 #thread-box button:first-of-type {
@@ -536,6 +665,35 @@ footer{
 
 #thread-box button:last-of-type:hover {
     background-color: #c82333;
+}
+
+#thread-box button:after {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 5px;
+    height: 5px;
+    background: rgba(255, 255, 255, 0.5);
+    opacity: 0;
+    border-radius: 100%;
+    transform: scale(1, 1) translate(-50%);
+    transform-origin: 50% 50%;
+}
+
+#thread-box button:hover:after {
+    animation: ripple 1s ease-out;
+}
+
+@keyframes ripple {
+    0% {
+        transform: scale(0, 0);
+        opacity: 0.5;
+    }
+    100% {
+        transform: scale(40, 40);
+        opacity: 0;
+    }
 }
 
 /* ########################################### */
@@ -698,12 +856,19 @@ footer{
     margin: 10px 0;
     color: #fff;
     box-shadow: 2px 2px 10px rgba(255, 255, 255, 0.1);
+    animation: fadeInUp 0.5s ease-out;
+    transition: all 0.3s ease;
 }
 
 .thread-title {
     font-size: 18px;
     font-weight: bold;
     margin-bottom: 5px;
+    transition: color 0.3s ease;
+}
+
+.thread-title:hover {
+    color: #FF0042;
 }
 
 .thread-content {
@@ -738,8 +903,9 @@ footer{
     color: white;
     font-weight: bold;
     cursor: pointer;
-    transition: 0.3s ease-in-out;
+    transition: all 0.3s ease;
     box-shadow: 2px 2px 10px rgba(255, 255, 255, 0.2);
+    animation: fadeInUp 0.5s ease-out;
 }
 
 .category-box:hover {
@@ -767,4 +933,758 @@ footer{
 
 .delete-btn:hover {
     background-color: #c82333;
+}
+
+/* Thêm hiệu ứng cho nút */
+button {
+    transition: all 0.3s ease;
+    position: relative;
+    overflow: hidden;
+}
+
+button:hover {
+    background-color: #6a359c; /* Màu nền khi hover */
+    transform: scale(1.05); /* Tăng kích thước một chút */
+}
+
+/* Hiệu ứng cho các phần tử khi xuất hiện */
+@keyframes fadeInUp {
+    from {
+        opacity: 0;
+        transform: translateY(20px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+/* Hiệu ứng cho navbar items */
+.nav-item {
+    transition: transform 0.3s ease;
+}
+
+.nav-item:hover {
+    transform: translateY(-2px);
+}
+
+/* Hiệu ứng cho search box */
+.search-box {
+    animation: fadeInUp 0.6s ease-out;
+}
+
+.search-box input {
+    transition: all 0.3s ease;
+}
+
+.search-box input:focus {
+    transform: scale(1.02);
+    box-shadow: 0 0 10px rgba(82, 5, 123, 0.3);
+}
+
+/* Hiệu ứng cho buttons */
+button:after {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 5px;
+    height: 5px;
+    background: rgba(255, 255, 255, 0.5);
+    opacity: 0;
+    border-radius: 100%;
+    transform: scale(1, 1) translate(-50%);
+    transform-origin: 50% 50%;
+}
+
+button:hover:after {
+    animation: ripple 1s ease-out;
+}
+
+@keyframes ripple {
+    0% {
+        transform: scale(0, 0);
+        opacity: 0.5;
+    }
+    100% {
+        transform: scale(40, 40);
+        opacity: 0;
+    }
+}
+
+/* Hiệu ứng cho thread boxes */
+.thread-box:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 5px 15px rgba(255, 255, 255, 0.2);
+}
+
+/* Hiệu ứng cho category boxes */
+.category-box {
+    animation: fadeInUp 0.5s ease-out;
+    transition: all 0.3s ease;
+}
+
+/* Hiệu ứng cho popup */
+@keyframes slideIn {
+    from {
+        transform: translate(-50%, -70%);
+        opacity: 0;
+    }
+    to {
+        transform: translate(-50%, -50%);
+        opacity: 1;
+    }
+}
+
+.popup.show {
+    animation: slideIn 0.4s ease-out forwards;
+}
+
+/* Hiệu ứng cho success/error messages */
+@keyframes slideInRight {
+    from {
+        transform: translateX(100%);
+        opacity: 0;
+    }
+    to {
+        transform: translateX(0);
+        opacity: 1;
+    }
+}
+
+.success-popup, .error-popup {
+    animation: slideInRight 0.4s ease-out;
+}
+
+/* Thêm animation khi hiển thị navigation */
+@keyframes slideIn {
+    from {
+        transform: translateX(-100%);
+        opacity: 0;
+    }
+    to {
+        transform: translateX(0);
+        opacity: 1;
+    }
+}
+
+.navigation:not(.hide) {
+    animation: slideIn 0.4s ease-out;
+}
+
+/* ########################################### */
+/*            Login Page Styles                */
+/* ########################################### */
+.login-container {
+    max-width: 400px;
+    margin: 50px auto;
+    padding: 20px;
+    background-color: #111314;
+    border-radius: 10px;
+    box-shadow: 0 0 20px rgba(82, 5, 123, 0.3);
+    animation: fadeInUp 0.6s ease-out;
+}
+
+.login-container h2 {
+    text-align: center;
+    color: #fff;
+    margin-bottom: 30px;
+}
+
+.login-form {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+}
+
+.form-group {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.form-group label {
+    color: #fff;
+    font-size: 14px;
+}
+
+.form-group input {
+    padding: 12px;
+    border: none;
+    border-radius: 5px;
+    background-color: #222;
+    color: #fff;
+    transition: all 0.3s ease;
+}
+
+.form-group input:focus {
+    outline: none;
+    box-shadow: 0 0 10px rgba(82, 5, 123, 0.5);
+    transform: scale(1.02);
+}
+
+.login-btn {
+    padding: 12px;
+    background-color: #52057b;
+    color: #fff;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+    font-size: 16px;
+    transition: all 0.3s ease;
+    position: relative;
+    overflow: hidden;
+}
+
+.login-btn:hover {
+    background-color: #6a359c;
+    transform: scale(1.05);
+}
+
+.register-link {
+    text-align: center;
+    margin-top: 20px;
+    color: #fff;
+}
+
+.register-link a {
+    color: #FF0042;
+    text-decoration: none;
+    transition: all 0.3s ease;
+}
+
+.register-link a:hover {
+    text-decoration: underline;
+}
+
+.back-to-home {
+    position: absolute;
+    top: 20px;
+    left: 20px;
+    color: #fff;
+    text-decoration: none;
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    transition: all 0.3s ease;
+}
+
+.back-to-home:hover {
+    transform: translateX(-5px);
+}
+
+/* ########################################### */
+/*            Register Page Styles             */
+/* ########################################### */
+.register-container {
+    max-width: 400px;
+    margin: 50px auto;
+    padding: 20px;
+    background-color: #111314;
+    border-radius: 10px;
+    box-shadow: 0 0 20px rgba(82, 5, 123, 0.3);
+    animation: fadeInUp 0.6s ease-out;
+}
+
+.register-container h2 {
+    text-align: center;
+    color: #fff;
+    margin-bottom: 30px;
+}
+
+.register-form {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+}
+
+.register-btn {
+    padding: 12px;
+    background-color: #52057b;
+    color: #fff;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+    font-size: 16px;
+    transition: all 0.3s ease;
+    position: relative;
+    overflow: hidden;
+}
+
+.register-btn:hover {
+    background-color: #6a359c;
+    transform: scale(1.05);
+}
+
+.login-link {
+    text-align: center;
+    margin-top: 20px;
+    color: #fff;
+}
+
+.login-link a {
+    color: #FF0042;
+    text-decoration: none;
+    transition: all 0.3s ease;
+}
+
+.login-link a:hover {
+    text-decoration: underline;
+}
+
+/* User Profile Styles */
+.user-profile {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 5px 10px;
+    border-radius: 20px;
+    background-color: rgba(82, 5, 123, 0.3);
+    transition: all 0.3s ease;
+    margin-left: auto;
+    position: relative;
+    cursor: pointer;
+    height: 45px;
+}
+
+.user-profile:hover {
+    background-color: rgba(82, 5, 123, 0.5);
+    transform: translateY(-2px);
+}
+
+.user-avatar {
+    width: 35px;
+    height: 35px;
+    border-radius: 50%;
+    object-fit: cover;
+    border: 2px solid #fff;
+}
+
+.username-display {
+    color: #fff;
+    font-size: 16px;
+    font-weight: bold;
+    margin-right: 10px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 150px;
+}
+
+/* Profile Dropdown Menu */
+.profile-dropdown {
+    position: absolute;
+    top: calc(100% + 5px);
+    right: 0;
+    background-color: #111314;
+    border-radius: 5px;
+    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+    min-width: 150px;
+    opacity: 0;
+    visibility: hidden;
+    transform: translateY(-10px);
+    transition: all 0.3s ease;
+    padding: 5px 0;
+    z-index: 1000;
+}
+
+.profile-dropdown.show {
+    opacity: 1;
+    visibility: visible;
+    transform: translateY(0);
+}
+
+.profile-dropdown::before {
+    content: '';
+    position: absolute;
+    top: -5px;
+    right: 20px;
+    width: 10px;
+    height: 10px;
+    background-color: #111314;
+    transform: rotate(45deg);
+}
+
+.profile-dropdown-item {
+    padding: 12px 20px;
+    color: #fff;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    border-radius: 3px;
+    margin: 2px 5px;
+}
+
+.profile-dropdown-item:first-child {
+    margin-top: 5px;
+}
+
+.profile-dropdown-item:last-child {
+    margin-bottom: 5px;
+}
+
+.profile-dropdown-item:hover {
+    background-color: rgba(82, 5, 123, 0.3);
+}
+
+.profile-dropdown-item i {
+    font-size: 16px;
+    width: 20px;
+    text-align: center;
+}
+
+/* Hide class */
+.hide {
+    display: none !important;
+}
+
+/* Responsive styles */
+@media screen and (max-width: 1200px) {
+    .navbar {
+        height: auto;
+        min-height: 80px;
+    }
+
+    .navigation {
+        width: 75%;
+        height: auto;
+        min-height: 60px;
+    }
+
+    .nav-list {
+        justify-content: center;
+    }
+
+    .nav-item a {
+        padding: 8px 12px;
+        font-size: 14px;
+    }
+
+    .brand {
+        font-size: 40px;
+    }
+}
+
+@media screen and (max-width: 992px) {
+    .navigation {
+        width: 85%;
+    }
+
+    .nav-item a {
+        padding: 6px 10px;
+        font-size: 13px;
+    }
+
+    .brand {
+        font-size: 35px;
+    }
+}
+
+@media screen and (max-width: 768px) {
+    .navbar {
+        flex-direction: column;
+        padding: 10px;
+    }
+
+    .navigation {
+        width: 100%;
+        margin: 10px 0;
+    }
+
+    .nav-list {
+        flex-direction: row;
+        justify-content: center;
+    }
+
+    .brand {
+        font-size: 30px;
+        margin-bottom: 10px;
+    }
+
+    .user-profile {
+        position: absolute;
+        top: 10px;
+        right: 10px;
+    }
+}
+
+/* Responsive styles for user profile */
+@media screen and (max-width: 1200px) {
+    .user-profile {
+        height: 40px;
+    }
+
+    .user-avatar {
+        width: 30px;
+        height: 30px;
+    }
+
+    .username-display {
+        font-size: 14px;
+        max-width: 120px;
+    }
+}
+
+@media screen and (max-width: 992px) {
+    .user-profile {
+        height: 35px;
+        padding: 4px 8px;
+    }
+
+    .user-avatar {
+        width: 25px;
+        height: 25px;
+    }
+
+    .username-display {
+        font-size: 13px;
+        max-width: 100px;
+    }
+}
+
+@media screen and (max-width: 768px) {
+    .user-profile {
+        position: absolute;
+        top: 10px;
+        right: 10px;
+        height: 35px;
+    }
+
+    .username-display {
+        display: none;
+    }
+
+    .user-avatar {
+        width: 25px;
+        height: 25px;
+    }
+}
+
+@media screen and (max-width: 460px) {
+    .user-profile {
+        top: 5px;
+        right: 5px;
+        height: 30px;
+        padding: 3px 6px;
+    }
+
+    .user-avatar {
+        width: 22px;
+        height: 22px;
+        border-width: 1px;
+    }
+}
+
+/* ########################################### */
+/*            Admin Page Styles                */
+/* ########################################### */
+.admin-container {
+    margin: 20px;
+    padding: 20px;
+    animation: fadeInUp 0.6s ease-out;
+}
+
+.admin-section {
+    background-color: #111314;
+    border-radius: 10px;
+    padding: 20px;
+    margin-bottom: 30px;
+    box-shadow: 0 0 20px rgba(82, 5, 123, 0.2);
+}
+
+.admin-section h2 {
+    color: #fff;
+    font-size: 24px;
+    margin-bottom: 20px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.admin-section h2 i {
+    color: #52057b;
+}
+
+.admin-actions {
+    margin-bottom: 20px;
+}
+
+.admin-btn {
+    padding: 10px 20px;
+    background-color: #52057b;
+    color: white;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+    font-size: 16px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    transition: all 0.3s ease;
+}
+
+.admin-btn:hover {
+    background-color: #6a359c;
+    transform: translateY(-2px);
+}
+
+.admin-table {
+    overflow-x: auto;
+}
+
+.admin-table table {
+    width: 100%;
+    border-collapse: collapse;
+    color: #fff;
+}
+
+.admin-table th,
+.admin-table td {
+    padding: 12px;
+    text-align: left;
+    border-bottom: 1px solid #333;
+}
+
+.admin-table th {
+    background-color: #52057b;
+    font-weight: bold;
+}
+
+.admin-table tr {
+    transition: all 0.3s ease;
+}
+
+.admin-table tr:hover {
+    background-color: rgba(82, 5, 123, 0.1);
+}
+
+.admin-table .action-btn {
+    padding: 6px 12px;
+    border: none;
+    border-radius: 3px;
+    cursor: pointer;
+    margin-right: 5px;
+    transition: all 0.3s ease;
+}
+
+.admin-table .edit-btn {
+    background-color: #ffc107;
+    color: #000;
+}
+
+.admin-table .delete-btn {
+    background-color: #dc3545;
+    color: #fff;
+}
+
+.admin-table .promote-btn {
+    background-color: #28a745;
+    color: #fff;
+}
+
+/* Admin Forms */
+.admin-form {
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    background-color: #111314;
+    padding: 30px;
+    border-radius: 10px;
+    box-shadow: 0 0 30px rgba(82, 5, 123, 0.3);
+    z-index: 1000;
+    width: 90%;
+    max-width: 500px;
+}
+
+.admin-form h3 {
+    color: #fff;
+    margin-bottom: 20px;
+    text-align: center;
+    font-size: 24px;
+}
+
+.admin-form input {
+    width: 100%;
+    padding: 12px;
+    margin-bottom: 15px;
+    background-color: #222;
+    border: none;
+    border-radius: 5px;
+    color: #fff;
+    font-size: 16px;
+}
+
+.admin-form input:focus {
+    outline: none;
+    box-shadow: 0 0 10px rgba(82, 5, 123, 0.5);
+}
+
+.form-actions {
+    display: flex;
+    gap: 10px;
+    justify-content: flex-end;
+    margin-top: 20px;
+}
+
+.submit-btn {
+    background-color: #28a745;
+    color: white;
+    border: none;
+    padding: 10px 20px;
+    border-radius: 5px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+.cancel-btn {
+    background-color: #dc3545;
+    color: white;
+    border: none;
+    padding: 10px 20px;
+    border-radius: 5px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+.submit-btn:hover,
+.cancel-btn:hover {
+    transform: translateY(-2px);
+}
+
+/* Responsive styles for admin page */
+@media screen and (max-width: 768px) {
+    .admin-container {
+        margin: 10px;
+        padding: 10px;
+    }
+
+    .admin-section {
+        padding: 15px;
+    }
+
+    .admin-section h2 {
+        font-size: 20px;
+    }
+
+    .admin-table th,
+    .admin-table td {
+        padding: 8px;
+        font-size: 14px;
+    }
+
+    .admin-form {
+        padding: 20px;
+    }
+
+    .admin-form h3 {
+        font-size: 20px;
+    }
+
+    .admin-form input {
+        padding: 10px;
+        font-size: 14px;
+    }
 }

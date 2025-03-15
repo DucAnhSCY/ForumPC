@@ -8,6 +8,7 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css">
     <link rel="preconnect" href="https://fonts.gstatic.com">
     <link href="https://fonts.googleapis.com/css2?family=Titillium+Web:ital@1&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <script src="main.js" defer></script>
 </head>
 <body>
@@ -23,12 +24,16 @@
                 <li class="nav-item"><a href="posts.html">Posts</a></li>
                 <li class="nav-item"><a href="detail.html">Detail</a></li>
                 <li class="nav-item"><a href="categories.html">Categories</a></li>
-                <li class="nav-item login-link"><a href="#" onclick="showLogin()">Login</a></li>
-                <li class="nav-item logout-link hide"><a href="#" onclick="logout()">Logout</a></li>
+                <li class="nav-item" id="login-item"><a href="login.html">Login</a></li>
+                <li class="nav-item hide" id="logout-item"><a href="#" onclick="logout()">Logout</a></li>
             </ul>
         </nav>
         <a class="bar-icon" id="iconBar" onclick="hideIconBar()"><i class="fa fa-bars"></i></a>
         <div class="brand">My Forum</div>
+        <div class="user-profile hide" id="user-profile">
+            <img src="https://cdn.pixabay.com/photo/2015/11/06/13/27/ninja-1027877_960_720.jpg" alt="User Avatar" class="user-avatar">
+            <span class="username-display"></span>
+        </div>
         <div id="top-right-username" class="top-right-username hide"></div>
     </div>
 
