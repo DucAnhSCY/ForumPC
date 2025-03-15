@@ -20,7 +20,7 @@ function initializePage() {
     });
 }
 //API
-const api_key ="http://localhost:5105/api/"
+const api_key ="http://localhost:5195/api/"
 // NavBar
 function hideIconBar() {
     var iconBar = document.getElementById("iconBar");
