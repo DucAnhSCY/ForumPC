@@ -132,10 +132,10 @@ async function login(email, password) {
         await new Promise(resolve => setTimeout(resolve, 300));
 
         // Kiểm tra admin trước
-        const adminResponse = await fetch(`${api_key}Admin/Login`, {
+        const adminResponse = await fetch(`${api_key}Auth/AdminLogin`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ email, password })
+            body: JSON.stringify({ adminEmail: email, adminPassword: password })
         });
 
         // Nếu là admin
