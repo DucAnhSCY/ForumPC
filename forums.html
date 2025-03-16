@@ -37,6 +37,8 @@
                     <li class="nav-item"><a href="categories.html">Categories</a></li>
                     <li class="nav-item" id="login-item"><a href="login.html">Login</a></li>
                     <li class="nav-item hide" id="logout-item"><a href="#" onclick="logout()">Logout</a></li>
+                    <li class="nav-item hide" id="admin-dashboard-item"><a href="admin.html"><i class="fa fa-dashboard"></i> Admin Dashboard</a></li>
+                    <li class="nav-item hide" id="moderator-dashboard-item"><a href="moderator.html"><i class="fa fa-gavel"></i> Moderator Dashboard</a></li>
                 </ul>
             </nav>
             <a class="bar-icon" id="iconBar" onclick="hideIconBar()"><i class="fa fa-bars"></i></a>
@@ -45,6 +47,22 @@
                 <img src="https://cdn.pixabay.com/photo/2015/11/06/13/27/ninja-1027877_960_720.jpg" alt="User Avatar" class="user-avatar">
                 <span class="username-display"></span>
                 <div class="profile-dropdown" id="profile-dropdown">
+                    <div class="profile-dropdown-item admin-only hide" id="admin-dashboard-dropdown" onclick="window.location.href='admin.html'">
+                        <i class="fa fa-dashboard"></i>
+                        Admin Dashboard
+                    </div>
+                    <div class="profile-dropdown-item moderator-only hide" id="moderator-dashboard-dropdown" onclick="window.location.href='moderator.html'">
+                        <i class="fa fa-gavel"></i>
+                        Moderator Dashboard
+                    </div>
+                    <div class="profile-dropdown-item hide" id="view-as-user-dropdown-item" onclick="viewAsUser()">
+                        <i class="fa fa-user"></i>
+                        View as User
+                    </div>
+                    <div class="profile-dropdown-item hide" id="view-as-admin-dropdown-item" onclick="viewAsAdmin()">
+                        <i class="fa fa-user-secret"></i>
+                        Return to Admin View
+                    </div>
                     <div class="profile-dropdown-item" onclick="logout()">
                         <i class="fa fa-sign-out"></i>
                         Logout
@@ -102,5 +120,13 @@
     <footer>
         <span>&copy; 2025 My Forum | All Rights Reserved</span>
     </footer>
+
+    <script>
+        document.addEventListener("DOMContentLoaded", function() {
+            updateNavBar();
+            showAdminElements();
+            updateViewModeIndicator();
+        });
+    </script>
 </body>
 </html>

@@ -1,0 +1,192 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Moderator Dashboard - My Forum</title>
+    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css">
+    <link rel="preconnect" href="https://fonts.gstatic.com">
+    <link href="https://fonts.googleapis.com/css2?family=Titillium+Web:ital@1&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <script src="main.js" defer></script>
+</head>
+<body class="moderator-theme">
+    <header>
+        <div class="navbar">
+            <nav class="navigation hide" id="navigation">
+                <span class="close-icon" id="close-icon" onclick="showIconBar()">
+                    <i class="fa fa-close"></i>
+                </span>
+                <ul class="nav-list">
+                    <li class="nav-item"><a href="forums.html">Forums</a></li>
+                    <li class="nav-item"><a href="posts.html">Posts</a></li>
+                    <li class="nav-item"><a href="detail.html">Detail</a></li>
+                    <li class="nav-item"><a href="categories.html">Categories</a></li>
+                    <li class="nav-item" id="login-item"><a href="login.html">Login</a></li>
+                    <li class="nav-item hide" id="logout-item"><a href="#" onclick="logout()">Logout</a></li>
+                    <li class="nav-item hide" id="view-as-user-menu-item"><a href="#" onclick="viewAsUserAndRedirect()"><i class="fa fa-user"></i> View as User</a></li>
+                    <li class="nav-item hide" id="admin-panel-item"><a href="admin.html"><i class="fa fa-dashboard"></i> Admin Panel</a></li>
+                </ul>
+            </nav>
+            <a class="bar-icon" id="iconBar" onclick="hideIconBar()"><i class="fa fa-bars"></i></a>
+            <div class="brand">Moderator Panel</div>
+            <div class="user-profile hide" id="user-profile" onclick="toggleProfileDropdown()">
+                <img src="https://cdn.pixabay.com/photo/2015/11/06/13/27/ninja-1027877_960_720.jpg" alt="User Avatar" class="user-avatar">
+                <span class="username-display"></span>
+                <div class="profile-dropdown" id="profile-dropdown">
+                    <div class="profile-dropdown-item" id="view-as-user-dropdown" onclick="viewAsUserAndRedirect()">
+                        <i class="fa fa-user"></i>
+                        View as User
+                    </div>
+                    <div class="profile-dropdown-item admin-only hide" id="admin-panel-dropdown" onclick="window.location.href='admin.html'">
+                        <i class="fa fa-dashboard"></i>
+                        Admin Panel
+                    </div>
+                    <div class="profile-dropdown-item" onclick="logout()">
+                        <i class="fa fa-sign-out"></i>
+                        Logout
+                    </div>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <div class="moderator-container">
+        <!-- Categories Management Section -->
+        <section class="moderator-section" id="categories-section">
+            <h2><i class="fa fa-tags"></i> Categories Management</h2>
+            <div class="admin-table moderator-table">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>ID</th>
+                            <th>Name</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody id="moderator-categories-list">
+                        <!-- Categories will be loaded here -->
+                    </tbody>
+                </table>
+            </div>
+        </section>
+
+        <!-- User Management Section -->
+        <section class="moderator-section" id="regular-users-section">
+            <h2><i class="fa fa-users"></i> User Management</h2>
+            <div class="admin-actions">
+                <div class="admin-actions-left">
+                    <div class="admin-search">
+                        <input type="text" id="moderator-user-search" placeholder="Search users..." onkeyup="searchUsersForModerator()">
+                        <button onclick="searchUsersForModerator()"><i class="fa fa-search"></i> Search</button>
+                    </div>
+                    <div class="status-filter-container">
+                        <button id="moderator-user-filter-all" class="status-filter-btn active-filter" onclick="filterUsersByStatus('moderator-user', 'all')">
+                            <i class="fa fa-users"></i> All
+                        </button>
+                        <button id="moderator-user-filter-active" class="status-filter-btn" onclick="filterUsersByStatus('moderator-user', 'active')">
+                            <i class="fa fa-check-circle"></i> Active
+                        </button>
+                        <button id="moderator-user-filter-inactive" class="status-filter-btn" onclick="filterUsersByStatus('moderator-user', 'inactive')">
+                            <i class="fa fa-ban"></i> Inactive
+                        </button>
+                    </div>
+                </div>
+            </div>
+            <div class="admin-table moderator-table">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>ID</th>
+                            <th>Username</th>
+                            <th>Email</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody id="moderator-users-list">
+                        <!-- Users will be loaded here -->
+                    </tbody>
+                </table>
+            </div>
+        </section>
+
+        <!-- Posts Management Section -->
+        <section class="moderator-section" id="posts-section">
+            <h2><i class="fa fa-comments"></i> Posts Management</h2>
+            <div class="admin-table moderator-table">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>ID</th>
+                            <th>Content</th>
+                            <th>Author</th>
+                            <th>Date</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody id="moderator-posts-list">
+                        <!-- Posts will be loaded here -->
+                    </tbody>
+                </table>
+            </div>
+        </section>
+    </div>
+
+    <footer>
+        <span>&copy; 2025 My Forum | Moderator Panel</span>
+    </footer>
+
+    <script>
+        document.addEventListener("DOMContentLoaded", function () {
+            verifyModeratorAccess();
+            updateNavBar();
+            showModeratorElements();
+            
+            // Load data for moderator panel
+            loadCategoriesForModerator();
+            loadRegularUsersForModerator();
+            loadPostsForModerator();
+            
+            updateViewModeIndicator();
+        });
+        
+        // Function to handle "View as User" button click
+        function viewAsUserAndRedirect() {
+            // Store original moderator status
+            sessionStorage.setItem('originalIsModerator', sessionStorage.getItem('isModerator'));
+            
+            // Set viewing as user flag
+            sessionStorage.setItem('viewingAsUser', 'true');
+            
+            // Temporarily change moderator status
+            sessionStorage.setItem('isModerator', 'false');
+            
+            // Show success message
+            showSuccessPopup("Viewing site as regular user");
+            
+            // Redirect to forums page after a short delay
+            setTimeout(() => {
+                window.location.href = 'forums.html';
+            }, 1000);
+        }
+        
+        // Function to search users for moderator
+        function searchUsersForModerator() {
+            const searchTerm = document.getElementById('moderator-user-search').value.toLowerCase();
+            const rows = document.querySelectorAll('#moderator-users-list tr');
+            
+            rows.forEach(row => {
+                const username = row.querySelector('td:nth-child(2)').textContent.toLowerCase();
+                const email = row.querySelector('td:nth-child(3)').textContent.toLowerCase();
+                
+                if (username.includes(searchTerm) || email.includes(searchTerm)) {
+                    row.style.display = '';
+                } else {
+                    row.style.display = 'none';
+                }
+            });
+        }
+    </script>
+</body>
+</html> 

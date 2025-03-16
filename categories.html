@@ -26,15 +26,33 @@
                 <li class="nav-item"><a href="categories.html">Categories</a></li>
                 <li class="nav-item" id="login-item"><a href="login.html">Login</a></li>
                 <li class="nav-item hide" id="logout-item"><a href="#" onclick="logout()">Logout</a></li>
+                <li class="nav-item hide" id="admin-dashboard-item"><a href="admin.html"><i class="fa fa-dashboard"></i> Admin Dashboard</a></li>
             </ul>
         </nav>
         <a class="bar-icon" id="iconBar" onclick="hideIconBar()"><i class="fa fa-bars"></i></a>
         <div class="brand">My Forum</div>
-        <div class="user-profile hide" id="user-profile">
+        <div class="user-profile hide" id="user-profile" onclick="toggleProfileDropdown(event)">
             <img src="https://cdn.pixabay.com/photo/2015/11/06/13/27/ninja-1027877_960_720.jpg" alt="User Avatar" class="user-avatar">
             <span class="username-display"></span>
+            <div class="profile-dropdown" id="profile-dropdown">
+                <div class="profile-dropdown-item admin-only hide" id="admin-dashboard-dropdown" onclick="window.location.href='admin.html'">
+                    <i class="fa fa-dashboard"></i>
+                    Admin Dashboard
+                </div>
+                <div class="profile-dropdown-item hide" id="view-as-user-dropdown-item" onclick="viewAsUser()">
+                    <i class="fa fa-user"></i>
+                    View as User
+                </div>
+                <div class="profile-dropdown-item hide" id="view-as-admin-dropdown-item" onclick="viewAsAdmin()">
+                    <i class="fa fa-user-secret"></i>
+                    Return to Admin View
+                </div>
+                <div class="profile-dropdown-item" onclick="logout()">
+                    <i class="fa fa-sign-out"></i>
+                    Logout
+                </div>
+            </div>
         </div>
-        <div id="top-right-username" class="top-right-username hide"></div>
     </div>
 
     <!--SearchBox Section-->
@@ -51,34 +69,29 @@
     </div>
 
     <main>
+        <h1 class="categories-title">Categories</h1>
+        
         <!-- Add Category Section (Only for Admin) -->
         <div id="add-category-section" class="hide">
-            <div id="category-box">
+            <button class="add-category-btn" onclick="showCategoryBox()">
+                <i class="fa fa-plus"></i> Add Category
+            </button>
+            
+            <div id="category-box" class="hide">
                 <input type="text" id="category-name" placeholder="Enter category name..." />
-                <button onclick="submitCategory()">Submit Category</button>
+                <button onclick="submitCategory()">Submit</button>
                 <button onclick="closeCategoryBox()">Cancel</button>
             </div>
         </div>
 
-        <!-- Categories List -->
-        <h1 id="categories"></h1>
-        <main>
-            <!-- Add Category Section (Only for Admin) -->
-            <div id="add-category-section" class="hide">
-                <div id="category-box">
-                    <input type="text" id="category-name" placeholder="Enter category name..." />
-                    <button onclick="submitCategory()">Submit Category</button>
-                    <button onclick="closeCategoryBox()">Cancel</button>
-                </div>
+        <!-- Categories List with Animation -->
+        <div class="category-container animated-grid">
+            <!-- Categories will be loaded dynamically here -->
+            <div class="loading-container" style="grid-column: 1 / -1; text-align: center; padding: 50px;">
+                <div class="loading-spinner"></div>
+                <p style="margin-top: 20px; color: #fff;">Loading categories...</p>
             </div>
-        
-            <!-- Categories List -->
-            <h1 id="categories">Categories</h1>
-            <div id="category-container" class="category-container">
-                <!-- Categories will be loaded dynamically here -->
-            </div>
-        </main>
-        
+        </div>
     </main>
 
     <footer>
@@ -87,33 +100,113 @@
 
     <script>
         document.addEventListener("DOMContentLoaded", function () {
-            let username = sessionStorage.getItem("username");
-
-            // Show "Add Category" section only for Admin
-            if (username === "admin") {
-                document.getElementById("add-category-section").classList.remove("hide");
-            }
-
-            loadCategories(); // Load categories
+            updateNavBar();
+            showCategoryButton();
+            showAdminElements();
+            loadCategoriesWithAnimation();
+            updateViewModeIndicator();
         });
-
-        // Display categories in the list with delete buttons (only for Admin)
-        function displayCategories(categories) {
-            const categoryList = document.getElementById("category-list");
-            categoryList.innerHTML = ""; // Clear previous list
-
-            let username = sessionStorage.getItem("username");
-
-            categories.forEach(category => {
-                const li = document.createElement("li");
-                li.innerHTML = `${category.name}`;
-
-                if (username === "admin") {
-                    li.innerHTML += ` <button class="delete-btn" onclick="deleteCategory(${category.categoryId})">Delete</button>`;
+        
+        // Function to load categories with animation
+        async function loadCategoriesWithAnimation() {
+            try {
+                console.log("Loading categories with animation...");
+                
+                const categoryContainer = document.querySelector(".category-container");
+                if (!categoryContainer) {
+                    console.error("Category container not found");
+                    return;
+                }
+                
+                // Show loading animation
+                categoryContainer.innerHTML = `
+                    <div class="loading-container" style="grid-column: 1 / -1; text-align: center; padding: 50px;">
+                        <div class="loading-spinner"></div>
+                        <p style="margin-top: 20px; color: #fff;">Loading categories...</p>
+                    </div>
+                `;
+                
+                const response = await fetch(`${api_key}Category`);
+                
+                if (!response.ok) {
+                    throw new Error("Failed to fetch categories");
                 }
 
-                categoryList.appendChild(li);
-            });
+                const categories = await response.json();
+                console.log("Categories loaded:", categories);
+                
+                // Clear container
+                categoryContainer.innerHTML = "";
+                
+                // Show message if no categories
+                if (categories.length === 0) {
+                    categoryContainer.innerHTML = `
+                        <div class="no-categories">
+                            <i class="fa fa-folder-open-o"></i>
+                            <p>No categories found</p>
+                            <small>Categories will appear here once created</small>
+                        </div>
+                    `;
+                    return;
+                }
+                
+                // Calculate grid layout for better balance
+                const itemsPerRow = Math.min(4, categories.length);
+                const optimalWidth = Math.max(280, Math.floor(1200 / itemsPerRow) - 30);
+                
+                // Update grid template columns for optimal layout
+                categoryContainer.style.gridTemplateColumns = `repeat(auto-fit, minmax(${optimalWidth}px, 1fr))`;
+                
+                // Add categories with staggered animation
+                categories.forEach((category, index) => {
+                    setTimeout(() => {
+                        const categoryBox = document.createElement("div");
+                        categoryBox.classList.add("category-card");
+                        categoryBox.style.animationDelay = `${index * 0.1}s`;
+                        
+                        // Check if user is admin
+                        const isAdmin = sessionStorage.getItem("isAdmin") === "true" || 
+                                      sessionStorage.getItem("username") === "admin";
+                        
+                        categoryBox.innerHTML = `
+                            <div class="category-content">
+                                <div class="category-icon">
+                                    <i class="fa fa-folder"></i>
+                                </div>
+                                <h3 class="category-title">${category.name}</h3>
+                            </div>
+                            <div class="category-actions">
+                                <button class="view-threads-btn" onclick="viewCategory(${category.categoryId})">
+                                    <i class="fa fa-eye"></i> View Threads
+                                </button>
+                                ${isAdmin ? `
+                                <button class="delete-category-btn" onclick="deleteCategory(${category.categoryId})">
+                                    <i class="fa fa-trash"></i> Delete
+                                </button>` : ''}
+                            </div>
+                            <div class="category-hover-effect"></div>
+                        `;
+                        
+                        categoryContainer.appendChild(categoryBox);
+                    }, index * 50); // Stagger each card by 50ms
+                });
+                
+            } catch (error) {
+                console.error("❌ Error loading categories:", error);
+                
+                const categoryContainer = document.querySelector(".category-container");
+                if (categoryContainer) {
+                    categoryContainer.innerHTML = `
+                        <div class="error-message">
+                            <i class="fa fa-exclamation-triangle"></i>
+                            <p>Failed to load categories</p>
+                            <button onclick="loadCategoriesWithAnimation()">Try Again</button>
+                        </div>
+                    `;
+                }
+                
+                showErrorPopup("Failed to load categories. Please try again later.");
+            }
         }
     </script>
 </body>

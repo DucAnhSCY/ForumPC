@@ -11,7 +11,7 @@
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <script src="main.js" defer></script>
 </head>
-<body>
+<body class="admin-theme">
     <header>
         <div class="navbar">
             <nav class="navigation hide" id="navigation">
@@ -25,6 +25,8 @@
                     <li class="nav-item"><a href="categories.html">Categories</a></li>
                     <li class="nav-item" id="login-item"><a href="login.html">Login</a></li>
                     <li class="nav-item hide" id="logout-item"><a href="#" onclick="logout()">Logout</a></li>
+                    <li class="nav-item hide" id="view-as-user-menu-item"><a href="#" onclick="viewAsUserAndRedirect()"><i class="fa fa-user"></i> View as User</a></li>
+                    <li class="nav-item hide" id="moderator-panel-item"><a href="moderator.html"><i class="fa fa-gavel"></i> Moderator Panel</a></li>
                 </ul>
             </nav>
             <a class="bar-icon" id="iconBar" onclick="hideIconBar()"><i class="fa fa-bars"></i></a>
@@ -33,6 +35,14 @@
                 <img src="https://cdn.pixabay.com/photo/2015/11/06/13/27/ninja-1027877_960_720.jpg" alt="User Avatar" class="user-avatar">
                 <span class="username-display"></span>
                 <div class="profile-dropdown" id="profile-dropdown">
+                    <div class="profile-dropdown-item" id="view-as-user-dropdown" onclick="viewAsUserAndRedirect()">
+                        <i class="fa fa-user"></i>
+                        View as User
+                    </div>
+                    <div class="profile-dropdown-item" id="moderator-panel-dropdown" onclick="window.location.href='moderator.html'">
+                        <i class="fa fa-gavel"></i>
+                        Moderator Panel
+                    </div>
                     <div class="profile-dropdown-item" onclick="logout()">
                         <i class="fa fa-sign-out"></i>
                         Logout
@@ -44,15 +54,23 @@
 
     <div class="admin-container">
         <!-- Categories Management Section -->
-        <section class="admin-section" id="categories-section">
-            <h2><i class="fa fa-folder"></i> Categories Management</h2>
+        <div id="categories-section" class="admin-section">
+            <h2><i class="fa fa-tags"></i> Categories Management</h2>
             <div class="admin-actions">
-                <button onclick="showAddCategoryForm()" class="admin-btn">
-                    <i class="fa fa-plus"></i> Add Category
-                </button>
+                <div class="admin-actions-left">
+                    <div class="admin-search">
+                        <input type="text" id="category-search" placeholder="Search categories..." onkeyup="searchCategories()">
+                        <button onclick="searchCategories()"><i class="fa fa-search"></i> Search</button>
+                    </div>
+                </div>
+                <div class="admin-actions-right">
+                    <button class="admin-btn" onclick="showAddCategoryForm()">
+                        <i class="fa fa-plus"></i> Add Category
+                    </button>
+                </div>
             </div>
             <div class="admin-table">
-                <table id="categories-table">
+                <table>
                     <thead>
                         <tr>
                             <th>ID</th>
@@ -65,29 +83,143 @@
                     </tbody>
                 </table>
             </div>
-        </section>
+        </div>
 
-        <!-- Users Management Section -->
-        <section class="admin-section" id="users-section">
-            <h2><i class="fa fa-users"></i> Users Management</h2>
+        <!-- Admin Management Section -->
+        <section class="admin-section" id="admins-section">
+            <h2><i class="fa fa-user-secret"></i> Admin Management</h2>
             <div class="admin-actions">
-                <button onclick="showAddAdminForm()" class="admin-btn">
-                    <i class="fa fa-user-plus"></i> Add Admin
-                </button>
+                <div class="admin-actions-left">
+                    <div class="admin-search">
+                        <input type="text" id="admin-search" placeholder="Search admins..." onkeyup="searchAdmins()">
+                        <button onclick="searchAdmins()"><i class="fa fa-search"></i> Search</button>
+                    </div>
+                    <div class="status-filter-container">
+                        <button id="admin-filter-all" class="status-filter-btn active-filter" onclick="filterUsersByStatus('admin', 'all')">
+                            <i class="fa fa-users"></i> All
+                        </button>
+                        <button id="admin-filter-active" class="status-filter-btn" onclick="filterUsersByStatus('admin', 'active')">
+                            <i class="fa fa-check-circle"></i> Active
+                        </button>
+                        <button id="admin-filter-inactive" class="status-filter-btn" onclick="filterUsersByStatus('admin', 'inactive')">
+                            <i class="fa fa-ban"></i> Inactive
+                        </button>
+                    </div>
+                </div>
+                <div class="admin-actions-right">
+                    <button onclick="showAddAdminForm()" class="admin-btn">
+                        <i class="fa fa-user-plus"></i> Add Admin
+                    </button>
+                </div>
             </div>
             <div class="admin-table">
-                <table id="users-table">
+                <table id="admins-table">
                     <thead>
                         <tr>
                             <th>ID</th>
                             <th>Username</th>
                             <th>Email</th>
-                            <th>Role</th>
+                            <th>Date Added</th>
                             <th>Actions</th>
                         </tr>
                     </thead>
-                    <tbody id="users-list">
-                        <!-- Users will be loaded here -->
+                    <tbody id="admins-list">
+                        <!-- Admins will be loaded here -->
+                        <tr>
+                            <td colspan="5" style="text-align: center; padding: 20px;">
+                                <div class="loading-spinner"></div>
+                                <p>Loading admins...</p>
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </section>
+
+        <!-- Moderator Management Section -->
+        <section class="admin-section" id="moderators-section">
+            <h2><i class="fa fa-gavel"></i> Moderator Management</h2>
+            <div class="admin-actions">
+                <div class="admin-actions-left">
+                    <div class="admin-search">
+                        <input type="text" id="moderator-search" placeholder="Search moderators..." onkeyup="searchModerators()">
+                        <button onclick="searchModerators()"><i class="fa fa-search"></i> Search</button>
+                    </div>
+                    <div class="status-filter-container">
+                        <button id="moderator-filter-all" class="status-filter-btn active-filter" onclick="filterUsersByStatus('moderator', 'all')">
+                            <i class="fa fa-users"></i> All
+                        </button>
+                        <button id="moderator-filter-active" class="status-filter-btn" onclick="filterUsersByStatus('moderator', 'active')">
+                            <i class="fa fa-check-circle"></i> Active
+                        </button>
+                        <button id="moderator-filter-inactive" class="status-filter-btn" onclick="filterUsersByStatus('moderator', 'inactive')">
+                            <i class="fa fa-ban"></i> Inactive
+                        </button>
+                    </div>
+                </div>
+                <div class="admin-actions-right">
+                    <button onclick="showAddModeratorForm()" class="admin-btn">
+                        <i class="fa fa-user-plus"></i> Add Moderator
+                    </button>
+                </div>
+            </div>
+            <div class="admin-table">
+                <table id="moderators-table">
+                    <thead>
+                        <tr>
+                            <th>ID</th>
+                            <th>Username</th>
+                            <th>Email</th>
+                            <th>Assigned Categories</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody id="moderators-list">
+                        <!-- Moderators will be loaded here -->
+                    </tbody>
+                </table>
+            </div>
+        </section>
+
+        <!-- User Management Section -->
+        <section class="admin-section" id="regular-users-section">
+            <h2><i class="fa fa-users"></i> User Management</h2>
+            <div class="admin-actions">
+                <div class="admin-actions-left">
+                    <div class="admin-search">
+                        <input type="text" id="user-search" placeholder="Search users..." onkeyup="searchUsers()">
+                        <button onclick="searchUsers()"><i class="fa fa-search"></i> Search</button>
+                    </div>
+                    <div class="status-filter-container">
+                        <button id="user-filter-all" class="status-filter-btn active-filter" onclick="filterUsersByStatus('user', 'all')">
+                            <i class="fa fa-users"></i> All
+                        </button>
+                        <button id="user-filter-active" class="status-filter-btn" onclick="filterUsersByStatus('user', 'active')">
+                            <i class="fa fa-check-circle"></i> Active
+                        </button>
+                        <button id="user-filter-inactive" class="status-filter-btn" onclick="filterUsersByStatus('user', 'inactive')">
+                            <i class="fa fa-ban"></i> Inactive
+                        </button>
+                    </div>
+                </div>
+                <div class="admin-actions-right">
+                    <button onclick="showAddUserForm()" class="admin-btn">
+                        <i class="fa fa-user-plus"></i> Add User
+                    </button>
+                </div>
+            </div>
+            <div class="admin-table">
+                <table id="regular-users-table">
+                    <thead>
+                        <tr>
+                            <th>ID</th>
+                            <th>Username</th>
+                            <th>Email</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody id="regular-users-list">
+                        <!-- Regular users will be loaded here -->
                     </tbody>
                 </table>
             </div>
@@ -96,6 +228,14 @@
         <!-- Posts Management Section -->
         <section class="admin-section" id="posts-section">
             <h2><i class="fa fa-comments"></i> Posts Management</h2>
+            <div class="admin-actions">
+                <div class="admin-actions-left">
+                    <div class="admin-search">
+                        <input type="text" id="post-search" placeholder="Search posts..." onkeyup="searchPosts()">
+                        <button onclick="searchPosts()"><i class="fa fa-search"></i> Search</button>
+                    </div>
+                </div>
+            </div>
             <div class="admin-table">
                 <table id="posts-table">
                     <thead>
@@ -118,13 +258,15 @@
 
     <!-- Add Category Form -->
     <div id="add-category-form" class="admin-form hide">
-        <div class="form-content">
-            <h3>Add New Category</h3>
-            <input type="text" id="new-category-name" placeholder="Category Name">
-            <div class="form-actions">
-                <button onclick="submitCategory()" class="submit-btn">Add</button>
-                <button onclick="closeForm('add-category-form')" class="cancel-btn">Cancel</button>
-            </div>
+        <h3>Add New Category</h3>
+        <input type="text" id="new-category-name" placeholder="Category Name">
+        <div class="form-actions">
+            <button onclick="submitCategoryFromAdmin()" class="submit-btn">
+                <i class="fa fa-check"></i> Add
+            </button>
+            <button onclick="closeForm('add-category-form')" class="cancel-btn">
+                <i class="fa fa-times"></i> Cancel
+            </button>
         </div>
     </div>
 
@@ -136,8 +278,35 @@
             <input type="email" id="new-admin-email" placeholder="Email">
             <input type="password" id="new-admin-password" placeholder="Password">
             <div class="form-actions">
-                <button onclick="submitAdmin()" class="submit-btn">Add</button>
-                <button onclick="closeForm('add-admin-form')" class="cancel-btn">Cancel</button>
+                <button onclick="submitAdmin()" class="submit-btn">
+                    <i class="fa fa-check"></i> Add
+                </button>
+                <button onclick="closeForm('add-admin-form')" class="cancel-btn">
+                    <i class="fa fa-times"></i> Cancel
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Add User Form -->
+    <div id="add-user-form" class="admin-form hide">
+        <div class="form-content">
+            <h3>Add New User</h3>
+            <input type="text" id="new-user-username" placeholder="Username">
+            <input type="email" id="new-user-email" placeholder="Email">
+            <input type="password" id="new-user-password" placeholder="Password">
+            <select id="new-user-role">
+                <option value="user">Regular User</option>
+                <option value="moderator">Moderator</option>
+                <option value="admin">Admin</option>
+            </select>
+            <div class="form-actions">
+                <button onclick="submitUser()" class="submit-btn">
+                    <i class="fa fa-check"></i> Add
+                </button>
+                <button onclick="closeForm('add-user-form')" class="cancel-btn">
+                    <i class="fa fa-times"></i> Cancel
+                </button>
             </div>
         </div>
     </div>
@@ -145,5 +314,71 @@
     <footer>
         <span>&copy; 2025 My Forum | Admin Panel</span>
     </footer>
+
+    <script>
+        document.addEventListener("DOMContentLoaded", function () {
+            updateNavBar();
+            showAdminElements();
+            
+            // Load all user types
+            loadAdminsForAdmin();
+            loadModeratorsForAdmin();
+            loadRegularUsersForAdmin();
+            
+            // Load other data
+            loadPostsForAdmin();
+            loadCategoriesForAdmin();
+            updateViewModeIndicator();
+        });
+    </script>
+
+    <script>
+        document.addEventListener("DOMContentLoaded", function () {
+            updateNavBar();
+            showAdminElements();
+            loadUsersForAdmin();
+            loadPostsForAdmin();
+            loadCategoriesForAdmin();
+            updateViewModeIndicator();
+        });
+    </script>
+
+    <script>
+        // Load categories when document is ready
+        document.addEventListener('DOMContentLoaded', function() {
+            // Check if user is admin
+            const isAdmin = sessionStorage.getItem('isAdmin') === 'true';
+            if (isAdmin) {
+                // Load categories for admin panel
+                loadCategoriesForAdmin();
+            } else {
+                // Redirect to home if not admin
+                window.location.href = 'forums.html';
+            }
+            
+            // Initialize view mode
+            updateViewModeIndicator();
+        });
+        
+        // Function to handle "View as User" button click
+        function viewAsUserAndRedirect() {
+            // Store original admin status
+            sessionStorage.setItem('originalIsAdmin', sessionStorage.getItem('isAdmin'));
+            
+            // Set viewing as user flag
+            sessionStorage.setItem('viewingAsUser', 'true');
+            
+            // Temporarily change admin status
+            sessionStorage.setItem('isAdmin', 'false');
+            
+            // Show success message
+            showSuccessPopup("Viewing site as regular user");
+            
+            // Redirect to forums page after a short delay
+            setTimeout(() => {
+                window.location.href = 'forums.html';
+            }, 1000);
+        }
+    </script>
 </body>
 </html> 

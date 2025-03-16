@@ -39,15 +39,33 @@
                     <li class="nav-item"><a href="categories.html">Categories</a></li>
                     <li class="nav-item" id="login-item"><a href="login.html">Login</a></li>
                     <li class="nav-item hide" id="logout-item"><a href="#" onclick="logout()">Logout</a></li>
+                    <li class="nav-item hide" id="admin-dashboard-item"><a href="admin.html"><i class="fa fa-dashboard"></i> Admin Dashboard</a></li>
                 </ul>
             </nav>
             <a class="bar-icon" id="iconBar" onclick="hideIconBar()"><i class="fa fa-bars"></i></a>
             <div class="brand">My Forum</div>
-            <div class="user-profile hide" id="user-profile">
+            <div class="user-profile hide" id="user-profile" onclick="toggleProfileDropdown(event)">
                 <img src="https://cdn.pixabay.com/photo/2015/11/06/13/27/ninja-1027877_960_720.jpg" alt="User Avatar" class="user-avatar">
                 <span class="username-display"></span>
+                <div class="profile-dropdown" id="profile-dropdown">
+                    <div class="profile-dropdown-item admin-only hide" id="admin-dashboard-dropdown" onclick="window.location.href='admin.html'">
+                        <i class="fa fa-dashboard"></i>
+                        Admin Dashboard
+                    </div>
+                    <div class="profile-dropdown-item hide" id="view-as-user-dropdown-item" onclick="viewAsUser()">
+                        <i class="fa fa-user"></i>
+                        View as User
+                    </div>
+                    <div class="profile-dropdown-item hide" id="view-as-admin-dropdown-item" onclick="viewAsAdmin()">
+                        <i class="fa fa-user-secret"></i>
+                        Return to Admin View
+                    </div>
+                    <div class="profile-dropdown-item" onclick="logout()">
+                        <i class="fa fa-sign-out"></i>
+                        Logout
+                    </div>
+                </div>
             </div>
-            <div id="top-right-username" class="top-right-username hide"></div>            
         </div>
         <!--SearchBox Section-->
         <div class="search-box">
@@ -62,6 +80,7 @@
             </div>
         </div>
     </header>
+
     <div class="container">
         <!-- Create Thread Section (Visible Only for Logged-In Users) -->
     <div id="create-thread-section" class="hide">
@@ -92,5 +111,16 @@
     <footer>
         <span>&copy;  Selmi Abderrahim | All Rights Reserved</span>
     </footer>
+
+    <script>
+        document.addEventListener("DOMContentLoaded", function() {
+            updateNavBar();
+            showAdminElements();
+            showThreadButton();
+            loadCategoryDropdown();
+            fetchThreads();
+            updateViewModeIndicator();
+        });
+    </script>
 </body>
 </html>
