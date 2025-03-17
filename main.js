@@ -148,13 +148,13 @@ function showErrorPopup(message) {
 
 // Login Functions
 async function login() {
-    const email = document.getElementById("email").value.trim();
+    const username = document.getElementById("username").value.trim();
     const password = document.getElementById("password").value.trim();
 
-        if (!email || !password) {
-        showErrorPopup("Email và mật khẩu không được để trống");
-            return;
-        }
+    if (!username || !password) {
+        showErrorPopup("Tên đăng nhập và mật khẩu không được để trống");
+        return;
+    }
 
     try {
         // Show loading popup
@@ -166,129 +166,62 @@ async function login() {
                 Swal.showLoading();
             }
         });
+        
+        // Đợi một chút để hiển thị loading
         await new Promise(resolve => setTimeout(resolve, 300));
-        // 1. Thử đăng nhập với tài khoản người dùng thông thường trước
-        const userResponse = await fetch(`${api_key}RegisteredUser/Login`, {
+        
+        // Sử dụng API User/Login mới
+        const response = await fetch(`${api_key}User/Login`, {
             method: "POST",
             headers: {
                 "Content-Type": "application/json"
             },
             body: JSON.stringify({
-                email: email,
+                username: username,
                 password: password
             })
         });
         
-        // Nếu đăng nhập người dùng thành công
-        if (userResponse.ok) {
-            const userData = await userResponse.json();
-            
-            // Lưu thông tin phiên làm việc
-            sessionStorage.setItem("isAuthenticated", "true");
-            sessionStorage.setItem("userId", userData.userId);
-            sessionStorage.setItem("username", userData.username);
-            sessionStorage.setItem("email", userData.email);
-            sessionStorage.setItem("isAdmin", "false");
-            sessionStorage.setItem("isModerator", "false");
-            
+        if (!response.ok) {
             // Đóng popup loading
             Swal.close();
-            
-            // Hiển thị thông báo thành công
-            showSuccessPopup("Đăng nhập thành công!");
-            
-            // Chuyển hướng đến trang chính
-            setTimeout(() => {
-                window.location.href = "forums.html";
-            }, 1500);
-            
-            return;
-        }
-        /*
-        // 2. Nếu không phải người dùng thông thường, thử đăng nhập với tài khoản Moderator
-        await new Promise(resolve => setTimeout(resolve, 300));
-        const moderatorResponse = await fetch(`${api_key}Moderator/Login`, {
-            method: "POST",
-            headers: {
-                "Content-Type": "application/json"
-            },
-            body: JSON.stringify({
-                email: email,
-                password: password
-            })
-        });
-        
-        // Nếu đăng nhập Moderator thành công
-        if (moderatorResponse.ok) {
-            const moderatorData = await moderatorResponse.json();
-            
-            // Lưu thông tin phiên làm việc
-            sessionStorage.setItem("isAuthenticated", "true");
-            sessionStorage.setItem("userId", moderatorData.userId);
-            sessionStorage.setItem("username", moderatorData.username);
-            sessionStorage.setItem("email", moderatorData.email);
-            sessionStorage.setItem("isAdmin", "false");
-            sessionStorage.setItem("isModerator", "true");
-            
-            // Đóng popup loading
-            Swal.close();
-            await new Promise(resolve => setTimeout(resolve, 300));
-            // Hiển thị thông báo thành công
-            showSuccessPopup("Đăng nhập thành công với quyền Moderator!");
-            
-            // Chuyển hướng đến trang moderator
-            setTimeout(() => {
-                window.location.href = "moderator.html";
-            }, 700);
-            
-            return;
-        }
-        */
-        // 3. Nếu không phải người dùng thông thường hoặc Moderator, thử đăng nhập với tài khoản Admin
-        await new Promise(resolve => setTimeout(resolve, 300));
-        const adminResponse = await fetch(`${api_key}Admin/Login`, {
-            method: "POST",
-            headers: {
-                "Content-Type": "application/json"
-            },
-            body: JSON.stringify({
-                adminEmail: email,
-                adminPassword: password
-            })
-        });
-        
-        // Nếu đăng nhập Admin thành công
-        if (adminResponse.ok) {
-            const adminData = await adminResponse.json();
-            
-            // Lưu thông tin phiên làm việc
-            sessionStorage.setItem("isAuthenticated", "true");
-            sessionStorage.setItem("userId", adminData.userId || adminData.admin.adminId);
-            sessionStorage.setItem("username", adminData.username || adminData.admin.username);
-            sessionStorage.setItem("email", adminData.email || adminData.admin.email);
-            sessionStorage.setItem("isAdmin", "true");
-            sessionStorage.setItem("isModerator", "false");
-            
-            // Đóng popup loading
-            Swal.close();
-            
-            // Hiển thị thông báo thành công
-            showSuccessPopup("Đăng nhập thành công với quyền Admin!");
-            
-            // Chuyển hướng đến trang admin
-        setTimeout(() => {
-                window.location.href = "admin.html";
-            }, 700);
-            
+            const errorData = await response.json();
+            showErrorPopup(errorData.message || "Đăng nhập thất bại. Vui lòng kiểm tra lại thông tin.");
             return;
         }
         
-        // Nếu tất cả các loại đăng nhập đều thất bại
+        const userData = await response.json();
+        
+        // Lưu thông tin phiên làm việc
+        sessionStorage.setItem("isAuthenticated", "true");
+        sessionStorage.setItem("userId", userData.id);
+        sessionStorage.setItem("username", userData.username);
+        sessionStorage.setItem("email", userData.email);
+        sessionStorage.setItem("role", userData.role);
+        
+        // Thiết lập các quyền dựa trên role
+        sessionStorage.setItem("isAdmin", userData.role === "Admin" ? "true" : "false");
+        sessionStorage.setItem("isModerator", userData.role === "Moderator" ? "true" : "false");
+        
+        // Đóng popup loading
         Swal.close();
-        showErrorPopup("Email hoặc mật khẩu không đúng");
-
+        
+        // Hiển thị thông báo thành công
+        showSuccessPopup("Đăng nhập thành công!");
+        
+        // Chuyển hướng dựa trên vai trò
+        setTimeout(() => {
+            if (userData.role === "Admin") {
+                window.location.href = "admin.html";
+            } else if (userData.role === "Moderator") {
+                window.location.href = "moderator.html";
+            } else {
+                window.location.href = "forums.html";
+            }
+        }, 1500);
+        
     } catch (error) {
-        console.error("Error during login:", error);
+        console.error("Login error:", error);
         Swal.close();
         showErrorPopup("Đã xảy ra lỗi khi đăng nhập. Vui lòng thử lại sau.");
     }
@@ -297,10 +230,24 @@ async function login() {
 // Function to verify admin access
 function verifyAdminAccess() {
     const isAdmin = sessionStorage.getItem('isAdmin') === 'true';
-    const username = sessionStorage.getItem('username');
     
-    if (!isAdmin && username !== 'admin') {
-        showErrorPopup("Access denied. Admin privileges required.");
+    if (!isAdmin) {
+        showErrorPopup("Truy cập bị từ chối. Bạn cần quyền quản trị viên.");
+        setTimeout(() => {
+            window.location.href = "forums.html";
+        }, 1500);
+        return false;
+    }
+    return true;
+}
+
+// Function to verify moderator access
+function verifyModeratorAccess() {
+    const isAdmin = sessionStorage.getItem('isAdmin') === 'true';
+    const isModerator = sessionStorage.getItem('isModerator') === 'true';
+    
+    if (!isAdmin && !isModerator) {
+        showErrorPopup("Truy cập bị từ chối. Bạn cần quyền quản trị viên hoặc điều hành viên.");
         setTimeout(() => {
             window.location.href = "forums.html";
         }, 1500);
@@ -319,18 +266,18 @@ async function register() {
 
         let emailPattern = /^[^@\s]+@[^@\s]+\.[^@\s]+$/;
         if (!emailPattern.test(email)) {
-            showErrorPopup('Invalid email format.');
+            showErrorPopup('Email không hợp lệ.');
             return;
         }
 
         if (password !== password2) {
-            showErrorPopup('Passwords do not match!');
+            showErrorPopup('Mật khẩu không khớp!');
             return;
         }
 
         // Hiển thị loading
         Swal.fire({
-            title: 'Creating account...',
+            title: 'Đang tạo tài khoản...',
             allowOutsideClick: false,
             showConfirmButton: false,
             didOpen: () => {
@@ -343,10 +290,17 @@ async function register() {
         // Đợi 0.3 giây trước khi thực hiện request
         await new Promise(resolve => setTimeout(resolve, 300));
 
-        const response = await fetch(`${api_key}RegisteredUser/Insert`, {
+        // Sử dụng API User/Register mới
+        const response = await fetch(`${api_key}User/Register`, {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ username, email, password })
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                username: username,
+                email: email,
+                password: password
+            })
         });
 
         // Đóng loading
@@ -355,15 +309,15 @@ async function register() {
         const result = await response.json();
 
         if (!response.ok) {
-            showErrorPopup(result.message);
+            showErrorPopup(result.message || "Đăng ký thất bại. Vui lòng thử lại.");
             return;
         }
 
         // Hiển thị thông báo thành công với timer
         await Swal.fire({
             icon: 'success',
-            title: 'Registration successful!',
-            text: 'Redirecting to login page...',
+            title: 'Đăng ký thành công!',
+            text: 'Đang chuyển hướng đến trang đăng nhập...',
             timer: 2000,
             timerProgressBar: true,
             showConfirmButton: false,
@@ -375,7 +329,9 @@ async function register() {
         window.location.href = 'login.html';
 
     } catch (error) {
-        showErrorPopup('A network error occurred.');
+        console.error("Register error:", error);
+        Swal.close();
+        showErrorPopup('Đã xảy ra lỗi khi đăng ký. Vui lòng thử lại sau.');
     }
 }
 
@@ -389,69 +345,119 @@ function clearRegisterForm() {
 
 // Authentication check
 function checkAuth() {
-    const isAuthenticated = sessionStorage.getItem('isAuthenticated');
-    if (isAuthenticated === 'true') {
-        window.location.href = 'forums.html';
+    const isAuthenticated = sessionStorage.getItem("isAuthenticated") === "true";
+    const currentPage = window.location.pathname.split("/").pop();
+    
+    // Redirect logic based on authentication status and current page
+    if (isAuthenticated) {
+        // If user is authenticated but on login or register page, redirect to forums
+        if (currentPage === "login.html" || currentPage === "register.html") {
+            window.location.href = "forums.html";
+            return;
+        }
+        
+        // Check role-based access
+        const isAdmin = sessionStorage.getItem("isAdmin") === "true";
+        const isModerator = sessionStorage.getItem("isModerator") === "true";
+        const role = sessionStorage.getItem("role");
+        
+        // Redirect based on role if on wrong page
+        if (currentPage === "admin.html" && !isAdmin) {
+            window.location.href = "forums.html";
+            return;
+        }
+        
+        if (currentPage === "moderator.html" && !isModerator && !isAdmin) {
+            window.location.href = "forums.html";
+            return;
+        }
+    } else {
+        // If not authenticated and trying to access protected pages
+        if (currentPage === "admin.html" || currentPage === "moderator.html") {
+            window.location.href = "login.html";
+            return;
+        }
     }
+    
+    // Update UI based on authentication status
+    updateNavBar();
 }
 
 // Update NavBar based on authentication status
 function updateNavBar() {
-    let isAuthenticated = sessionStorage.getItem('isAuthenticated');
-    let username = sessionStorage.getItem('username');
-    let isAdmin = sessionStorage.getItem('isAdmin') === 'true';
-    let isModerator = sessionStorage.getItem('isModerator') === 'true';
-
-    const loginItem = document.getElementById('login-item');
-    const logoutItem = document.getElementById('logout-item');
-    const userProfile = document.getElementById('user-profile');
-    const usernameDisplay = userProfile ? userProfile.querySelector('.username-display') : null;
-    const adminDashboardItem = document.getElementById('admin-dashboard-item');
-    const moderatorDashboardItem = document.getElementById('moderator-dashboard-item');
-
-    if (isAuthenticated === 'true') {
-        // Ẩn nút login và hiện nút logout
-        if (loginItem) loginItem.classList.add('hide');
-        if (logoutItem) logoutItem.classList.remove('hide');
-
-        // Hiển thị user profile
-        if (userProfile) {
-            userProfile.classList.remove('hide');
-            if (usernameDisplay) {
-                usernameDisplay.textContent = username;
+    const isAuthenticated = sessionStorage.getItem("isAuthenticated") === "true";
+    const username = sessionStorage.getItem("username");
+    const isAdmin = sessionStorage.getItem("isAdmin") === "true";
+    const isModerator = sessionStorage.getItem("isModerator") === "true";
+    const role = sessionStorage.getItem("role");
+    
+    // Get navbar elements
+    const loginButton = document.getElementById("login-button");
+    const registerButton = document.getElementById("register-button");
+    const logoutButton = document.getElementById("logout-button");
+    const userDropdown = document.getElementById("user-dropdown");
+    const usernameDisplay = document.getElementById("username-display");
+    const adminLink = document.getElementById("admin-link");
+    const moderatorLink = document.getElementById("moderator-link");
+    const createThreadButton = document.getElementById("create-thread-button");
+    const createCategoryButton = document.getElementById("create-category-button");
+    
+    if (isAuthenticated) {
+        // User is logged in
+        if (loginButton) loginButton.classList.add("hide");
+        if (registerButton) registerButton.classList.add("hide");
+        if (logoutButton) logoutButton.classList.remove("hide");
+        if (userDropdown) userDropdown.classList.remove("hide");
+        if (usernameDisplay) {
+            usernameDisplay.textContent = username;
+            usernameDisplay.classList.remove("hide");
+        }
+        
+        // Show/hide role-specific elements
+        if (adminLink) {
+            if (isAdmin) {
+                adminLink.classList.remove("hide");
+            } else {
+                adminLink.classList.add("hide");
             }
         }
         
-        // Show admin elements if user is admin
-        if (isAdmin) {
-            showAdminElements();
-            if (adminDashboardItem) adminDashboardItem.classList.remove('hide');
-            if (moderatorDashboardItem) moderatorDashboardItem.classList.add('hide');
-        } 
-        // Show moderator elements if user is moderator
-        else if (isModerator) {
-            showModeratorElements();
-            if (adminDashboardItem) adminDashboardItem.classList.add('hide');
-            if (moderatorDashboardItem) moderatorDashboardItem.classList.remove('hide');
-        }
-        // Regular user
-        else {
-            if (adminDashboardItem) adminDashboardItem.classList.add('hide');
-            if (moderatorDashboardItem) moderatorDashboardItem.classList.add('hide');
-        }
-    } else {
-        // Hiện nút login và ẩn nút logout
-        if (loginItem) loginItem.classList.remove('hide');
-        if (logoutItem) logoutItem.classList.add('hide');
-
-        // Ẩn user profile
-        if (userProfile) {
-            userProfile.classList.add('hide');
+        if (moderatorLink) {
+            if (isAdmin || isModerator) {
+                moderatorLink.classList.remove("hide");
+            } else {
+                moderatorLink.classList.add("hide");
+            }
         }
         
-        // Ẩn admin và moderator dashboard
-        if (adminDashboardItem) adminDashboardItem.classList.add('hide');
-        if (moderatorDashboardItem) moderatorDashboardItem.classList.add('hide');
+        // Show thread creation button for all authenticated users
+        if (createThreadButton) {
+            createThreadButton.classList.remove("hide");
+        }
+        
+        // Show category creation button only for admins
+        if (createCategoryButton) {
+            if (isAdmin) {
+                createCategoryButton.classList.remove("hide");
+            } else {
+                createCategoryButton.classList.add("hide");
+            }
+        }
+    } else {
+        // User is not logged in
+        if (loginButton) loginButton.classList.remove("hide");
+        if (registerButton) registerButton.classList.remove("hide");
+        if (logoutButton) logoutButton.classList.add("hide");
+        if (userDropdown) userDropdown.classList.add("hide");
+        if (usernameDisplay) usernameDisplay.classList.add("hide");
+        
+        // Hide role-specific elements
+        if (adminLink) adminLink.classList.add("hide");
+        if (moderatorLink) moderatorLink.classList.add("hide");
+        
+        // Hide thread and category creation buttons
+        if (createThreadButton) createThreadButton.classList.add("hide");
+        if (createCategoryButton) createCategoryButton.classList.add("hide");
     }
 }
 
@@ -459,7 +465,7 @@ function updateNavBar() {
 function logout() {
     // Hiển thị thông báo đang đăng xuất
     Swal.fire({
-        title: 'Logging out...',
+        title: 'Đang đăng xuất...',
         allowOutsideClick: false,
         showConfirmButton: false,
         didOpen: () => {
@@ -474,8 +480,8 @@ function logout() {
     
     // Hiển thị thông báo thành công và reload trang
     Swal.fire({
-        title: 'Success!',
-        text: 'You have been logged out successfully',
+        title: 'Thành công!',
+        text: 'Bạn đã đăng xuất thành công',
         icon: 'success',
         showConfirmButton: false,
         timer: 1500,
@@ -490,9 +496,12 @@ function logout() {
 
 // Show Create Thread Section for Logged-In Users
 function showThreadButton() {
-    let isAuthenticated = sessionStorage.getItem('isAuthenticated');
-    if (isAuthenticated === 'true') {
-        document.getElementById("create-thread-section").classList.remove("hide");
+    const isAuthenticated = sessionStorage.getItem('isAuthenticated') === 'true';
+    if (isAuthenticated) {
+        const createThreadSection = document.getElementById("create-thread-section");
+        if (createThreadSection) {
+            createThreadSection.classList.remove("hide");
+        }
     }
 }
 
@@ -508,72 +517,85 @@ function closeThreadBox() {
 
 // Submit a new thread
 async function submitThread() {
-    console.log("Submitting thread...");
-
-    const title = document.getElementById("thread-title").value.trim();
-    const content = document.getElementById("thread-content").value.trim();
-    const categoryDropdown = document.getElementById("category-dropdown");
-    const categoryId = categoryDropdown.value;
-    const categoryName = categoryDropdown.options[categoryDropdown.selectedIndex].text;
-    const userId = sessionStorage.getItem("userId");
-    const username = sessionStorage.getItem("username"); // Get stored username
-
-    if (!title || !content || categoryId === "") {
-        showErrorPopup("Please fill in all fields.");
-        return;
-    }
-
-    if (!userId) {
-        showErrorPopup("You must be logged in to create a thread.");
-        return;
-    }
-
-    const threadData = {
-        title: title,
-        content: content,
-        categoryId: parseInt(categoryId),
-        regUserId: parseInt(userId)
-    };
-
     try {
+        const title = document.getElementById("thread-title").value.trim();
+        const content = document.getElementById("thread-content").value.trim();
+        const categoryId = document.getElementById("category-select").value;
+        const userId = getLoggedInUserId();
+
+        if (!title || !content || !categoryId) {
+            showErrorPopup("Vui lòng điền đầy đủ thông tin.");
+            return;
+        }
+
+        if (!userId) {
+            showErrorPopup("Bạn cần đăng nhập để tạo chủ đề.");
+            return;
+        }
+
+        // Hiển thị loading
+        Swal.fire({
+            title: 'Đang tạo chủ đề...',
+            allowOutsideClick: false,
+            showConfirmButton: false,
+            didOpen: () => {
+                Swal.showLoading();
+            },
+            background: '#111314',
+            color: '#fff'
+        });
+
+        // Tạo đối tượng thread mới
+        const threadData = {
+            title: title,
+            content: content,
+            categoryId: parseInt(categoryId),
+            userId: parseInt(userId)
+        };
+
+        // Gửi request tạo thread
         const response = await fetch(`${api_key}Thread/Insert`, {
             method: "POST",
-            headers: { "Content-Type": "application/json" },
+            headers: {
+                "Content-Type": "application/json"
+            },
             body: JSON.stringify(threadData)
         });
 
+        // Đóng loading
+        Swal.close();
+
         if (!response.ok) {
             const errorData = await response.json();
-            console.error("Thread submission failed:", errorData);
-            showErrorPopup(errorData.message || "Failed to create thread");
+            showErrorPopup(errorData.message || "Không thể tạo chủ đề. Vui lòng thử lại.");
             return;
         }
 
         const result = await response.json();
-        console.log("Thread created successfully:", result);
 
-        // Clear input fields after successful submission
-        document.getElementById("thread-title").value = "";
-        document.getElementById("thread-content").value = "";
-
-        showSuccessPopup("Thread created successfully!");
-
-        // Immediately update UI with correct username
-        addThreadToUI({
-            title,
-            content,
-            categoryName,
-            creatorName: username
+        // Hiển thị thông báo thành công
+        await Swal.fire({
+            icon: 'success',
+            title: 'Tạo chủ đề thành công!',
+            timer: 1500,
+            timerProgressBar: true,
+            showConfirmButton: false,
+            background: '#111314',
+            color: '#fff'
         });
 
-        // Reload threads to show the new one
-        setTimeout(() => {
-            fetchThreads();
-        }, 1000);
+        // Đóng form và làm mới danh sách thread
+        closeThreadBox();
+        document.getElementById("thread-title").value = "";
+        document.getElementById("thread-content").value = "";
+        
+        // Làm mới danh sách thread
+        await fetchThreads();
 
     } catch (error) {
         console.error("Error submitting thread:", error);
-        showErrorPopup("A network error occurred. Please try again.");
+        Swal.close();
+        showErrorPopup("Đã xảy ra lỗi khi tạo chủ đề. Vui lòng thử lại sau.");
     }
 }
 
@@ -620,14 +642,16 @@ function getLoggedInUserId() {
 let userMap = {}; // Store user ID -> Username mapping
 async function fetchUsers() {
     try {
-        const response = await fetch(`${api_key}RegisteredUser`);
+        const response = await fetch(`${api_key}User`);
         if (!response.ok) {
             throw new Error("Failed to fetch users");
         }
 
-        const users = await response.json();
+        const data = await response.json();
+        const users = data.users || [];
+        
         users.forEach(user => {
-            userMap[user.regUserId] = user.username; // Store in dictionary
+            userMap[user.userId] = user.username; // Store in dictionary
         });
 
         console.log("✅ Users loaded:", userMap);
@@ -646,27 +670,16 @@ async function fetchThreads() {
         }
 
         const threads = await response.json();
-        console.log("Threads loaded:", threads);
-        
-        const threadList = document.getElementById("thread-list");
-        if (!threadList) {
-            console.error("Thread list element not found");
-            return;
-        }
-        
-        threadList.innerHTML = ""; // Clear previous threads
+        console.log("Threads fetched:", threads);
 
-        threads.forEach(thread => {
-            addThreadToUI({
-                title: thread.title,
-                content: thread.content,
-                categoryName: thread.categoryName,
-                creatorName: thread.creatorName || "Unknown",
-                createdAt: new Date(thread.createdAt).toLocaleString()
-            });
-        });
+        // Ensure we have user data
+        if (Object.keys(userMap).length === 0) {
+            await fetchUsers();
+        }
+
+        displayThreads(threads);
     } catch (error) {
-        console.error("Error loading threads:", error);
+        console.error("Error fetching threads:", error);
         showErrorPopup("Failed to load threads. Please try again later.");
     }
 }
@@ -676,18 +689,39 @@ document.addEventListener("DOMContentLoaded", fetchThreads);
 
 // Display threads inside the posts section
 function displayThreads(threads) {
-    const threadsContainer = document.getElementById('threads-container');
-    threadsContainer.innerHTML = ''; // Clear existing threads
+    const threadList = document.getElementById("thread-list");
+    if (!threadList) {
+        console.error("Thread list element not found");
+        return;
+    }
+    
+    threadList.innerHTML = ""; // Clear previous threads
+    
+    if (threads.length === 0) {
+        threadList.innerHTML = "<p class='no-threads'>Không có chủ đề nào. Hãy tạo chủ đề đầu tiên!</p>";
+        return;
+    }
 
     threads.forEach(thread => {
-        const threadElement = document.createElement('div');
-        threadElement.classList.add('thread');
+        const threadElement = document.createElement("div");
+        threadElement.classList.add("thread-box");
+        threadElement.setAttribute("data-thread-id", thread.threadId);
         threadElement.innerHTML = `
-            <h3>${thread.title}</h3>
-            <p>${thread.content}</p>
-            <small>Posted by User ID: ${thread.regUserId} on ${new Date(thread.createdAt).toLocaleString()}</small>
+            <h3 class="thread-title">${thread.title}</h3>
+            <p class="thread-content">${thread.content}</p>
+            <div class="thread-footer">
+                <small class="category-name">Danh mục: <strong>${thread.categoryName || "Không xác định"}</strong></small>
+                <small class="thread-creator">Tạo bởi: <strong>${thread.creatorName || "Không xác định"}</strong></small>
+                <small class="thread-date">Ngày: <strong>${new Date(thread.createdAt).toLocaleString()}</strong></small>
+            </div>
         `;
-        threadsContainer.appendChild(threadElement);
+        
+        // Add click event to view thread details
+        threadElement.addEventListener("click", () => {
+            window.location.href = `detail.html?id=${thread.threadId}`;
+        });
+        
+        threadList.appendChild(threadElement);
     });
 }
 
@@ -732,79 +766,80 @@ async function loadCategories() {
         if (!response.ok) {
             throw new Error("Failed to fetch categories");
         }
-
+        
         const categories = await response.json();
         console.log("Categories loaded:", categories);
         
-        // Update the category list on the Categories page
-        const categoryList = document.getElementById("category-list");
-        const categoryContainer = document.getElementById("category-container");
-        
-        // Check if we're on the categories page
-        if (categoryList) {
-            categoryList.innerHTML = ""; // Clear list before adding
-            
-            // Check if user is admin
-            const isAdmin = sessionStorage.getItem("isAdmin") === "true" || 
-                           sessionStorage.getItem("username") === "admin";
+        // Update category dropdown for thread creation
+        const categorySelect = document.getElementById("category-select");
+        if (categorySelect) {
+            categorySelect.innerHTML = '<option value="">Chọn danh mục</option>';
             
             categories.forEach(category => {
-                const li = document.createElement("li");
-                li.innerHTML = `
-                    <span class="category-name">${category.name}</span>
-                    ${isAdmin ? 
-                        `<button class="delete-btn" onclick="deleteCategory(${category.categoryId})">Delete</button>` : 
-                        ''}
-                `;
-                categoryList.appendChild(li);
+                const option = document.createElement("option");
+                option.value = category.categoryId;
+                option.textContent = category.name;
+                categorySelect.appendChild(option);
             });
         }
         
-        // If there's a category container (for displaying in a grid or other format)
-        if (categoryContainer) {
-            categoryContainer.innerHTML = ""; // Clear container
-            
-            categories.forEach(category => {
-                const categoryBox = document.createElement("div");
-                categoryBox.classList.add("category-box");
-                categoryBox.innerHTML = `
-                    <h3>${category.name}</h3>
-                    <button onclick="viewCategory(${category.categoryId})">View Threads</button>
-                `;
-                categoryContainer.appendChild(categoryBox);
-            });
-        }
+        // Update categories display in the categories section
+        displayCategories(categories);
         
-        console.log("Categories displayed successfully");
     } catch (error) {
-        console.error("❌ Error loading categories:", error);
-        showErrorPopup("Failed to load categories. Please try again later.");
+        console.error("Error loading categories:", error);
     }
 }
 
 function displayCategories(categories) {
+    // Update the category list on the Categories page
     const categoryList = document.getElementById("category-list");
-    categoryList.innerHTML = ""; // Clear list before adding
-
-    categories.forEach(category => {
-        const li = document.createElement("li");
-        li.innerHTML = `
-            ${category.name} 
-            <button class="delete-btn" onclick="deleteCategory(${category.categoryId})">Delete</button>
-        `;
-        categoryList.appendChild(li);
-    });
-}
-
-function displayCategories(categories) {
     const categoryContainer = document.getElementById("category-container");
-    categoryContainer.innerHTML = ""; // Clear previous content
-
-    let username = sessionStorage.getItem("username");
-
-    categories.forEach(category => {
-        categoryList.innerHTML += `<li>${category.name}</li>`;
-    });
+    
+    // Check if we're on the categories page
+    if (categoryList) {
+        categoryList.innerHTML = ""; // Clear list before adding
+        
+        if (categories.length === 0) {
+            categoryList.innerHTML = "<p class='no-categories'>Không có danh mục nào. Hãy tạo danh mục đầu tiên!</p>";
+            return;
+        }
+        
+        // Check if user is admin
+        const isAdmin = sessionStorage.getItem("isAdmin") === "true";
+        
+        categories.forEach(category => {
+            const li = document.createElement("li");
+            li.innerHTML = `
+                <span class="category-name">${category.name}</span>
+                ${isAdmin ? 
+                    `<button class="delete-btn" onclick="deleteCategory(${category.categoryId})">Xóa</button>
+                     <button class="edit-btn" onclick="editCategory(${category.categoryId}, '${category.name}')">Sửa</button>` : 
+                    ''}
+            `;
+            categoryList.appendChild(li);
+        });
+    }
+    
+    // If there's a category container (for displaying in a grid or other format)
+    if (categoryContainer) {
+        categoryContainer.innerHTML = ""; // Clear container
+        
+        if (categories.length === 0) {
+            categoryContainer.innerHTML = "<p class='no-categories'>Không có danh mục nào. Hãy tạo danh mục đầu tiên!</p>";
+            return;
+        }
+        
+        categories.forEach(category => {
+            const categoryBox = document.createElement("div");
+            categoryBox.classList.add("category-box");
+            categoryBox.innerHTML = `
+                <h3>${category.name}</h3>
+                <button onclick="viewCategory(${category.categoryId})">Xem chủ đề</button>
+            `;
+            categoryContainer.appendChild(categoryBox);
+        });
+    }
 }
 
 // Placeholder function for future interactions
@@ -814,134 +849,174 @@ function viewCategory(categoryId) {
 
 // Submit new category (Only for Admin)
 async function submitCategory() {
-    let categoryName = document.getElementById("category-name").value.trim();
-    let isAdmin = sessionStorage.getItem("isAdmin") === "true";
-    let username = sessionStorage.getItem("username");
-
-    if (!isAdmin && username !== "admin") {
-        showErrorPopup("Only Admin can create categories.");
-        return;
-    }
-
-    if (!categoryName) {
-        showErrorPopup("Category name cannot be empty.");
-        return;
-    }
-
     try {
-        console.log(`🆕 Attempting to add category: ${categoryName}`);
+        const categoryName = document.getElementById("category-name").value.trim();
+        
+        if (!categoryName) {
+            showErrorPopup("Tên danh mục không được để trống.");
+            return;
+        }
+        
+        // Hiển thị loading
+        Swal.fire({
+            title: 'Đang tạo danh mục...',
+            allowOutsideClick: false,
+            showConfirmButton: false,
+            didOpen: () => {
+                Swal.showLoading();
+            },
+            background: '#111314',
+            color: '#fff'
+        });
         
         const response = await fetch(`${api_key}Category/Insert`, {
             method: "POST",
-            headers: { "Content-Type": "application/json" },
+            headers: {
+                "Content-Type": "application/json"
+            },
             body: JSON.stringify({ name: categoryName })
         });
-
+        
+        // Đóng loading
+        Swal.close();
+        
         if (!response.ok) {
             const errorData = await response.json();
-            console.error("Failed to create category:", errorData);
-            showErrorPopup(errorData.message || "Failed to create category");
+            showErrorPopup(errorData.message || "Không thể tạo danh mục. Vui lòng thử lại.");
             return;
         }
-
-        const data = await response.json();
-        console.log("Category created successfully:", data);
-
-        showSuccessPopup(data.message || "Category created successfully!");
         
-        // Clear input field
+        const result = await response.json();
+        
+        // Hiển thị thông báo thành công
+        await Swal.fire({
+            icon: 'success',
+            title: 'Tạo danh mục thành công!',
+            timer: 1500,
+            timerProgressBar: true,
+            showConfirmButton: false,
+            background: '#111314',
+            color: '#fff'
+        });
+        
+        // Đóng form và làm mới danh sách danh mục
+        closeCategoryBox();
         document.getElementById("category-name").value = "";
         
-        // Reload categories
+        // Làm mới danh sách danh mục
         await loadCategories();
-        await loadCategoryDropdown();
-
-        closeCategoryBox();
+        
     } catch (error) {
-        console.error("Error creating category:", error);
-        showErrorPopup("Failed to create category. Please try again.");
+        console.error("Error submitting category:", error);
+        Swal.close();
+        showErrorPopup("Đã xảy ra lỗi khi tạo danh mục. Vui lòng thử lại sau.");
     }
 }
 
 // Delete category
-function deleteCategory(categoryId) {
-    Swal.fire({
-        title: 'Delete Category',
-        text: 'Are you sure you want to delete this category? This action cannot be undone.',
-        icon: 'warning',
-        showCancelButton: true,
-        confirmButtonText: 'Yes, delete it',
-        cancelButtonText: 'Cancel',
-        confirmButtonColor: '#d33',
-        background: '#111314',
-        color: '#fff'
-    }).then(async (result) => {
-        if (result.isConfirmed) {
-            try {
-                const deleteResponse = await fetch(`${api_key}Category/Delete/${categoryId}`, {
+async function deleteCategory(categoryId) {
+    try {
+        // Confirm deletion
+        const result = await Swal.fire({
+            title: 'Xác nhận xóa?',
+            text: "Bạn không thể hoàn tác hành động này!",
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonColor: '#d33',
+            cancelButtonColor: '#3085d6',
+            confirmButtonText: 'Xóa',
+            cancelButtonText: 'Hủy',
+            background: '#111314',
+            color: '#fff'
+        });
+        
+        if (!result.isConfirmed) {
+            return;
+        }
+        
+        // Hiển thị loading
+        Swal.fire({
+            title: 'Đang xóa danh mục...',
+            allowOutsideClick: false,
+            showConfirmButton: false,
+            didOpen: () => {
+                Swal.showLoading();
+            },
+            background: '#111314',
+            color: '#fff'
+        });
+        
+        const response = await fetch(`${api_key}Category/Delete/${categoryId}`, {
             method: "DELETE"
         });
-
-                if (!deleteResponse.ok) {
-                    const errorData = await deleteResponse.json();
-                    throw new Error(errorData.message || `HTTP error! Status: ${deleteResponse.status}`);
-                }
-                
-                showSuccessPopup("Category deleted successfully");
-                
-                // Reload categories based on current page
-                if (window.location.href.includes('admin.html')) {
-                    loadCategoriesForAdmin();
-                } else {
-                    loadCategories();
-                }
-    } catch (error) {
-                console.error("Error deleting category:", error);
-                showErrorPopup(`Failed to delete category: ${error.message}`);
-    }
+        
+        // Đóng loading
+        Swal.close();
+        
+        if (!response.ok) {
+            const errorData = await response.json();
+            showErrorPopup(errorData.message || "Không thể xóa danh mục. Vui lòng thử lại.");
+            return;
         }
-    });
+        
+        // Hiển thị thông báo thành công
+        await Swal.fire({
+            icon: 'success',
+            title: 'Xóa danh mục thành công!',
+            timer: 1500,
+            timerProgressBar: true,
+            showConfirmButton: false,
+            background: '#111314',
+            color: '#fff'
+        });
+        
+        // Làm mới danh sách danh mục
+        await loadCategories();
+        
+    } catch (error) {
+        console.error("Error deleting category:", error);
+        Swal.close();
+        showErrorPopup("Đã xảy ra lỗi khi xóa danh mục. Vui lòng thử lại sau.");
+    }
 }
 
 async function loadCategoryDropdown() {
-    console.log("🔄 Loading categories...");
-
     try {
         const response = await fetch(`${api_key}Category`);
-
+        
         if (!response.ok) {
-            throw new Error(`HTTP error! Status: ${response.status}`);
+            throw new Error("Failed to fetch categories");
         }
-
+        
         const categories = await response.json();
-        console.log("✅ Categories fetched:", categories);
-
-        const dropdown = document.getElementById("category-dropdown");
-
-        if (!dropdown) {
-            console.error("❌ Dropdown not found in the DOM!");
-            return;
-        }
-
-        // Clear existing options
-        dropdown.innerHTML = `<option value="">Select a category</option>`;
-
-        // Add categories to dropdown
-        categories.forEach(category => {
-            if (category.categoryId && category.name) {
-                console.log(`📌 Adding category: ID=${category.categoryId}, Name=${category.name}`);
+        
+        // Update dropdown in thread creation form
+        const categorySelect = document.getElementById("category-select");
+        if (categorySelect) {
+            categorySelect.innerHTML = '<option value="">Chọn danh mục</option>';
+            
+            categories.forEach(category => {
                 const option = document.createElement("option");
                 option.value = category.categoryId;
                 option.textContent = category.name;
-                dropdown.appendChild(option);
-            } else {
-                console.warn("⚠️ Invalid category data:", category);
-            }
-        });
-
-        console.log("✅ Dropdown updated successfully!");
+                categorySelect.appendChild(option);
+            });
+        }
+        
+        // Update dropdown in thread filter form if it exists
+        const filterCategorySelect = document.getElementById("filter-category");
+        if (filterCategorySelect) {
+            filterCategorySelect.innerHTML = '<option value="">Tất cả danh mục</option>';
+            
+            categories.forEach(category => {
+                const option = document.createElement("option");
+                option.value = category.categoryId;
+                option.textContent = category.name;
+                filterCategorySelect.appendChild(option);
+            });
+        }
     } catch (error) {
-        console.error("❌ Error loading categories:", error);
+        console.error("Error loading category dropdown:", error);
     }
 }
 
@@ -3183,4 +3258,116 @@ function closeForm(formId) {
     } else {
         console.error(`Form with ID ${formId} not found`);
     }
+}
+
+// Function to show moderator elements
+function showModeratorElements() {
+    const isAdmin = sessionStorage.getItem('isAdmin') === 'true';
+    const isModerator = sessionStorage.getItem('isModerator') === 'true';
+    const viewingAsUser = sessionStorage.getItem('viewingAsUser') === 'true';
+    
+    // Get all moderator-only elements
+    const moderatorElements = document.querySelectorAll('.moderator-only');
+    const moderatorDashboardItem = document.getElementById('moderator-dashboard-item');
+    const moderatorDashboardDropdown = document.getElementById('moderator-dashboard-dropdown');
+    const viewAsUserMenuItem = document.getElementById('view-as-user-menu-item');
+    const viewAsUserDropdown = document.getElementById('view-as-user-dropdown-item');
+    const viewAsModeratorMenuItem = document.getElementById('view-as-moderator-menu-item');
+    const viewAsModeratorDropdown = document.getElementById('view-as-moderator-dropdown-item');
+
+    // Check if we're on the moderator page
+    const isModeratorPage = window.location.href.includes('moderator.html');
+
+    if ((isAdmin || isModerator) && !viewingAsUser) {
+        // Show moderator elements
+        moderatorElements.forEach(element => element.classList.remove('hide'));
+        
+        // Show/hide navigation items based on current page
+        if (moderatorDashboardItem) moderatorDashboardItem.classList.toggle('hide', isModeratorPage);
+        if (moderatorDashboardDropdown) moderatorDashboardDropdown.classList.toggle('hide', isModeratorPage);
+        
+        // Always show view as user options for moderator
+        if (viewAsUserMenuItem) viewAsUserMenuItem.classList.remove('hide');
+        if (viewAsUserDropdown) viewAsUserDropdown.classList.remove('hide');
+        if (viewAsModeratorMenuItem) viewAsModeratorMenuItem.classList.add('hide');
+        if (viewAsModeratorDropdown) viewAsModeratorDropdown.classList.add('hide');
+    } else if (viewingAsUser && (sessionStorage.getItem("originalIsModerator") === "true" || sessionStorage.getItem("originalIsAdmin") === "true")) {
+        // Hide moderator elements when viewing as user
+        moderatorElements.forEach(element => element.classList.add('hide'));
+        if (moderatorDashboardItem) moderatorDashboardItem.classList.add('hide');
+        if (moderatorDashboardDropdown) moderatorDashboardDropdown.classList.add('hide');
+        if (viewAsUserMenuItem) viewAsUserMenuItem.classList.add('hide');
+        if (viewAsUserDropdown) viewAsUserDropdown.classList.add('hide');
+        
+        // Show view as moderator options
+        if (viewAsModeratorMenuItem) viewAsModeratorMenuItem.classList.remove('hide');
+        if (viewAsModeratorDropdown) viewAsModeratorDropdown.classList.remove('hide');
+    } else {
+        // Hide all moderator elements for non-moderator users
+        moderatorElements.forEach(element => element.classList.add('hide'));
+        if (moderatorDashboardItem) moderatorDashboardItem.classList.add('hide');
+        if (moderatorDashboardDropdown) moderatorDashboardDropdown.classList.add('hide');
+        if (viewAsUserMenuItem) viewAsUserMenuItem.classList.add('hide');
+        if (viewAsUserDropdown) viewAsUserDropdown.classList.add('hide');
+        if (viewAsModeratorMenuItem) viewAsModeratorMenuItem.classList.add('hide');
+        if (viewAsModeratorDropdown) viewAsModeratorDropdown.classList.add('hide');
+    }
+}
+
+// Function to view site as a regular user (for admins and moderators)
+function viewAsUser() {
+    console.log("Switching to user view mode");
+    
+    // Store original status
+    if (sessionStorage.getItem("isAdmin") === "true") {
+        sessionStorage.setItem("originalIsAdmin", "true");
+    }
+    if (sessionStorage.getItem("isModerator") === "true") {
+        sessionStorage.setItem("originalIsModerator", "true");
+    }
+    
+    // Set viewing as user flag
+    sessionStorage.setItem("viewingAsUser", "true");
+    
+    // Temporarily set admin and moderator status to false
+    sessionStorage.setItem("isAdmin", "false");
+    sessionStorage.setItem("isModerator", "false");
+    
+    // Show success message
+    showSuccessPopup("Now viewing site as a regular user");
+    
+    // Check if we're on the admin or moderator page
+    const isAdminPage = window.location.href.includes("admin.html");
+    const isModeratorPage = window.location.href.includes("moderator.html");
+    
+    if (isAdminPage || isModeratorPage) {
+        // If on admin or moderator page, redirect to forums
+        setTimeout(() => {
+            window.location.href = "forums.html";
+        }, 1000);
+        return;
+    }
+
+    // Update UI without reloading
+    updateNavBar();
+    showCategoryButton();
+    
+    if (sessionStorage.getItem("originalIsAdmin") === "true") {
+        showAdminElements();
+    } else if (sessionStorage.getItem("originalIsModerator") === "true") {
+        showModeratorElements();
+    }
+    
+    updateViewModeIndicator();
+    
+    // Hide admin-only and moderator-only elements
+    const adminElements = document.querySelectorAll('.admin-only');
+    adminElements.forEach(element => {
+        element.classList.add('hide');
+    });
+    
+    const moderatorElements = document.querySelectorAll('.moderator-only');
+    moderatorElements.forEach(element => {
+        element.classList.add('hide');
+    });
 }
