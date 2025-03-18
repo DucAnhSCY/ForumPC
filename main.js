@@ -61,7 +61,7 @@ function updateViewModeIndicator() {
 }
 
 //API
-const api_key ="http://localhost:5195/api/"
+const api_key ="http://localhost:5083/api/"
 console.log("API base URL:", api_key);
 // NavBar
 function hideIconBar() {
