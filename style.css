@@ -8,8 +8,8 @@
 html{
     font-size: 14px;
     font-family: 'Titillium Web', sans-serif;
-    background-color:rgb(0,0,0);
-    color:#FEFEFE;
+    background-color: #0a0a0f;
+    color: #e1e1ff;
 }
 
 a{
@@ -153,13 +153,19 @@ header{
     align-items: center;
 }
 .navigation{
-    background-color:#52057b;
+    background-color: var(--dark-bg);
     padding: 10px;
     width: 65%;
     display: inline-block;
     border-radius: 5px;
     max-height: 80px;
     margin-right:10px;
+    transition: transform 0.3s ease-in-out;
+    border: 1px solid rgba(0, 255, 157, 0.1);
+}
+
+.navigation.hide {
+    transform: translateX(-100%);
 }
 
 .close-icon i{
@@ -173,7 +179,9 @@ header{
     overflow: hidden;
 }
 
-.nav-item a{
+.nav-item a,
+.login-link a,
+.logout-link a {
     float: right;
     display:block;
     text-align: center;
@@ -181,9 +189,12 @@ header{
     font-size: 20px;
     padding: 10px;
     color:#fff;
+    transition: all 0.3s ease;
 }
 
-.nav-item a:hover{
+.nav-item a:hover,
+.login-link a:hover,
+.logout-link a:hover {
     background-color: rgb(0,0,0,0.1);
 }
 
@@ -197,6 +208,11 @@ header{
     margin-right:10px;
     color: #fff;
     cursor: pointer;
+    transition: color 0.3s ease;
+}
+
+.bar-icon:hover {
+    color: #FF0042;
 }
 
 @font-face {
@@ -208,21 +224,39 @@ header{
     font-size:60px;
     display: inline-block;
     font-family:aquire;
+    color: var(--primary-color);
+    text-shadow: 0 0 10px rgba(0, 255, 157, 0.5);
 }
 
 /*Navbar for the smartphones*/
 @media screen and (max-width: 460px){
     .navigation{
         max-height: auto;
+        position: fixed;
+        top: 0;
+        left: 0;
+        height: 100vh;
+        width: 250px;
+        background: #52057b;
+        padding: 2rem;
+        z-index: 1000;
+        transform: translateX(-100%);
+        transition: transform 0.3s ease-in-out;
+    }
+    
+    .navigation:not(.hide) {
+        transform: translateX(0);
     }
     
     .close-icon i{
         font-size:30px;
     }
     
-    .nav-item a{
-        float:left;
-        display:inline;
+    .nav-item a,
+    .login-link a,
+    .logout-link a {
+        float: left;
+        display: inline;
         margin-inline: 3px;
         font-size: 10px;
         padding: 5px;
@@ -456,16 +490,90 @@ footer{
     z-index: 1000;
 }
 
+/* Top Right Username with Avatar */
 .top-right-username {
     position: absolute;
     top: 10px;
     right: 20px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
     font-weight: bold;
     font-size: 16px;
     color: #fff;
-    background-color: #007BFF;
-    padding: 5px 10px;
+    background-color: #52057b;
+    padding: 5px 15px;
+    border-radius: 25px;
+    transition: all 0.3s ease;
+}
+
+.top-right-username:hover {
+    background-color: #6a359c;
+}
+
+.user-avatar {
+    width: 30px;
+    height: 30px;
+    border-radius: 50%;
+    background-color: #fff;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 16px;
+    color: #52057b;
+    text-transform: uppercase;
+}
+
+/* Enhanced Navbar Animation */
+.navigation {
+    background-color: var(--dark-bg);
+    padding: 10px;
+    width: 65%;
     border-radius: 5px;
+    max-height: 80px;
+    margin-right: 10px;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    transform-origin: left;
+    border: 1px solid rgba(0, 255, 157, 0.1);
+}
+
+.navigation.hide {
+    transform: translateX(-100%);
+    opacity: 0;
+}
+
+/* Mobile Navigation */
+@media screen and (max-width: 460px) {
+    .navigation {
+        position: fixed;
+        top: 0;
+        left: 0;
+        height: 100vh;
+        width: 250px;
+        background: #52057b;
+        padding: 2rem;
+        z-index: 1000;
+        transform: translateX(-100%);
+        opacity: 1;
+    }
+
+    .navigation:not(.hide) {
+        transform: translateX(0);
+        box-shadow: 2px 0 10px rgba(0,0,0,0.3);
+    }
+
+    .top-right-username {
+        top: 5px;
+        right: 10px;
+        font-size: 14px;
+        padding: 3px 10px;
+    }
+
+    .user-avatar {
+        width: 25px;
+        height: 25px;
+        font-size: 14px;
+    }
 }
 
 #create-thread-section {
@@ -806,5 +914,924 @@ th {
 }
 h2 {
     text-align: center;
+    color: #1bbd23;
+}
+
+/* Login and Register Styles */
+.login-container,
+.register-container {
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    padding: 20px;
+}
+
+.login-box,
+.register-box {
+    background: white;
+    padding: 40px;
+    border-radius: 10px;
+    box-shadow: 0 15px 35px rgba(0, 0, 0, 0.2);
+    width: 100%;
+    max-width: 400px;
+}
+
+.login-box h2,
+.register-box h2 {
+    text-align: center;
     color: #333;
+    margin-bottom: 30px;
+    font-size: 28px;
+}
+
+.form-group {
+    position: relative;
+    margin-bottom: 30px;
+}
+
+.form-group input {
+    width: 100%;
+    padding: 10px 0;
+    font-size: 16px;
+    color: #333;
+    border: none;
+    border-bottom: 2px solid #ddd;
+    outline: none;
+    background: transparent;
+    transition: 0.3s;
+}
+
+.form-group label {
+    position: absolute;
+    top: 0;
+    left: 0;
+    padding: 10px 0;
+    font-size: 16px;
+    color: #666;
+    pointer-events: none;
+    transition: 0.3s;
+}
+
+.form-group input:focus ~ label,
+.form-group input:valid ~ label {
+    top: -20px;
+    font-size: 12px;
+    color: #667eea;
+}
+
+.form-group .line {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    width: 100%;
+    height: 2px;
+    background: #ddd;
+}
+
+.form-group .line::after {
+    content: '';
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    width: 100%;
+    height: 2px;
+    background: #667eea;
+    transform: scaleX(0);
+    transition: transform 0.3s;
+}
+
+.form-group input:focus ~ .line::after {
+    transform: scaleX(1);
+}
+
+.btn-login,
+.btn-register {
+    width: 100%;
+    padding: 12px;
+    background: #667eea;
+    color: white;
+    border: none;
+    border-radius: 5px;
+    font-size: 16px;
+    cursor: pointer;
+    transition: 0.3s;
+}
+
+.btn-login:hover,
+.btn-register:hover {
+    background: #764ba2;
+    transform: translateY(-2px);
+}
+
+.register-link,
+.login-link {
+    text-align: center;
+    margin-top: 20px;
+    color: #666;
+}
+
+.register-link a,
+.login-link a {
+    color: #667eea;
+    text-decoration: none;
+    font-weight: 500;
+}
+
+.register-link a:hover,
+.login-link a:hover {
+    color: #764ba2;
+}
+
+/* Animations */
+.animate-fade-in {
+    animation: fadeIn 0.8s ease-in-out;
+}
+
+.animate-slide-up {
+    animation: slideUp 0.8s ease-in-out;
+}
+
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+    }
+    to {
+        opacity: 1;
+    }
+}
+
+@keyframes slideUp {
+    from {
+        transform: translateY(20px);
+        opacity: 0;
+    }
+    to {
+        transform: translateY(0);
+        opacity: 1;
+    }
+}
+
+/* Add animations to existing elements */
+.navbar {
+    animation: slideDown 0.5s ease-in-out;
+}
+
+.card {
+    animation: fadeIn 0.5s ease-in-out;
+    transition: transform 0.3s ease;
+}
+
+.card:hover {
+    transform: translateY(-5px);
+}
+
+@keyframes slideDown {
+    from {
+        transform: translateY(-100%);
+    }
+    to {
+        transform: translateY(0);
+    }
+}
+
+/* Responsive Design */
+@media (max-width: 480px) {
+    .login-box,
+    .register-box {
+        padding: 20px;
+    }
+    
+    .form-group input,
+    .form-group label {
+        font-size: 14px;
+    }
+    
+    .btn-login,
+    .btn-register {
+        padding: 10px;
+        font-size: 14px;
+    }
+}
+
+/* Filter Buttons Styles */
+.filter-buttons {
+    display: flex;
+    justify-content: center;
+    gap: 10px;
+    margin: 20px 0;
+    flex-wrap: wrap;
+}
+
+.filter-btn {
+    padding: 10px 20px;
+    background-color: #52057b;
+    color: white;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    font-size: 16px;
+}
+
+.filter-btn:hover {
+    background-color: #6a359c;
+    transform: translateY(-2px);
+}
+
+.filter-btn.active {
+    background-color: #FF0042;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+}
+
+/* Update Table Styles */
+table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 20px;
+    background-color: #111314;
+    border-radius: 8px;
+    overflow: hidden;
+}
+
+th, td {
+    padding: 15px;
+    text-align: left;
+    border-bottom: 1px solid #333;
+    color: #fff;
+}
+
+th {
+    background-color: #52057b;
+    font-weight: bold;
+    text-transform: uppercase;
+    font-size: 14px;
+}
+
+td {
+    font-size: 14px;
+}
+
+tr:hover {
+    background-color: #1a1a1a;
+}
+
+.role-admin {
+    color: #FF0042;
+    font-weight: bold;
+}
+
+.role-moderator {
+    color: #28a745;
+    font-weight: bold;
+}
+
+.role-user {
+    color: #007bff;
+}
+
+/* Responsive table */
+@media screen and (max-width: 768px) {
+    table {
+        display: block;
+        overflow-x: auto;
+        white-space: nowrap;
+    }
+}
+
+/* Table Styles */
+.table-container {
+    margin: 20px;
+    background: var(--table-bg);
+    border-radius: 12px;
+    box-shadow: 0 0 20px rgba(0, 0, 0, 0.3);
+    overflow: hidden;
+    border: 1px solid rgba(0, 255, 157, 0.1);
+}
+
+.user-table {
+    width: 100%;
+    border-collapse: collapse;
+    animation: fadeIn 0.5s ease-in-out;
+}
+
+.user-table th {
+    background-color: var(--dark-bg);
+    color: var(--primary-color);
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    font-size: 0.9rem;
+    padding: 15px;
+    border-bottom: 2px solid rgba(0, 255, 157, 0.2);
+}
+
+.user-table td {
+    padding: 15px;
+    border-bottom: 1px solid rgba(225, 225, 255, 0.1);
+    color: var(--light-text);
+}
+
+.user-table tr:hover {
+    background-color: var(--table-hover);
+    transition: background-color 0.3s ease;
+}
+
+/* Dropdown Styles */
+.role-select, .status-select {
+    padding: 8px 12px;
+    border: 1px solid rgba(0, 255, 157, 0.3);
+    border-radius: 6px;
+    background-color: var(--dark-bg);
+    color: var(--light-text);
+    width: 100%;
+    transition: all 0.3s ease;
+}
+
+.role-select:focus, .status-select:focus {
+    border-color: var(--primary-color);
+    outline: none;
+    box-shadow: 0 0 10px rgba(0, 255, 157, 0.2);
+}
+
+/* Status Colors */
+.status-active {
+    color: var(--status-active);
+    font-weight: 500;
+}
+
+.status-inactive {
+    color: var(--status-inactive);
+    font-weight: 500;
+}
+
+.status-pending {
+    color: var(--status-pending);
+    font-weight: 500;
+}
+
+/* Button Styles */
+.table-actions {
+    padding: 20px;
+    display: flex;
+    gap: 15px;
+    justify-content: flex-end;
+    background: var(--dark-bg);
+    border-top: 1px solid rgba(225, 225, 255, 0.1);
+}
+
+.save-all-btn, .refresh-btn {
+    padding: 12px 24px;
+    border: none;
+    border-radius: 6px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-weight: 500;
+    letter-spacing: 0.5px;
+    transition: all 0.3s ease;
+}
+
+.save-all-btn {
+    background-color: var(--status-active);
+    color: var(--darker-bg);
+}
+
+.refresh-btn {
+    background-color: var(--secondary-color);
+    color: var(--light-text);
+}
+
+.save-all-btn:hover, .refresh-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 5px 15px rgba(0, 255, 157, 0.2);
+}
+
+/* Filter Buttons */
+.filter-buttons {
+    display: flex;
+    justify-content: center;
+    gap: 15px;
+    margin: 30px 0;
+    flex-wrap: wrap;
+}
+
+.filter-btn {
+    padding: 12px 24px;
+    background-color: var(--dark-bg);
+    color: var(--light-text);
+    border: 1px solid rgba(0, 255, 157, 0.3);
+    border-radius: 6px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    font-size: 0.9rem;
+    letter-spacing: 0.5px;
+}
+
+.filter-btn:hover {
+    background-color: var(--table-hover);
+    border-color: var(--primary-color);
+    transform: translateY(-2px);
+}
+
+.filter-btn.active {
+    background-color: var(--primary-color);
+    color: var(--darker-bg);
+    border-color: var(--primary-color);
+    box-shadow: 0 0 15px rgba(0, 255, 157, 0.3);
+}
+
+/* Status Change Animation */
+.status-changed {
+    animation: highlight 1.5s ease;
+}
+
+@keyframes highlight {
+    0% {
+        background-color: rgba(0, 255, 157, 0.15);
+    }
+    100% {
+        background-color: transparent;
+    }
+}
+
+/* Section heading */
+section h2 {
+    color: var(--primary-color);
+    text-align: center;
+    margin: 40px 0;
+    font-size: 2rem;
+    letter-spacing: 2px;
+    text-shadow: 0 0 10px rgba(0, 255, 157, 0.3);
+}
+
+/* Cập nhật biến màu */
+:root {
+    --primary-color: #00ff9d;
+    --secondary-color: #7000ff;
+    --accent-color: #ff006a;
+    --dark-bg: #12121f;
+    --darker-bg: #0a0a0f;
+    --table-bg: #1a1a2f;
+    --light-text: #e1e1ff;
+    --table-hover: #252542;
+    
+    /* Role Colors - Cập nhật màu mới */
+    --role-admin: #ff006a;      /* Đỏ cho Admin */
+    --role-moderator: #FFD700;  /* Vàng cho Moderator */
+    --role-user: #FFFFFF;      /* Trắng cho User */
+    
+    /* Status Colors */
+    --status-active: #00ff9d;    /* Xanh lá - Đang hoạt động */
+    --status-inactive: #ffb700;  /* Vàng - Không hoạt động */
+    --status-ban: #ff006a;      /* Đỏ - Bị cấm */
+    
+    /* Animation cho Admin */
+    --role-admin-animation: #FF0000, #FF7F00, #FFFF00, #00FF00, #0000FF, #4B0082, #8F00FF;
+}
+
+/* Table Container Styles */
+.table-container {
+    margin: 20px;
+    background: var(--table-bg);
+    border-radius: 12px;
+    box-shadow: 0 0 20px rgba(0, 0, 0, 0.3);
+    overflow: hidden;
+    border: 1px solid rgba(0, 255, 157, 0.1);
+}
+
+/* Table Styles */
+.user-table {
+    width: 100%;
+    border-collapse: collapse;
+    animation: fadeIn 0.5s ease-in-out;
+}
+
+.user-table th {
+    background-color: var(--dark-bg);
+    color: var(--primary-color);
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    font-size: 0.9rem;
+    padding: 15px;
+    border-bottom: 2px solid rgba(0, 255, 157, 0.2);
+}
+
+.user-table td {
+    padding: 15px;
+    border-bottom: 1px solid rgba(225, 225, 255, 0.1);
+    color: var(--light-text);
+}
+
+.user-table tr:hover {
+    background-color: var(--table-hover);
+    transition: background-color 0.3s ease;
+}
+
+/* Role Select Styles */
+.role-select {
+    padding: 8px 12px;
+    border: 1px solid rgba(0, 255, 157, 0.3);
+    border-radius: 6px;
+    background-color: var(--dark-bg);
+    color: var(--light-text);
+    width: 100%;
+    transition: all 0.3s ease;
+    font-weight: 500;
+}
+
+/* Màu cho các option trong Role Select */
+.role-select option.role-admin {
+    color: var(--role-admin) !important;
+    font-weight: 600;
+}
+
+.role-select option.role-moderator {
+    color: var(--role-moderator) !important;
+    font-weight: 600;
+}
+
+.role-select option.role-user {
+    color: var(--role-user) !important;
+    font-weight: 600;
+}
+
+/* Role Colors trong select box */
+.role-select.role-admin {
+    animation: rainbow 5s linear infinite;
+    text-shadow: 0 0 10px currentColor;
+    font-weight: bold;
+}
+
+.role-select.role-moderator {
+    color: var(--role-moderator) !important;
+    border-color: var(--role-moderator);
+    text-shadow: 0 0 10px var(--role-moderator);
+}
+
+.role-select.role-user {
+    color: var(--role-user) !important;
+    border-color: var(--role-user);
+}
+
+/* Focus styles cho select boxes */
+.role-select:focus {
+    border-color: var(--primary-color);
+    outline: none;
+    box-shadow: 0 0 10px rgba(0, 255, 157, 0.2);
+}
+
+/* Hiệu ứng hover cho role select */
+.role-select:hover {
+    border-color: var(--primary-color);
+}
+
+/* Animation khi thay đổi role */
+.role-changed {
+    animation: highlight 1.5s ease;
+}
+
+/* Thêm hiệu ứng cho các option khi hover */
+.role-select option:hover {
+    background-color: var(--table-hover);
+}
+
+/* Cập nhật style cho cả role và status */
+.role-select, .status-select {
+    padding: 8px 12px;
+    border: 1px solid rgba(0, 255, 157, 0.3);
+    border-radius: 6px;
+    background-color: var(--dark-bg);
+    width: 100%;
+    transition: all 0.3s ease;
+    font-weight: 500;
+    cursor: pointer;
+}
+
+/* Hiệu ứng hover chung */
+.role-select:hover, .status-select:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 2px 8px rgba(0, 255, 157, 0.2);
+}
+
+/* Focus styles chung */
+.role-select:focus, .status-select:focus {
+    outline: none;
+    box-shadow: 0 0 10px rgba(0, 255, 157, 0.2);
+}
+
+/* Animation khi thay đổi */
+@keyframes highlight {
+    0% {
+        background-color: rgba(0, 255, 157, 0.15);
+    }
+    50% {
+        background-color: rgba(0, 255, 157, 0.1);
+    }
+    100% {
+        background-color: transparent;
+    }
+}
+
+/* Thêm vào JavaScript để xử lý thay đổi role */
+.role-changed, .status-changed {
+    animation: highlight 1.5s ease;
+}
+
+/* Hiệu ứng cầu vồng cho Admin */
+@keyframes rainbow {
+    0% { color: #FF0000; border-color: #FF0000; }
+    14% { color: #FF7F00; border-color: #FF7F00; }
+    28% { color: #FFFF00; border-color: #FFFF00; }
+    42% { color: #00FF00; border-color: #00FF00; }
+    56% { color: #0000FF; border-color: #0000FF; }
+    70% { color: #4B0082; border-color: #4B0082; }
+    84% { color: #8F00FF; border-color: #8F00FF; }
+    100% { color: #FF0000; border-color: #FF0000; }
+}
+
+/* Cập nhật style cho option */
+.role-select option.role-admin {
+    animation: rainbow 5s linear infinite;
+    font-weight: bold;
+}
+
+.role-select option.role-moderator {
+    color: var(--role-moderator) !important;
+    font-weight: 600;
+}
+
+.role-select option.role-user {
+    color: var(--role-user) !important;
+    font-weight: 500;
+}
+
+/* Cập nhật nút Save Changes */
+.action-btn {
+    background: linear-gradient(45deg, #00ff9d, #7000ff);
+    color: white;
+    border: none;
+    padding: 10px 20px;
+    border-radius: 5px;
+    cursor: pointer;
+    font-weight: bold;
+    transition: all 0.3s ease;
+    position: relative;
+    overflow: hidden;
+}
+
+.action-btn::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: -100%;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent);
+    transition: 0.5s;
+}
+
+.action-btn:hover::before {
+    left: 100%;
+}
+
+.action-btn:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 5px 15px rgba(0, 255, 157, 0.4);
+}
+
+.action-btn:active {
+    transform: translateY(1px);
+}
+
+/* Animation khi lưu thành công */
+.save-success {
+    animation: saveSuccess 1s ease;
+}
+
+@keyframes saveSuccess {
+    0% {
+        background: linear-gradient(45deg, #00ff9d, #7000ff);
+    }
+    50% {
+        background: #00ff9d;
+    }
+    100% {
+        background: linear-gradient(45deg, #00ff9d, #7000ff);
+    }
+}
+
+/* Cập nhật hiệu ứng hover cho table row */
+.user-table tr:hover {
+    background-color: rgba(255, 255, 255, 0.05);
+    transition: all 0.3s ease;
+}
+
+/* Cập nhật hiệu ứng khi thay đổi role/status */
+.role-changed, .status-changed {
+    animation: highlight 1s ease;
+}
+
+@keyframes highlight {
+    0% {
+        background-color: rgba(0, 255, 157, 0.2);
+    }
+    50% {
+        background-color: rgba(0, 255, 157, 0.1);
+    }
+    100% {
+        background-color: transparent;
+    }
+}
+
+/* Cập nhật style cho status Ban */
+.status-select option[value="Ban"] {
+    color: #ff0000 !important;
+    font-weight: bold;
+}
+
+.status-select.status-ban {
+    color: #ff0000 !important;
+    border-color: #ff0000;
+    text-shadow: 0 0 10px rgba(255, 0, 0, 0.5);
+}
+
+/* Đồng bộ style cho tất cả các nút save */
+.action-btn, .save-all-btn {
+    background: linear-gradient(45deg, #00ff9d, #7000ff);
+    color: white;
+    border: none;
+    padding: 10px 20px;
+    border-radius: 5px;
+    cursor: pointer;
+    font-weight: bold;
+    transition: all 0.3s ease;
+    position: relative;
+    overflow: hidden;
+}
+
+.action-btn::before, .save-all-btn::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: -100%;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent);
+    transition: 0.5s;
+}
+
+.action-btn:hover::before, .save-all-btn:hover::before {
+    left: 100%;
+}
+
+.action-btn:hover, .save-all-btn:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 5px 15px rgba(0, 255, 157, 0.4);
+}
+
+.action-btn:active, .save-all-btn:active {
+    transform: translateY(1px);
+}
+
+/* Animation khi lưu thành công */
+.save-success {
+    animation: saveSuccess 1s ease;
+}
+
+@keyframes saveSuccess {
+    0% {
+        background: linear-gradient(45deg, #00ff9d, #7000ff);
+    }
+    50% {
+        background: #00ff9d;
+    }
+    100% {
+        background: linear-gradient(45deg, #00ff9d, #7000ff);
+    }
+}
+
+/* Cập nhật style cho table actions container */
+.table-actions {
+    padding: 20px;
+    display: flex;
+    gap: 15px;
+    justify-content: flex-end;
+    background: var(--dark-bg);
+    border-top: 1px solid rgba(225, 225, 255, 0.1);
+}
+
+/* Style cho refresh button */
+.refresh-btn {
+    background: linear-gradient(45deg, #7000ff, #00ff9d);
+    color: white;
+    border: none;
+    padding: 10px 20px;
+    border-radius: 5px;
+    cursor: pointer;
+    font-weight: bold;
+    transition: all 0.3s ease;
+}
+
+.refresh-btn:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 5px 15px rgba(112, 0, 255, 0.4);
+}
+
+.refresh-btn:active {
+    transform: translateY(1px);
+}
+
+/* Animation cho icon refresh */
+@keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}
+
+.refresh-btn i {
+    margin-right: 5px;
+}
+
+.refresh-btn i.spinning {
+    animation: spin 1s linear infinite;
+}
+
+/* Style cho container chứa các nút action */
+.action-buttons {
+    display: flex;
+    gap: 8px;
+    justify-content: center;
+}
+
+/* Style chung cho các nút action */
+.action-btn {
+    padding: 8px 12px;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    font-weight: 500;
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    transition: all 0.3s ease;
+}
+
+/* Style cho nút Save */
+.action-btn.save-btn {
+    background: linear-gradient(45deg, #00ff9d, #7000ff);
+    color: white;
+}
+
+.action-btn.save-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0, 255, 157, 0.3);
+}
+
+/* Style cho nút Delete */
+.action-btn.delete-btn {
+    background: linear-gradient(45deg, #ff006a, #ff4444);
+    color: white;
+}
+
+.action-btn.delete-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(255, 0, 106, 0.3);
+}
+
+/* Animation khi hover */
+.action-btn:hover {
+    filter: brightness(1.1);
+}
+
+/* Animation khi click */
+.action-btn:active {
+    transform: translateY(1px);
+}
+
+/* Icon style */
+.action-btn i {
+    font-size: 14px;
+}
+
+/* Hiệu ứng khi xóa thành công */
+.delete-success {
+    animation: deleteAnimation 0.5s ease;
+}
+
+@keyframes deleteAnimation {
+    0% {
+        opacity: 1;
+        transform: scale(1);
+    }
+    50% {
+        opacity: 0.5;
+        transform: scale(0.95);
+    }
+    100% {
+        opacity: 0;
+        transform: scale(0.9);
+    }
 }

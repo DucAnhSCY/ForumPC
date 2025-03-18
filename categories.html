@@ -11,30 +11,6 @@
     <script src="main.js" defer></script>
 </head>
 <body>
-    <!-- Login Popup -->
-    <div id="login-popup" class="popup hide">
-        <div class="popup-content">
-            <span class="close-icon" onclick="closePopup('login-popup')">&times;</span>
-            <h2>Login</h2>
-            <input type="email" placeholder="Email" id="login-email">
-            <input type="password" placeholder="Password" id="login-password">
-            <button onclick="login()">Login</button>
-            <p>Don't have an account? <a href="#" onclick="switchToRegister()">Register</a></p>
-        </div>
-    </div>
-    <!-- Register Popup -->
-    <div id="register-popup" class="popup hide">
-        <div class="popup-content">
-            <span class="close-icon" onclick="closePopup('register-popup')">&times;</span>
-            <h2>Register</h2>
-            <input type="text" placeholder="Username" id="register-username">
-            <input type="email" placeholder="Email" id="register-email">
-            <input type="password" placeholder="Password" id="register-password">
-            <input type="password" placeholder="Confirm Password" id="register-password2">
-            <button onclick="register()">Register</button>
-        </div>
-    </div>
-
     <!--NavBar Section-->
     <div class="navbar">
         <nav class="navigation hide" id="navigation">
@@ -46,7 +22,7 @@
                 <li class="nav-item"><a href="categories.html">Categories</a></li>
                 <li class="nav-item"><a href="community.html">Community</a></li>
                 <li class="nav-item hide"><a href="Modctrl.html">Modctrl</a></li>
-                <li class="nav-item login-link"><a href="#" onclick="showLogin()">Login</a></li>
+                <li class="nav-item"><a href="login.html">Login</a></li>
                 <li class="nav-item logout-link hide"><a href="#" onclick="logout()">Logout</a></li>
             </ul>
         </nav>
@@ -65,8 +41,6 @@
     <div class="content">
         <!-- Your category content goes here -->
     </div>
-
-
 
     <footer>
         <span>&copy; 2025 My Forum | All Rights Reserved</span>
