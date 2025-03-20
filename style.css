@@ -2303,3 +2303,243 @@ section h2 {
 .related-threads a:hover {
     color: #fff;
 }
+
+/* Post Styles */
+.post-form {
+    background: #1a1a1a;
+    border-radius: 8px;
+    padding: 20px;
+    margin-bottom: 20px;
+    display: flex;
+    gap: 15px;
+}
+
+.posts-container {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+}
+
+.post {
+    background: #1a1a1a;
+    border-radius: 8px;
+    padding: 20px;
+    margin-bottom: 10px;
+}
+
+.post-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 15px;
+}
+
+.post-author-info {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.author-details {
+    display: flex;
+    flex-direction: column;
+}
+
+.post-author {
+    font-weight: bold;
+    color: #fff;
+}
+
+.post-date {
+    font-size: 0.8em;
+    color: #888;
+}
+
+.post-content {
+    color: #fff;
+    line-height: 1.6;
+    margin: 15px 0;
+}
+
+.post-footer {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+    margin-top: 15px;
+    padding-top: 15px;
+    border-top: 1px solid #333;
+}
+
+.action-button {
+    background: transparent;
+    border: none;
+    color: #888;
+    padding: 5px 10px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    transition: color 0.2s;
+}
+
+.action-button:hover {
+    color: #fff;
+}
+
+.action-button i {
+    font-size: 14px;
+}
+
+.comment-count {
+    color: #888;
+    font-size: 0.9em;
+}
+
+/* Comment Styles */
+.comments-container {
+    margin-top: 15px;
+    padding-left: 20px;
+    border-left: 2px solid #333;
+}
+
+.comment {
+    background: #222;
+    border-radius: 6px;
+    padding: 15px;
+    margin: 10px 0;
+}
+
+.comment-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 10px;
+}
+
+.comment-author-info {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.comment-author {
+    font-weight: bold;
+    color: #fff;
+    font-size: 0.9em;
+}
+
+.comment-date {
+    font-size: 0.8em;
+    color: #888;
+}
+
+.comment-content {
+    color: #ddd;
+    font-size: 0.95em;
+    line-height: 1.5;
+    margin: 10px 0;
+}
+
+.comment-footer {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-top: 10px;
+}
+
+.reply-button {
+    font-size: 0.9em;
+}
+
+.replies-container {
+    margin-left: 20px;
+    padding-left: 15px;
+    border-left: 1px solid #333;
+}
+
+/* Form Styles */
+.form-content {
+    flex-grow: 1;
+}
+
+.form-content textarea {
+    width: 100%;
+    min-height: 100px;
+    background: #222;
+    border: 1px solid #333;
+    border-radius: 4px;
+    color: #fff;
+    padding: 10px;
+    margin-bottom: 10px;
+    resize: vertical;
+}
+
+.form-content textarea:focus {
+    outline: none;
+    border-color: #52057b;
+}
+
+.form-content button {
+    background: #52057b;
+    color: #fff;
+    border: none;
+    padding: 8px 15px;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: background 0.2s;
+}
+
+.form-content button:hover {
+    background: #6a0dad;
+}
+
+/* Thread Rules */
+.thread-rules {
+    list-style-position: inside;
+    padding: 0;
+    margin: 0;
+    color: #ccc;
+}
+
+.thread-rules li {
+    padding: 8px 0;
+    border-bottom: 1px solid #333;
+}
+
+.thread-rules li:last-child {
+    border-bottom: none;
+}
+
+/* Responsive Adjustments */
+@media screen and (max-width: 768px) {
+    .post-header, .comment-header {
+        flex-direction: column;
+        gap: 10px;
+    }
+
+    .post-actions, .comment-actions {
+        width: 100%;
+        display: flex;
+        justify-content: flex-end;
+        gap: 10px;
+    }
+
+    .comments-container {
+        padding-left: 10px;
+    }
+
+    .replies-container {
+        margin-left: 10px;
+        padding-left: 10px;
+    }
+}
+
+/* Animation */
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(10px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+.post, .comment {
+    animation: fadeIn 0.3s ease-out;
+}

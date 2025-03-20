@@ -36,48 +36,35 @@
         <div class="thread-detail">
             <!-- Main Content -->
             <div class="main-content">
-                <!-- Main Thread Section -->
-                <div class="main-thread">
-                    <div class="thread-header">
-                        <div class="thread-title" id="thread-title"></div>
-                        <div class="thread-meta">
-                            <div class="thread-author">
-                                <i class="fa fa-user"></i>
-                                <span id="thread-author"></span>
-                            </div>
-                            <div class="thread-time">
-                                <i class="fa fa-clock-o"></i>
-                                <span id="thread-date"></span>
-                            </div>
+                <!-- Thread Header -->
+                <div class="thread-header">
+                    <h1 id="thread-title" class="thread-title"></h1>
+                    <div class="thread-meta">
+                        <div class="thread-author">
+                            <i class="fa fa-user"></i>
+                            <span id="thread-author"></span>
                         </div>
-                    </div>
-                    <div class="thread-content" id="thread-content">
-                        <!-- Thread content will be loaded here -->
+                        <div class="thread-time">
+                            <i class="fa fa-clock-o"></i>
+                            <span id="thread-date"></span>
+                        </div>
                     </div>
                 </div>
 
-                <!-- Comments Section -->
-                <div class="comments-section">
-                    <div class="comments-header">
-                        <h3>Comments</h3>
-                        <span class="comment-count" id="comment-count">0 comments</span>
+                <!-- New Post Form -->
+                <div class="post-form">
+                    <div class="user-avatar">
+                        <i class="fa fa-user-circle"></i>
                     </div>
+                    <div class="form-content">
+                        <textarea id="post-input" placeholder="Create a new post..."></textarea>
+                        <button class="button" onclick="submitPost()">Create Post</button>
+                    </div>
+                </div>
 
-                    <!-- New Comment Form -->
-                    <div class="comment-form">
-                        <div class="user-avatar">
-                            <i class="fa fa-user-circle"></i>
-                        </div>
-                        <div class="form-content">
-                            <textarea id="comment-input" placeholder="Write your comment here..."></textarea>
-                            <button class="button" onclick="submitPost()">Post Comment</button>
-                        </div>
-                    </div>
-
-                    <!-- Comments Container -->
-                    <div id="comments-container" class="comments-container">
-                        <!-- Comments will be loaded here -->
-                    </div>
+                <!-- Posts Container -->
+                <div id="posts-container" class="posts-container">
+                    <!-- Posts will be loaded here -->
                 </div>
             </div>
 
@@ -92,12 +79,12 @@
                             <span id="thread-category">Loading...</span>
                         </div>
                         <div class="thread-info-item">
-                            <span>Posted</span>
+                            <span>Created</span>
                             <span id="thread-posted-date">Loading...</span>
                         </div>
                         <div class="thread-info-item">
-                            <span>Comments</span>
-                            <span id="sidebar-comment-count">0</span>
+                            <span>Posts</span>
+                            <span id="post-count">0</span>
                         </div>
                         <div class="thread-info-item">
                             <span>Views</span>
@@ -113,6 +100,106 @@
                         <!-- Related threads will be loaded here -->
                     </ul>
                 </div>
+
+                <!-- Thread Rules -->
+                <div class="sidebar-section">
+                    <h3 class="sidebar-title">Thread Rules</h3>
+                    <ol class="thread-rules">
+                        <li>Be respectful to others</li>
+                        <li>No spam or self-promotion</li>
+                        <li>Stay on topic</li>
+                        <li>Follow forum guidelines</li>
+                    </ol>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Post Template (Hidden) -->
+    <template id="post-template">
+        <div class="post">
+            <div class="post-header">
+                <div class="post-author-info">
+                    <div class="user-avatar">
+                        <i class="fa fa-user-circle"></i>
+                    </div>
+                    <div class="author-details">
+                        <span class="post-author"></span>
+                        <span class="post-date"></span>
+                    </div>
+                </div>
+                <div class="post-actions">
+                    <button class="action-button edit-post hide">
+                        <i class="fa fa-edit"></i> Edit
+                    </button>
+                    <button class="action-button delete-post hide">
+                        <i class="fa fa-trash"></i> Delete
+                    </button>
+                </div>
+            </div>
+            <div class="post-content"></div>
+            <div class="post-footer">
+                <div class="post-interactions">
+                    <button class="action-button like-button" onclick="toggleLike(this)">
+                        <i class="fa fa-heart-o"></i> <span class="like-count">0</span>
+                    </button>
+                    <button class="action-button comment-button" onclick="toggleCommentForm(this)">
+                        <i class="fa fa-comment"></i> <span class="comment-count">0</span>
+                    </button>
+                    <button class="action-button report-button" onclick="showReportForm(this)">
+                        <i class="fa fa-flag"></i> Report
+                    </button>
+                </div>
+            </div>
+            <div class="comment-form hide">
+                <div class="form-content">
+                    <textarea placeholder="Write a comment..."></textarea>
+                    <button class="button" onclick="submitComment(this)">Add Comment</button>
+                </div>
+            </div>
+            <div class="comments-container">
+                <!-- Comments will be loaded here -->
+            </div>
+        </div>
+    </template>
+
+    <!-- Comment Template (Hidden) -->
+    <template id="comment-template">
+        <div class="comment">
+            <div class="comment-header">
+                <div class="comment-author-info">
+                    <div class="user-avatar">
+                        <i class="fa fa-user-circle"></i>
+                    </div>
+                    <div class="author-details">
+                        <span class="comment-author"></span>
+                        <span class="comment-date"></span>
+                    </div>
+                </div>
+                <div class="comment-actions">
+                    <button class="action-button edit-comment hide">
+                        <i class="fa fa-edit"></i>
+                    </button>
+                    <button class="action-button delete-comment hide">
+                        <i class="fa fa-trash"></i>
+                    </button>
+                    <button class="action-button report-comment" onclick="showReportForm(this, 'comment')">
+                        <i class="fa fa-flag"></i>
+                    </button>
+                </div>
+            </div>
+            <div class="comment-content"></div>
+        </div>
+    </template>
+
+    <!-- Report Modal -->
+    <div id="report-modal" class="modal hide">
+        <div class="modal-content">
+            <h3>Report Content</h3>
+            <textarea id="report-reason" placeholder="Please describe why you are reporting this content..."></textarea>
+            <div class="modal-buttons">
+                <button onclick="submitReport()">Submit Report</button>
+                <button onclick="closeReportModal()">Cancel</button>
             </div>
         </div>
     </div>

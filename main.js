@@ -968,20 +968,30 @@ async function loadThreadDetails(threadId) {
         
         const thread = await response.json();
         
-        // Update thread details
-        document.getElementById('thread-title').textContent = thread.title;
-        document.getElementById('thread-author').textContent = thread.username || 'Unknown User';
+        // Kiểm tra các phần tử trước khi cập nhật
+        const titleElement = document.getElementById('thread-title');
+        const authorElement = document.getElementById('thread-author');
+        const dateElement = document.getElementById('thread-date');
+        const contentElement = document.getElementById('thread-content');
         
-        const createdDate = new Date(thread.createdAt);
-        document.getElementById('thread-date').textContent = `${createdDate.toLocaleDateString()} at ${createdDate.toLocaleTimeString()}`;
+        if (titleElement) titleElement.textContent = thread.title;
+        if (authorElement) authorElement.textContent = thread.username || 'Unknown User';
         
-        document.getElementById('thread-content').textContent = thread.content;
+        if (dateElement) {
+            const createdDate = new Date(thread.createdAt);
+            dateElement.textContent = `${createdDate.toLocaleDateString()} at ${createdDate.toLocaleTimeString()}`;
+        }
+        
+        if (contentElement) contentElement.textContent = thread.content;
         
         document.title = `${thread.title} - Forum`;
         
     } catch (error) {
         console.error('Error loading thread details:', error);
-        document.getElementById('thread-content').innerHTML = '<p class="error-message">Failed to load thread details. Please try again later.</p>';
+        const contentElement = document.getElementById('thread-content');
+        if (contentElement) {
+            contentElement.innerHTML = '<p class="error-message">Failed to load thread details. Please try again later.</p>';
+        }
     }
 }
 
@@ -1025,37 +1035,62 @@ function displayPosts(posts) {
 
 // Create a post element for the UI
 function createPostElement(post) {
-    const div = document.createElement('div');
-    div.className = 'comment';
-    div.setAttribute('data-post-id', post.postId);
+    const template = document.getElementById("post-template");
+    if (!template) {
+        console.error('Post template not found');
+        return null;
+    }
     
-    const createdDate = new Date(post.createdAt);
-    const formattedDate = `${createdDate.toLocaleDateString()} at ${createdDate.toLocaleTimeString()}`;
+    const postElement = template.content.cloneNode(true).querySelector(".post");
+    if (!postElement) {
+        console.error('Post element not found in template');
+        return null;
+    }
     
-    div.innerHTML = `
-        <div class="comment-header">
-            <div class="comment-author-info">
-                <div class="user-avatar">
-                    <i class="fa fa-user-circle"></i>
-                </div>
-                <span class="comment-author">${post.username || 'Unknown User'}</span>
-            </div>
-            <span class="comment-date">${formattedDate}</span>
-        </div>
-        <div class="comment-content">${post.content}</div>
-        <div class="comment-actions">
-            <button class="reply-button" onclick="toggleReplyForm(this)">
-                <i class="fa fa-reply"></i> Reply
-            </button>
-        </div>
-        <div class="reply-form">
-            <div class="form-content">
-                <textarea placeholder="Write your reply..."></textarea>
-                <button class="button" onclick="submitReply(this, ${post.postId})">Post Reply</button>
-            </div>
-        </div>
-    `;
-    return div;
+    const currentUserId = parseInt(sessionStorage.getItem("userId"));
+    const isAuthor = currentUserId === post.userId;
+    
+    // Set post data
+    postElement.setAttribute("data-post-id", post.postId);
+    
+    const authorElement = postElement.querySelector(".post-author");
+    if (authorElement) authorElement.textContent = post.username || 'Unknown';
+    
+    const dateElement = postElement.querySelector(".post-date");
+    if (dateElement) dateElement.textContent = formatDate(post.createdAt);
+    
+    const contentElement = postElement.querySelector(".post-content");
+    if (contentElement) contentElement.textContent = post.content;
+    
+    // Show/hide edit and delete buttons
+    const editButton = postElement.querySelector(".edit-post");
+    const deleteButton = postElement.querySelector(".delete-post");
+    if (isAuthor && editButton && deleteButton) {
+        editButton.classList.remove("hide");
+        deleteButton.classList.remove("hide");
+        
+        editButton.onclick = () => editPost(post.postId);
+        deleteButton.onclick = () => deletePost(post.postId);
+    }
+    
+    // Set up comment form
+    const commentForm = postElement.querySelector(".comment-form");
+    if (commentForm) {
+        const commentButton = commentForm.querySelector("button");
+        if (commentButton) {
+            commentButton.onclick = function() {
+                submitComment(this);
+            };
+        }
+    }
+    
+    // Load comments for this post
+    const commentsContainer = postElement.querySelector(".comments-container");
+    if (commentsContainer) {
+        loadComments(post.postId, commentsContainer);
+    }
+    
+    return postElement;
 }
 
 // Toggle reply form visibility
@@ -1276,4 +1311,416 @@ function formatDate(dateString) {
         minute: '2-digit'
     });
 }
+
+// ===== POST & COMMENT FUNCTIONS =====
+
+// Create a new post
+async function submitPost() {
+    if (!sessionStorage.getItem("token")) {
+        alert("Please log in to create a post.");
+        return;
+    }
+
+    const content = document.getElementById("post-input").value.trim();
+    if (!content) {
+        alert("Please write something in your post.");
+        return;
+    }
+
+    const threadId = getCurrentThreadId();
+    const userId = parseInt(sessionStorage.getItem("userId"));
+
+    try {
+        const response = await fetch(`${api_key}Post/Insert`, {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json",
+                "Authorization": `Bearer ${sessionStorage.getItem("token")}`
+            },
+            body: JSON.stringify({
+                content: content,
+                threadId: threadId,
+                userId: userId
+            })
+        });
+
+        if (!response.ok) {
+            throw new Error("Failed to create post");
+        }
+
+        // Clear input and reload posts
+        document.getElementById("post-input").value = "";
+        loadPosts(threadId);
+    } catch (error) {
+        console.error("Error creating post:", error);
+        alert("Failed to create post. Please try again.");
+    }
+}
+
+// Load posts for a thread
+async function loadPosts(threadId) {
+    try {
+        const response = await fetch(`${api_key}Post/ByThread/${threadId}`);
+        if (!response.ok) {
+            throw new Error("Failed to fetch posts");
+        }
+
+        const posts = await response.json();
+        displayPosts(posts);
+        updatePostCount(posts.length);
+    } catch (error) {
+        console.error("Error loading posts:", error);
+        document.getElementById("posts-container").innerHTML = 
+            '<p class="error-message">Failed to load posts. Please try again later.</p>';
+    }
+}
+
+// Display posts in the UI
+function displayPosts(posts) {
+    const container = document.getElementById("posts-container");
+    if (!container) {
+        console.error('Posts container not found');
+        return;
+    }
+
+    container.innerHTML = "";
+    
+    if (!posts || posts.length === 0) {
+        container.innerHTML = '<p class="no-posts">No posts yet. Be the first to post!</p>';
+        return;
+    }
+
+    // Sort posts by creation date (newest first)
+    posts.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+
+    posts.forEach(post => {
+        if (post) {  // Kiểm tra post trước khi tạo element
+            const postElement = createPostElement(post);
+            if (postElement) {  // Kiểm tra postElement không null
+                container.appendChild(postElement);
+            }
+        }
+    });
+}
+
+// Create a post element
+function createPostElement(post) {
+    const template = document.getElementById("post-template");
+    const postElement = template.content.cloneNode(true).querySelector(".post");
+    
+    const currentUserId = parseInt(sessionStorage.getItem("userId"));
+    const isAuthor = currentUserId === post.userId;
+    
+    // Set post data
+    postElement.setAttribute("data-post-id", post.postId);
+    postElement.querySelector(".post-author").textContent = post.username;
+    postElement.querySelector(".post-date").textContent = formatDate(post.createdAt);
+    postElement.querySelector(".post-content").textContent = post.content;
+    
+    // Show/hide edit and delete buttons
+    const editButton = postElement.querySelector(".edit-post");
+    const deleteButton = postElement.querySelector(".delete-post");
+    if (isAuthor) {
+        editButton.classList.remove("hide");
+        deleteButton.classList.remove("hide");
+        
+        editButton.onclick = () => editPost(post.postId);
+        deleteButton.onclick = () => deletePost(post.postId);
+    }
+    
+    // Set up comment form
+    const commentForm = postElement.querySelector(".comment-form");
+    const commentButton = commentForm.querySelector("button");
+    commentButton.onclick = function() {
+        submitComment(this);
+    };
+    
+    // Load comments for this post
+    loadComments(post.postId, postElement.querySelector(".comments-container"));
+    
+    return postElement;
+}
+
+// Toggle comment form visibility
+function toggleCommentForm(button) {
+    if (!sessionStorage.getItem("token")) {
+        alert("Please log in to comment.");
+        return;
+    }
+    
+    const form = button.closest(".post").querySelector(".comment-form");
+    form.classList.toggle("hide");
+    
+    if (!form.classList.contains("hide")) {
+        form.querySelector("textarea").focus();
+    }
+}
+
+// Submit a comment
+async function submitComment(button) {
+    if (!sessionStorage.getItem('token')) {
+        alert('Please log in to comment.');
+        return;
+    }
+
+    // Đảm bảo button là phần tử DOM
+    if (!(button instanceof Element)) {
+        console.error('Invalid button parameter:', button);
+        return;
+    }
+
+    const post = button.closest('.post');
+    if (!post) {
+        console.error('Post element not found');
+        return;
+    }
+
+    const postId = parseInt(post.getAttribute('data-post-id'));
+    const commentForm = post.querySelector('.comment-form');
+    const textarea = commentForm.querySelector('textarea');
+    const content = textarea.value.trim();
+
+    if (!content) {
+        alert('Please write something in your comment.');
+        return;
+    }
+
+    try {
+        const response = await fetch(`${api_key}Comment/Insert`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${sessionStorage.getItem('token')}`
+            },
+            body: JSON.stringify({
+                content: content,
+                postId: postId,
+                userId: parseInt(sessionStorage.getItem('userId'))
+            })
+        });
+
+        if (!response.ok) {
+            const errorData = await response.text();
+            throw new Error(errorData || 'Failed to create comment');
+        }
+
+        // Clear form and reload comments
+        textarea.value = '';
+        commentForm.classList.add('hide');
+        
+        // Reload comments
+        const commentsContainer = post.querySelector('.comments-container');
+        await loadComments(postId, commentsContainer);
+
+    } catch (error) {
+        console.error('Error submitting comment:', error);
+        alert('Failed to submit comment. Please try again.');
+    }
+}
+
+// Load comments for a post
+async function loadComments(postId, container) {
+    if (!container) {
+        console.error('Comment container is missing');
+        return;
+    }
+    
+    try {
+        const response = await fetch(`${api_key}Comment/ByPost/${postId}`);
+        if (!response.ok) {
+            throw new Error('Failed to fetch comments');
+        }
+        
+        const comments = await response.json();
+        displayComments(comments, container);
+        
+        // Update comment count in the post
+        const post = container.closest('.post');
+        if (post) {
+            const commentCountElement = post.querySelector('.comment-count');
+            if (commentCountElement) {
+                commentCountElement.textContent = comments.length;
+            }
+        }
+    } catch (error) {
+        console.error('Error loading comments:', error);
+        container.innerHTML = '<p class="error-message">Failed to load comments. Please try again later.</p>';
+    }
+}
+
+// Display comments in the UI
+function displayComments(comments, container) {
+    if (!container) {
+        console.error('Comments container not found');
+        return;
+    }
+
+    container.innerHTML = '';
+    
+    if (!comments || comments.length === 0) {
+        container.innerHTML = '<p class="no-comments">No comments yet. Be the first to comment!</p>';
+        return;
+    }
+
+    comments.forEach(comment => {
+        const commentElement = createCommentElement(comment);
+        if (commentElement) {
+            container.appendChild(commentElement);
+        }
+    });
+}
+
+// Create a comment element
+function createCommentElement(comment) {
+    const template = document.getElementById('comment-template');
+    if (!template) {
+        console.error('Comment template not found');
+        return null;
+    }
+
+    const commentElement = template.content.cloneNode(true).querySelector('.comment');
+    
+    // Set comment data
+    commentElement.setAttribute('data-comment-id', comment.commentId);
+    commentElement.querySelector('.comment-author').textContent = comment.username;
+    commentElement.querySelector('.comment-date').textContent = formatDate(comment.createdAt);
+    commentElement.querySelector('.comment-content').textContent = comment.content;
+    
+    // Show edit/delete buttons for comment author
+    const currentUserId = parseInt(sessionStorage.getItem('userId'));
+    if (currentUserId === comment.userId) {
+        const editButton = commentElement.querySelector('.edit-comment');
+        const deleteButton = commentElement.querySelector('.delete-comment');
+        
+        editButton.classList.remove('hide');
+        deleteButton.classList.remove('hide');
+        
+        editButton.onclick = () => editComment(comment.commentId);
+        deleteButton.onclick = () => deleteComment(comment.commentId);
+    }
+    
+    return commentElement;
+}
+
+// Edit a comment
+async function editComment(commentId) {
+    const commentElement = document.querySelector(`[data-comment-id="${commentId}"]`);
+    if (!commentElement) {
+        console.error('Comment element not found');
+        return;
+    }
+
+    const contentElement = commentElement.querySelector('.comment-content');
+    const currentContent = contentElement.textContent;
+    
+    const newContent = prompt('Edit your comment:', currentContent);
+    if (!newContent || newContent === currentContent) {
+        return;
+    }
+
+    try {
+        const response = await fetch(`${api_key}Comment/Update/${commentId}`, {
+            method: 'PUT',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${sessionStorage.getItem('token')}`
+            },
+            body: JSON.stringify({
+                content: newContent
+            })
+        });
+
+        if (!response.ok) {
+            throw new Error('Failed to update comment');
+        }
+
+        contentElement.textContent = newContent;
+
+    } catch (error) {
+        console.error('Error updating comment:', error);
+        alert('Failed to update comment. Please try again.');
+    }
+}
+
+// Delete a comment
+async function deleteComment(commentId) {
+    if (!confirm('Are you sure you want to delete this comment?')) {
+        return;
+    }
+
+    try {
+        const response = await fetch(`${api_key}Comment/Delete/${commentId}`, {
+            method: 'DELETE',
+            headers: {
+                'Authorization': `Bearer ${sessionStorage.getItem('token')}`
+            }
+        });
+
+        if (!response.ok) {
+            throw new Error('Failed to delete comment');
+        }
+
+        // Remove comment from UI
+        const commentElement = document.querySelector(`[data-comment-id="${commentId}"]`);
+        const post = commentElement.closest('.post');
+        commentElement.remove();
+
+        // Update comment count
+        const commentCount = post.querySelector('.comment-count');
+        if (commentCount) {
+            const currentCount = parseInt(commentCount.textContent) || 0;
+            commentCount.textContent = Math.max(0, currentCount - 1);
+        }
+
+    } catch (error) {
+        console.error('Error deleting comment:', error);
+        alert('Failed to delete comment. Please try again.');
+    }
+}
+
+// Toggle comment form visibility
+function toggleCommentForm(button) {
+    if (!sessionStorage.getItem('token')) {
+        alert('Please log in to comment.');
+        return;
+    }
+    
+    const post = button.closest('.post');
+    if (!post) {
+        console.error('Post element not found');
+        return;
+    }
+
+    const form = post.querySelector('.comment-form');
+    if (!form) {
+        console.error('Comment form not found');
+        return;
+    }
+    
+    if (form.classList.contains('hide')) {
+        form.classList.remove('hide');
+        form.querySelector('textarea').focus();
+    } else {
+        form.classList.add('hide');
+    }
+}
+
+// Helper functions
+function updatePostCount(count) {
+    document.getElementById("post-count").textContent = count;
+}
+
+function updateCommentCount(postId, count) {
+    const post = document.querySelector(`[data-post-id="${postId}"]`);
+    if (post) {
+        post.querySelector(".comment-count").textContent = `${count || 0} comments`;
+    }
+}
+
+function getPostIdFromComment(commentElement) {
+    const post = commentElement.closest(".post");
+    return parseInt(post.getAttribute("data-post-id"));
+}
+
+
 
