@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Thread Detail - Forum</title>
+    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css">
+    <link rel="preconnect" href="https://fonts.gstatic.com">
+    <link href="https://fonts.googleapis.com/css2?family=Titillium+Web:ital@1&display=swap" rel="stylesheet">
+    <script src="main.js" defer></script>
+</head>
+<body>
+    <header>
+        <div class="navbar">
+            <nav class="navigation hide" id="navigation">
+                <span class="close-icon" id="close-icon" onclick="showIconBar()">
+                    <i class="fa fa-close"></i>
+                </span>
+                <ul class="nav-list">
+                    <li class="nav-item"><a href="forums.html">Forums</a></li>
+                    <li class="nav-item"><a href="categories.html">Categories</a></li>
+                    <li class="nav-item"><a href="community.html">Community</a></li>
+                    <li class="nav-item hide"><a href="Modctrl.html">Modctrl</a></li>
+                    <li class="nav-item"><a href="login.html">Login</a></li>
+                    <li class="nav-item logout-link hide"><a href="#" onclick="logout()">Logout</a></li>
+                </ul>
+            </nav>
+            <a class="bar-icon" id="iconBar" onclick="hideIconBar()"><i class="fa fa-bars"></i></a>
+            <div class="brand">My Forum</div>
+            <div id="top-right-username" class="top-right-username hide"></div>
+        </div>
+    </header>
+
+    <div class="container">
+        <div class="thread-detail">
+            <!-- Main Content -->
+            <div class="main-content">
+                <!-- Main Thread Section -->
+                <div class="main-thread">
+                    <div class="thread-header">
+                        <div class="thread-title" id="thread-title"></div>
+                        <div class="thread-meta">
+                            <div class="thread-author">
+                                <i class="fa fa-user"></i>
+                                <span id="thread-author"></span>
+                            </div>
+                            <div class="thread-time">
+                                <i class="fa fa-clock-o"></i>
+                                <span id="thread-date"></span>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="thread-content" id="thread-content">
+                        <!-- Thread content will be loaded here -->
+                    </div>
+                </div>
+
+                <!-- Comments Section -->
+                <div class="comments-section">
+                    <div class="comments-header">
+                        <h3>Comments</h3>
+                        <span class="comment-count" id="comment-count">0 comments</span>
+                    </div>
+
+                    <!-- New Comment Form -->
+                    <div class="comment-form">
+                        <div class="user-avatar">
+                            <i class="fa fa-user-circle"></i>
+                        </div>
+                        <div class="form-content">
+                            <textarea id="comment-input" placeholder="Write your comment here..."></textarea>
+                            <button class="button" onclick="submitPost()">Post Comment</button>
+                        </div>
+                    </div>
+
+                    <!-- Comments Container -->
+                    <div id="comments-container" class="comments-container">
+                        <!-- Comments will be loaded here -->
+                    </div>
+                </div>
+            </div>
+
+            <!-- Sidebar -->
+            <div class="sidebar">
+                <!-- Thread Info -->
+                <div class="sidebar-section">
+                    <h3 class="sidebar-title">Thread Information</h3>
+                    <div class="thread-info">
+                        <div class="thread-info-item">
+                            <span>Category</span>
+                            <span id="thread-category">Loading...</span>
+                        </div>
+                        <div class="thread-info-item">
+                            <span>Posted</span>
+                            <span id="thread-posted-date">Loading...</span>
+                        </div>
+                        <div class="thread-info-item">
+                            <span>Comments</span>
+                            <span id="sidebar-comment-count">0</span>
+                        </div>
+                        <div class="thread-info-item">
+                            <span>Views</span>
+                            <span id="thread-views">0</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Related Threads -->
+                <div class="sidebar-section">
+                    <h3 class="sidebar-title">Related Threads</h3>
+                    <ul class="related-threads" id="related-threads">
+                        <!-- Related threads will be loaded here -->
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <footer>
+        <span>&copy; 2025 My Forum | All Rights Reserved</span>
+    </footer>
+</body>
+</html> 

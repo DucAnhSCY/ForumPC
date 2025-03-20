@@ -452,31 +452,36 @@ async function fetchAndDisplayThreads() {
 // Updated to accept userMap parameter
 function displayThreads(threads) {
     const threadsContainer = document.getElementById('threads-display');
-
+    
     if (!threadsContainer) {
         console.warn('Threads display container not found');
         return;
     }
-
+    
     threadsContainer.innerHTML = '';
-
+    
     threads.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
-
+    
     if (threads.length === 0) {
         threadsContainer.innerHTML = '<p class="no-threads">No threads yet. Be the first to create one!</p>';
         return;
     }
-
+    
     threads.forEach(thread => {
         const threadElement = document.createElement('div');
         threadElement.className = 'thread-item';
-
+        threadElement.setAttribute('data-thread-id', thread.threadId);
+        
+        // Add click event to navigate to thread detail page
+        threadElement.addEventListener('click', function() {
+            window.location.href = `thread-detail.html?id=${thread.threadId}`;
+        });
+        
         const createdDate = new Date(thread.createdAt);
         const formattedDate = `${createdDate.toLocaleDateString()} at ${createdDate.toLocaleTimeString()}`;
-
-        // ✅ Ensure username is correctly displayed
+        
         const username = thread.username || "Unknown User";
-
+        
         threadElement.innerHTML = `
             <div class="thread-header">
                 <h3 class="thread-title">${thread.title}</h3>
@@ -490,7 +495,7 @@ function displayThreads(threads) {
                 <span class="thread-author">by: ${username}</span> <!-- ✅ Display Correct Username -->
             </div>
         `;
-
+        
         threadsContainer.appendChild(threadElement);
     });
 }
@@ -948,5 +953,327 @@ async function deleteUser(userId) {
         console.error('Lỗi khi xóa user:', error);
         alert(`Lỗi: ${error.message}`);
     }
+}
+
+// ===== THREAD DETAIL FUNCTIONS =====
+
+// Load thread details based on ID
+async function loadThreadDetails(threadId) {
+    try {
+        const response = await fetch(`${api_key}Thread/${threadId}`);
+        
+        if (!response.ok) {
+            throw new Error('Failed to fetch thread details');
+        }
+        
+        const thread = await response.json();
+        
+        // Update thread details
+        document.getElementById('thread-title').textContent = thread.title;
+        document.getElementById('thread-author').textContent = thread.username || 'Unknown User';
+        
+        const createdDate = new Date(thread.createdAt);
+        document.getElementById('thread-date').textContent = `${createdDate.toLocaleDateString()} at ${createdDate.toLocaleTimeString()}`;
+        
+        document.getElementById('thread-content').textContent = thread.content;
+        
+        document.title = `${thread.title} - Forum`;
+        
+    } catch (error) {
+        console.error('Error loading thread details:', error);
+        document.getElementById('thread-content').innerHTML = '<p class="error-message">Failed to load thread details. Please try again later.</p>';
+    }
+}
+
+// Load posts for a specific thread
+async function loadPosts(threadId) {
+    try {
+        const response = await fetch(`${api_key}Post/ByThread/${threadId}`);
+        
+        if (!response.ok) {
+            throw new Error('Failed to fetch posts');
+        }
+        
+        const posts = await response.json();
+        displayPosts(posts);
+        
+    } catch (error) {
+        console.error('Error loading posts:', error);
+        document.getElementById('comments-container').innerHTML = '<p class="error-message">Failed to load posts. Please try again later.</p>';
+    }
+}
+
+// Display posts in the UI
+function displayPosts(posts) {
+    const container = document.getElementById('comments-container');
+    const commentCount = document.getElementById('comment-count');
+    if (!container || !commentCount) return;
+
+    container.innerHTML = '';
+    commentCount.textContent = `${posts.length} comments`;
+
+    if (posts.length === 0) {
+        container.innerHTML = '<p class="no-comments">No comments yet. Be the first to comment!</p>';
+        return;
+    }
+
+    posts.forEach(post => {
+        const postElement = createPostElement(post);
+        container.appendChild(postElement);
+    });
+}
+
+// Create a post element for the UI
+function createPostElement(post) {
+    const div = document.createElement('div');
+    div.className = 'comment';
+    div.setAttribute('data-post-id', post.postId);
+    
+    const createdDate = new Date(post.createdAt);
+    const formattedDate = `${createdDate.toLocaleDateString()} at ${createdDate.toLocaleTimeString()}`;
+    
+    div.innerHTML = `
+        <div class="comment-header">
+            <div class="comment-author-info">
+                <div class="user-avatar">
+                    <i class="fa fa-user-circle"></i>
+                </div>
+                <span class="comment-author">${post.username || 'Unknown User'}</span>
+            </div>
+            <span class="comment-date">${formattedDate}</span>
+        </div>
+        <div class="comment-content">${post.content}</div>
+        <div class="comment-actions">
+            <button class="reply-button" onclick="toggleReplyForm(this)">
+                <i class="fa fa-reply"></i> Reply
+            </button>
+        </div>
+        <div class="reply-form">
+            <div class="form-content">
+                <textarea placeholder="Write your reply..."></textarea>
+                <button class="button" onclick="submitReply(this, ${post.postId})">Post Reply</button>
+            </div>
+        </div>
+    `;
+    return div;
+}
+
+// Toggle reply form visibility
+function toggleReplyForm(button) {
+    // Check if user is logged in
+    if (!sessionStorage.getItem("token")) {
+        alert("Please log in to reply to posts.");
+        return;
+    }
+    
+    const form = button.nextElementSibling;
+    form.classList.toggle('active');
+}
+
+// Submit a new post (comment)
+async function submitPost() {
+    // Check if user is logged in
+    if (!sessionStorage.getItem("token")) {
+        alert("Please log in to post comments.");
+        return;
+    }
+    
+    const threadId = getCurrentThreadId();
+    if (!threadId) {
+        console.error('No thread ID found');
+        return;
+    }
+    
+    const commentInput = document.getElementById('comment-input');
+    const content = commentInput.value.trim();
+    
+    if (!content) {
+        return;
+    }
+    
+    try {
+        const response = await fetch(`${api_key}Post/Insert`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${sessionStorage.getItem("token")}`
+            },
+            body: JSON.stringify({
+                threadId: threadId,
+                content: content,
+                userId: parseInt(sessionStorage.getItem("userId"))
+            })
+        });
+        
+        if (!response.ok) {
+            throw new Error('Failed to submit post');
+        }
+        
+        // Clear input and reload posts
+        commentInput.value = '';
+        loadPosts(threadId);
+        
+    } catch (error) {
+        console.error('Error submitting post:', error);
+        alert('Failed to submit post. Please try again later.');
+    }
+}
+
+// Submit a reply to a post
+async function submitReply(button, parentPostId) {
+    // Check if user is logged in
+    if (!sessionStorage.getItem("token")) {
+        alert("Please log in to reply to posts.");
+        return;
+    }
+    
+    const threadId = getCurrentThreadId();
+    if (!threadId) {
+        console.error('No thread ID found');
+        return;
+    }
+    
+    const form = button.parentElement;
+    const content = form.querySelector('textarea').value.trim();
+    
+    if (!content) {
+        return;
+    }
+    
+    try {
+        const response = await fetch(`${api_key}Post/Insert`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${sessionStorage.getItem("token")}`
+            },
+            body: JSON.stringify({
+                threadId: threadId,
+                content: content,
+                userId: parseInt(sessionStorage.getItem("userId"))
+            })
+        });
+        
+        if (!response.ok) {
+            throw new Error('Failed to submit reply');
+        }
+        
+        // Clear input, hide form and reload posts
+        form.querySelector('textarea').value = '';
+        form.classList.remove('active');
+        loadPosts(threadId);
+        
+    } catch (error) {
+        console.error('Error submitting reply:', error);
+        alert('Failed to submit reply. Please try again later.');
+    }
+}
+
+// Helper function to get current thread ID from URL
+function getCurrentThreadId() {
+    const urlParams = new URLSearchParams(window.location.search);
+    return urlParams.get('id');
+}
+
+// Initialize thread detail page
+function initThreadDetailPage() {
+    const threadId = getCurrentThreadId();
+    
+    if (threadId) {
+        loadThreadDetails(threadId);
+        loadPosts(threadId);
+    } else {
+        window.location.href = 'community.html';
+    }
+}
+
+// Check if we're on the thread detail page and initialize
+document.addEventListener('DOMContentLoaded', function() {
+    if (window.location.href.includes('thread-detail.html')) {
+        initThreadDetailPage();
+    }
+});
+
+// Update sidebar information
+function updateSidebarInfo(thread) {
+    document.getElementById('thread-category').textContent = thread.category || 'General';
+    document.getElementById('thread-posted-date').textContent = formatDate(thread.createdAt);
+    document.getElementById('sidebar-comment-count').textContent = thread.commentCount || '0';
+    document.getElementById('thread-views').textContent = thread.views || '0';
+}
+
+// Load and display related threads
+async function loadRelatedThreads(currentThreadId) {
+    try {
+        const response = await fetch(`${api_key}Thread/Related/${currentThreadId}`);
+        if (!response.ok) throw new Error('Failed to fetch related threads');
+        
+        const relatedThreads = await response.json();
+        displayRelatedThreads(relatedThreads);
+    } catch (error) {
+        console.error('Error loading related threads:', error);
+    }
+}
+
+// Display related threads in sidebar
+function displayRelatedThreads(threads) {
+    const container = document.getElementById('related-threads');
+    container.innerHTML = '';
+
+    if (!threads || threads.length === 0) {
+        container.innerHTML = '<li class="no-threads">No related threads found</li>';
+        return;
+    }
+
+    threads.forEach(thread => {
+        const li = document.createElement('li');
+        li.innerHTML = `
+            <a href="thread-detail.html?id=${thread.id}">
+                ${thread.title}
+            </a>
+        `;
+        container.appendChild(li);
+    });
+}
+
+// Update the loadThreadDetail function to include sidebar updates
+async function loadThreadDetail(threadId) {
+    try {
+        const response = await fetch(`${api_key}Thread/${threadId}`);
+        if (!response.ok) throw new Error('Failed to fetch thread details');
+        
+        const thread = await response.json();
+        
+        // Update main thread content
+        document.getElementById('thread-title').textContent = thread.title;
+        document.getElementById('thread-author').textContent = thread.username || 'Unknown User';
+        document.getElementById('thread-date').textContent = formatDate(thread.createdAt);
+        document.getElementById('thread-content').innerHTML = thread.content;
+        
+        // Update sidebar information
+        updateSidebarInfo(thread);
+        
+        // Load related threads
+        loadRelatedThreads(threadId);
+        
+        // Load comments/posts
+        loadPosts(threadId);
+    } catch (error) {
+        console.error('Error loading thread details:', error);
+        showError('Failed to load thread details. Please try again later.');
+    }
+}
+
+// Helper function to format dates
+function formatDate(dateString) {
+    if (!dateString) return 'Unknown';
+    const date = new Date(dateString);
+    return date.toLocaleDateString('en-US', {
+        year: 'numeric',
+        month: 'short',
+        day: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit'
+    });
 }
 
