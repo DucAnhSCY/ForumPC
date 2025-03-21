@@ -633,27 +633,21 @@ function displayUsers(users) {
 const pendingChanges = new Map();
 
 async function saveChanges(userId) {
+    console.log('Full pendingChanges Map before saving:', pendingChanges); // Debugging log
+
     const changes = pendingChanges.get(userId);
-    if (!changes) {
-        alert('Không có thay đổi nào để lưu');
+    console.log(`Attempting to save changes for user ${userId}:`, changes); // Debugging log
+
+    if (!changes || Object.keys(changes).length === 0) { 
+        alert('No changes detected. Please modify the user before saving.');
         return;
     }
 
-    const button = document.querySelector(`button[onclick="saveChanges(${userId})"]`);
-    if (!button) {
-        console.error(`Không tìm thấy nút save cho user ${userId}`);
-        return;
-    }
-    
     try {
         const token = sessionStorage.getItem("token");
         if (!token) {
-            throw new Error('Bạn cần đăng nhập để thực hiện thao tác này');
+            throw new Error('You must be logged in as an admin to perform this action.');
         }
-
-        // Log để debug
-        console.log('Đang cập nhật user:', userId);
-        console.log('Dữ liệu thay đổi:', changes);
 
         const response = await fetch(`${api_key}User/UpdateUser/${userId}`, {
             method: "PUT",
@@ -668,27 +662,19 @@ async function saveChanges(userId) {
         console.log('Server response:', responseData);
 
         if (!response.ok) {
-            throw new Error(responseData || 'Không thể cập nhật người dùng');
+            throw new Error(responseData || 'Could not update user');
         }
 
-        // Thêm class để kích hoạt animation
-        button.classList.add('save-success');
-        
-        // Xóa class sau khi animation kết thúc
-        setTimeout(() => {
-            button.classList.remove('save-success');
-        }, 1000);
-
-        alert('Lưu thay đổi thành công!');
+        alert('Changes saved successfully!');
         pendingChanges.delete(userId);
         await refreshTable();
     } catch (error) {
-        console.error('Lỗi khi lưu thay đổi:', error);
-        alert(`Lỗi: ${error.message}`);
-        // Khôi phục trạng thái ban đầu nếu có lỗi
+        console.error('Error saving changes:', error);
+        alert(`Error: ${error.message}`);
         await refreshTable();
     }
 }
+
 
 async function saveAllChanges() {
     try {
@@ -929,48 +915,40 @@ function togglePasswordVisibility(inputId) {
 }
 
 function handleRoleChange(selectElement) {
-    try {
-        const userId = selectElement.dataset.userId;
-        const newRole = selectElement.value;
-        const currentUserRole = sessionStorage.getItem("role");
-        
-        // Kiểm tra quyền
-        if (currentUserRole !== 'Admin' && currentUserRole !== 'admin') {
-            alert('Bạn không có quyền thay đổi role');
-            refreshTable(); // Khôi phục trạng thái
-            return;
-        }
+    const userId = parseInt(selectElement.dataset.userId, 10); // Ensure correct ID format
+    const newRole = selectElement.value;
 
-        // Kiểm tra dữ liệu đầu vào
-        if (!userId || !newRole) {
-            console.error('Thiếu thông tin userId hoặc role');
-            return;
-        }
-
-        if (!pendingChanges.has(userId)) {
-            pendingChanges.set(userId, {});
-        }
-        pendingChanges.get(userId).role = newRole;
-        
-        // Cập nhật class cho select box
-        selectElement.className = `role-select role-${newRole.toLowerCase()}`;
-        
-        // Thêm hiệu ứng highlight
-        const row = selectElement.closest('tr');
-        if (row) {
-            row.classList.add('role-changed');
-            setTimeout(() => {
-                row.classList.remove('role-changed');
-            }, 1500);
-        }
-
-        console.log(`Role change pending for user ${userId}: ${newRole}`);
-    } catch (error) {
-        console.error('Lỗi khi thay đổi role:', error);
-        alert('Có lỗi xảy ra khi thay đổi role. Vui lòng thử lại.');
-        refreshTable();
+    if (!userId || !newRole) {
+        console.warn('Invalid userId or role:', userId, newRole);
+        return;
     }
+
+    if (!pendingChanges.has(userId)) {
+        pendingChanges.set(userId, {}); // Initialize if not set
+    }
+    pendingChanges.get(userId).role = newRole;
+
+    console.log(`Role change stored for user ${userId}:`, pendingChanges.get(userId)); // Debugging log
 }
+
+
+function handleStatusChange(selectElement) {
+    const userId = parseInt(selectElement.dataset.userId, 10);
+    const newStatus = selectElement.value;
+
+    if (!userId || !newStatus) {
+        console.warn('Invalid userId or status:', userId, newStatus);
+        return;
+    }
+
+    if (!pendingChanges.has(userId)) {
+        pendingChanges.set(userId, {});
+    }
+    pendingChanges.get(userId).status = newStatus;
+
+    console.log(`Status change stored for user ${userId}:`, pendingChanges.get(userId)); // Debugging log
+}
+
 
 // Thêm hàm kiểm tra user
 async function checkUserExists(userId) {
