@@ -21,7 +21,7 @@
                     <li class="nav-item"><a href="forums.html">Forums</a></li>
                     <li class="nav-item"><a href="categories.html">Categories</a></li>
                     <li class="nav-item"><a href="community.html">Community</a></li>
-                    <li class="nav-item hide"><a href="Modctrl.html">Modctrl</a></li>
+                    <li class="nav-item hide"><a href="Modctrl.html">Mod Control</a></li>
                     <li class="nav-item"><a href="login.html">Login</a></li>
                     <li class="nav-item logout-link hide"><a href="#" onclick="logout()">Logout</a></li>
                 </ul>
@@ -32,8 +32,149 @@
         </div>
     </header>
 
+    <!-- Hero Section -->
+    <section class="hero-section">
+        <h1 class="hero-title">Welcome to PC Forum</h1>
+        <div class="hero-content">
+            <p>The ultimate place to discuss everything related to computers, technology, and gaming.</p>
+            <div class="hero-buttons">
+                <a href="community.html" class="hero-btn primary-btn">Join Discussion</a>
+                <a href="categories.html" class="hero-btn secondary-btn">Explore Topics</a>
+            </div>
+        </div>
+    </section>
+
+    <!-- Features Section -->
+    <section class="features-section">
+        <h2 class="section-title">Why Join Our Community?</h2>
+        <div class="features-container">
+            <div class="feature-card">
+                <i class="fa fa-users feature-icon"></i>
+                <h3>Active Community</h3>
+                <p>Join thousands of tech enthusiasts sharing knowledge and experiences.</p>
+            </div>
+            <div class="feature-card">
+                <i class="fa fa-comments feature-icon"></i>
+                <p>Get answers to your most challenging technical questions from experts.</p>
+                <h3>Expert Support</h3>
+            </div>
+            <div class="feature-card">
+                <i class="fa fa-lightbulb-o feature-icon"></i>
+                <h3>Latest Trends</h3>
+                <p>Stay updated with the newest technologies and industry discussions.</p>
+            </div>
+        </div>
+    </section>
+
+    <!-- Popular Categories -->
+    <section class="categories-preview">
+        <h2 class="section-title">Popular Categories</h2>
+        <div class="category-cards" id="popular-categories">
+            <div class="category-card">
+                <div class="category-icon"><i class="fa fa-desktop"></i></div>
+                <h3>PC Hardware</h3>
+                <p>Discussions about CPUs, GPUs, motherboards, and more.</p>
+                <a href="#" class="category-link">Explore <i class="fa fa-arrow-right"></i></a>
+            </div>
+            <div class="category-card">
+                <div class="category-icon"><i class="fa fa-gamepad"></i></div>
+                <h3>Gaming</h3>
+                <p>The latest in PC gaming, optimization, and game discussions.</p>
+                <a href="#" class="category-link">Explore <i class="fa fa-arrow-right"></i></a>
+            </div>
+            <div class="category-card">
+                <div class="category-icon"><i class="fa fa-code"></i></div>
+                <h3>Programming</h3>
+                <p>Coding help, project collaboration, and development discussions.</p>
+                <a href="#" class="category-link">Explore <i class="fa fa-arrow-right"></i></a>
+            </div>
+        </div>
+    </section>
+
+    <!-- Recent Activity -->
+    <section class="recent-activity">
+        <h2 class="section-title">Recent Activity</h2>
+        <div class="activity-feed" id="activity-feed">
+            <!-- Activity feed will be populated by JavaScript -->
+            <div class="activity-card">
+                <div class="activity-user">
+                    <i class="fa fa-user-circle"></i>
+                    <span>TechGuru</span>
+                </div>
+                <div class="activity-content">
+                    <p>Posted in <a href="#">Building a Budget Gaming PC in 2025</a></p>
+                    <span class="activity-time">2 hours ago</span>
+                </div>
+            </div>
+            <div class="activity-card">
+                <div class="activity-user">
+                    <i class="fa fa-user-circle"></i>
+                    <span>CodeMaster</span>
+                </div>
+                <div class="activity-content">
+                    <p>Replied to <a href="#">JavaScript Frameworks Comparison</a></p>
+                    <span class="activity-time">5 hours ago</span>
+                </div>
+            </div>
+            <div class="activity-card">
+                <div class="activity-user">
+                    <i class="fa fa-user-circle"></i>
+                    <span>PCEnthusiast</span>
+                </div>
+                <div class="activity-content">
+                    <p>Started new thread <a href="#">Next-Gen GPUs: Worth the Wait?</a></p>
+                    <span class="activity-time">Yesterday</span>
+                </div>
+            </div>
+        </div>
+        <div class="view-more-container">
+            <a href="community.html" class="view-more-btn">View More Activity</a>
+        </div>
+    </section>
+
+    <!-- Call to Action -->
+    <section class="cta-section">
+        <div class="cta-content">
+            <h2>Ready to Join the Discussion?</h2>
+            <p>Create an account now to participate in forum discussions and connect with other tech enthusiasts.</p>
+            <div class="cta-buttons">
+                <a href="register.html" class="cta-btn">Sign Up Now</a>
+                <a href="login.html" class="cta-btn secondary">Login</a>
+            </div>
+        </div>
+    </section>
+
     <footer>
-        <span>&copy; 2025 My Forum | All Rights Reserved</span>
+        <div class="footer-content">
+            <div class="footer-section">
+                <h3>Quick Links</h3>
+                <ul>
+                    <li><a href="forums.html">Home</a></li>
+                    <li><a href="categories.html">Categories</a></li>
+                    <li><a href="community.html">Community</a></li>
+                </ul>
+            </div>
+            <div class="footer-section">
+                <h3>Legal</h3>
+                <ul>
+                    <li><a href="#">Terms of Service</a></li>
+                    <li><a href="#">Privacy Policy</a></li>
+                    <li><a href="#">Community Guidelines</a></li>
+                </ul>
+            </div>
+            <div class="footer-section">
+                <h3>Connect With Us</h3>
+                <div class="social-icons">
+                    <a href="#"><i class="fa fa-facebook"></i></a>
+                    <a href="#"><i class="fa fa-twitter"></i></a>
+                    <a href="#"><i class="fa fa-discord"></i></a>
+                    <a href="#"><i class="fa fa-github"></i></a>
+                </div>
+            </div>
+        </div>
+        <div class="footer-bottom">
+            <span>&copy; 2025 My Forum | All Rights Reserved</span>
+        </div>
     </footer>
 </body>
 </html>

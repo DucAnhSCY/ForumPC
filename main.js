@@ -108,153 +108,219 @@ function register() {
 }
 
 function login() {
-    const email = document.getElementById("login-email").value;
-    const password = document.getElementById("login-password").value;
-
-    if (!email || !password) {
-        alert("Please enter both email and password.");
+    // Get login form elements with fallbacks for different form IDs
+    const emailInput = document.getElementById("email") || document.getElementById("login-email");
+    const passwordInput = document.getElementById("password") || document.getElementById("login-password");
+    
+    if (!emailInput || !passwordInput) {
+        console.error("Login form elements not found");
         return;
     }
-
-    const loginData = { email, password };
-
+    
+    const email = emailInput.value;
+    const password = passwordInput.value;
+    
+    if (!email || !password) {
+        showCustomAlert("Login Error", "Please enter both email and password", "error");
+        return;
+    }
+    
+    const loginData = {
+        email: email,
+        password: password
+    };
+    
     fetch(`${api_key}User/Login`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: {
+            "Content-Type": "application/json"
+        },
         body: JSON.stringify(loginData)
     })
     .then(response => {
         if (!response.ok) {
-            return response.text().then(text => { throw new Error(text); });
+            return response.json().then(data => {
+                throw { 
+                    status: response.status,
+                    data: data
+                };
+            });
         }
         return response.json();
     })
     .then(data => {
-        console.log("Login response data:", data); // Debugging step
-
-        // Decode the token to extract userId
-        const token = data.token;
-        const payload = JSON.parse(atob(token.split('.')[1]));
-        const userId = payload.UserId;
-
-        if (!userId) {
-            throw new Error("Invalid user data received from the server.");
+        sessionStorage.setItem("token", data.token);
+        
+        // Parse the JWT token to get user information
+        try {
+            const payload = JSON.parse(atob(data.token.split('.')[1]));
+            const userId = payload["http://schemas.xmlsoap.org/ws/2005/05/identity/claims/nameidentifier"];
+            const username = payload["http://schemas.xmlsoap.org/ws/2005/05/identity/claims/name"];
+            const role = payload["http://schemas.microsoft.com/ws/2008/06/identity/claims/role"];
+            const status = payload["status"]; // Store the user status from the token
+            
+            sessionStorage.setItem("userId", userId);
+            sessionStorage.setItem("username", username);
+            sessionStorage.setItem("role", role);
+            sessionStorage.setItem("status", status); // Save status to sessionStorage
+            
+            showCustomAlert("Success", "Login successful!", "success");
+            
+            // Close login popup if it exists
+            const loginPopup = document.getElementById("login-popup");
+            if (loginPopup) {
+                loginPopup.classList.add("hide");
+            }
+            
+            // Update UI after successful login
+            updateUIAfterLogin();
+            
+            // Redirect to index page after successful login
+            setTimeout(() => {
+                window.location.href = "index.html";
+            }, 1500);
+        } catch (error) {
+            console.error("Error parsing JWT token:", error);
+            showCustomAlert("Error", "Error processing login response", "error");
         }
-
-        alert("Login successful!");
-        sessionStorage.setItem("token", token);
-        sessionStorage.setItem("username", data.user.username);
-        sessionStorage.setItem("role", data.user.role);
-        sessionStorage.setItem("userId", userId.toString()); // Store userId in session storage as a string
-        updateUIAfterLogin();
-        closePopup("login-popup");
     })
     .catch(error => {
-        console.error("Login error:", error); // Debugging step
-        alert("Error: " + error.message);
+        console.error("Login error:", error);
+        
+        if (error.data && error.data.code) {
+            switch (error.data.code) {
+                case "invalid_credentials":
+                    showCustomAlert("Login Failed", "Invalid email or password", "error");
+                    break;
+                case "account_inactive":
+                    showCustomAlert("Account Inactive", "Your account is inactive. Please contact an administrator.", "warning");
+                    break;
+                case "account_banned":
+                    showCustomAlert("Account Banned", "Your account has been banned. Please contact an administrator for more information.", "error");
+                    break;
+                default:
+                    showCustomAlert("Login Error", error.data.message || "An error occurred during login", "error");
+            }
+        } else {
+            showCustomAlert("Login Error", "Unable to connect to the server", "error");
+        }
     });
 }
 
+// Utility function to show custom styled alerts
+function showCustomAlert(title, message, type = "info") {
+    // Create the alert container
+    const alertElement = document.createElement("div");
+    alertElement.className = `custom-alert alert-${type}`;
+    
+    // Create title and message elements
+    const titleElement = document.createElement("h3");
+    titleElement.textContent = title;
+    
+    const messageElement = document.createElement("p");
+    messageElement.textContent = message;
+    
+    // Create close button
+    const closeButton = document.createElement("button");
+    closeButton.textContent = "OK";
+    closeButton.onclick = function() {
+        document.body.removeChild(alertElement);
+    };
+    
+    // Add all elements to the alert
+    alertElement.appendChild(titleElement);
+    alertElement.appendChild(messageElement);
+    alertElement.appendChild(closeButton);
+    
+    // Add alert to the body
+    document.body.appendChild(alertElement);
+}
 
+// Logout function to clear session data and update UI
 function logout() {
+    // Clear all session storage items
     sessionStorage.removeItem("token");
+    sessionStorage.removeItem("userId");
     sessionStorage.removeItem("username");
     sessionStorage.removeItem("role");
-    sessionStorage.removeItem("userId");
+    sessionStorage.removeItem("status");
     
-    // Chuyển hướng về trang forums.html sau khi đăng xuất
-    window.location.href = "forums.html";
+    // Update UI after logout
+    updateUIAfterLogout();
     
-    // Lưu ý: updateUIAfterLogout() không cần thiết ở đây vì trang sẽ được tải lại
+    // Redirect to homepage if not already there
+    if (window.location.pathname !== "/index.html" && 
+        window.location.pathname !== "/" && 
+        window.location.pathname !== "/ForumPC/index.html") {
+        window.location.href = "index.html";
+    }
 }
 
 // Update UI based on login status
 function updateUIAfterLogin() {
-    const token = sessionStorage.getItem("token");
     const username = sessionStorage.getItem("username");
+    const role = sessionStorage.getItem("role");
+    const status = sessionStorage.getItem("status");
     
-    // Update login/logout links
-    const loginLink = document.querySelector('.nav-item a[href="login.html"]');
-    const logoutLink = document.querySelector('.logout-link');
-    const modCtrlLink = document.querySelector('.nav-item a[href="Modctrl.html"]');
-    const topRightUsername = document.getElementById('top-right-username');
-    
-    if (token && username) {
-        console.log('User is logged in:', username);
+    // Kiểm tra trạng thái tài khoản
+    if (status === "Inactive" || status === "Ban") {
+        let message = "Your account is currently not active.";
+        let title = "Account Restricted";
         
-        // Show username in the top right
-        if (topRightUsername) {
-            // Tạo avatar với chữ cái đầu tiên của username
-            const avatarLetter = username.charAt(0).toUpperCase();
-            topRightUsername.innerHTML = `
-                <div class="user-avatar">${avatarLetter}</div>
-                <span>${username}</span>
-            `;
-            topRightUsername.classList.remove('hide');
+        if (status === "Inactive") {
+            message = "Your account is inactive. Please contact an administrator to activate your account.";
+        } else if (status === "Ban") {
+            message = "Your account has been banned. Please contact an administrator for more information.";
+            title = "Account Banned";
         }
         
-        // Update navigation menu
-        if (loginLink) loginLink.parentElement.classList.add('hide');
-        if (logoutLink) logoutLink.classList.remove('hide');
+        // Thông báo cho người dùng
+        showCustomAlert(title, message, status === "Ban" ? "error" : "warning");
         
-        // Show mod controls if user is admin or moderator
-        const role = sessionStorage.getItem("role");
-        const categoryBox = document.getElementById("add-category-box");
+        // Đăng xuất người dùng
+        logout();
+        return;
+    }
+    
+    // Continue with normal UI updates for active accounts
+    if (username) {
+        // Show logout links, hide login links
+        document.querySelectorAll(".logout-link").forEach(el => el.classList.remove("hide"));
+        document.querySelectorAll("a[href='login.html']").forEach(el => el.parentElement.classList.add("hide"));
 
-        if (role === "admin" || role === "Admin") {
-            if (categoryBox) {
-                categoryBox.style.display = "block";
-                categoryBox.classList.remove("hide");
-            }
-            // Show Modctrl link for Admin
-            if (modCtrlLink) modCtrlLink.parentElement.classList.remove("hide");
-        } else {
-            // Hide Modctrl link for non-Admin
-            if (modCtrlLink) modCtrlLink.parentElement.classList.add("hide");
+        // Display username in top right corner
+        const usernameElement = document.getElementById("top-right-username");
+        if (usernameElement) {
+            usernameElement.textContent = username;
+            usernameElement.classList.remove("hide");
         }
-        
-        // Show post form if available
-        const postForm = document.querySelector('.post-form');
-        if (postForm) postForm.classList.remove('hide');
-    } else {
-        console.log('No user logged in');
-        
-        // Hide username in the top right
-        if (topRightUsername) {
-            topRightUsername.textContent = '';
-            topRightUsername.classList.add('hide');
+
+        // Show Mod Control link for admins and moderators
+        if (role === "Admin" || role === "Moderator") {
+            document.querySelectorAll("a[href='Modctrl.html']").forEach(el => el.parentElement.classList.remove("hide"));
         }
-        
-        // Update navigation menu
-        if (loginLink) loginLink.parentElement.classList.remove('hide');
-        if (logoutLink) logoutLink.classList.add('hide');
-        if (modCtrlLink) modCtrlLink.parentElement.classList.add('hide');
-        
-        // Hide post form if available
-        const postForm = document.querySelector('.post-form');
-        if (postForm) postForm.classList.add('hide');
     }
 }
 
+// Update UI after logout
 function updateUIAfterLogout() {
-    document.getElementById("top-right-username").classList.add("hide");
-    document.getElementById("top-right-username").innerText = "";
-
-    // Thay đổi nút Logout thành Login
-    const logoutItem = document.querySelector('.nav-item a[onclick="logout()"]').parentElement;
-    logoutItem.innerHTML = '<a href="login.html">Login</a>';
-
-    const addCategoryBox = document.getElementById("add-category-box");
-    if (addCategoryBox) {
-        addCategoryBox.classList.add("hide");
+    // Show login links, hide logout links
+    document.querySelectorAll(".logout-link").forEach(el => el.classList.add("hide"));
+    document.querySelectorAll("a[href='login.html']").forEach(el => el.parentElement.classList.remove("hide"));
+    
+    // Hide username in top right corner
+    const usernameElement = document.getElementById("top-right-username");
+    if (usernameElement) {
+        usernameElement.textContent = "";
+        usernameElement.classList.add("hide");
     }
-
-    const createThreadSection = document.getElementById("create-thread-section");
-    if (createThreadSection) {
-        createThreadSection.classList.add("hide");
-    }
-
-    fetchCategories(); // Refresh categories after logout
+    
+    // Hide Mod Control link
+    document.querySelectorAll("a[href='Modctrl.html']").forEach(el => el.parentElement.classList.add("hide"));
+    
+    // Hide post form if available
+    const postForm = document.querySelector('.post-form');
+    if (postForm) postForm.classList.add('hide');
 }
 
 function createCategory() {
@@ -649,20 +715,44 @@ async function saveChanges(userId) {
             throw new Error('You must be logged in as an admin to perform this action.');
         }
 
-        const response = await fetch(`${api_key}User/UpdateUser/${userId}`, {
-            method: "PUT",
-            headers: {
-                "Content-Type": "application/json",
-                "Authorization": `Bearer ${token}`
-            },
-            body: JSON.stringify(changes)
-        });
+        // Create an array to store promises for all API calls
+        const promises = [];
 
-        const responseData = await response.text();
-        console.log('Server response:', responseData);
+        // Apply role changes if any
+        if (changes.role) {
+            const rolePromise = fetch(`${api_key}User/UpdateRole/${userId}`, {
+                method: "PUT",
+                headers: {
+                    "Content-Type": "application/json",
+                    "Authorization": `Bearer ${token}`
+                },
+                body: JSON.stringify({ role: changes.role })
+            });
+            promises.push(rolePromise);
+        }
 
-        if (!response.ok) {
-            throw new Error(responseData || 'Could not update user');
+        // Apply status changes if any
+        if (changes.status) {
+            const statusPromise = fetch(`${api_key}User/UpdateStatus/${userId}`, {
+                method: "PUT",
+                headers: {
+                    "Content-Type": "application/json",
+                    "Authorization": `Bearer ${token}`
+                },
+                body: JSON.stringify({ status: changes.status })
+            });
+            promises.push(statusPromise);
+        }
+
+        // Wait for all API calls to complete
+        const responses = await Promise.all(promises);
+        
+        // Check if any response was not ok
+        for (const response of responses) {
+            if (!response.ok) {
+                const errorText = await response.text();
+                throw new Error(errorText || 'Could not update user');
+            }
         }
 
         alert('Changes saved successfully!');
@@ -682,18 +772,44 @@ async function saveAllChanges() {
         const promises = [];
 
         for (const [userId, changes] of pendingChanges) {
-            const promise = fetch(`${api_key}User/UpdateUser/${userId}`, {
-                method: "PUT",
-                headers: {
-                    "Content-Type": "application/json",
-                    "Authorization": `Bearer ${token}`
-                },
-                body: JSON.stringify(changes)
-            });
-            promises.push(promise);
+            // Handle role changes
+            if (changes.role) {
+                const rolePromise = fetch(`${api_key}User/UpdateRole/${userId}`, {
+                    method: "PUT",
+                    headers: {
+                        "Content-Type": "application/json",
+                        "Authorization": `Bearer ${token}`
+                    },
+                    body: JSON.stringify({ role: changes.role })
+                });
+                promises.push(rolePromise);
+            }
+            
+            // Handle status changes
+            if (changes.status) {
+                const statusPromise = fetch(`${api_key}User/UpdateStatus/${userId}`, {
+                    method: "PUT",
+                    headers: {
+                        "Content-Type": "application/json",
+                        "Authorization": `Bearer ${token}`
+                    },
+                    body: JSON.stringify({ status: changes.status })
+                });
+                promises.push(statusPromise);
+            }
         }
 
-        await Promise.all(promises);
+        // Wait for all responses
+        const responses = await Promise.all(promises);
+        
+        // Check if any request failed
+        for (const response of responses) {
+            if (!response.ok) {
+                const errorText = await response.text();
+                throw new Error(errorText || 'Failed to update one or more users');
+            }
+        }
+        
         alert('All changes saved successfully!');
         pendingChanges.clear();
         await refreshTable();
@@ -775,11 +891,11 @@ const loginForm = document.getElementById('loginForm');
 if (loginForm) {
     loginForm.addEventListener('submit', async (e) => {
         e.preventDefault();
-        
-        const email = document.getElementById('email').value;
-        const password = document.getElementById('password').value;
 
         try {
+            const email = document.getElementById('email').value;
+            const password = document.getElementById('password').value;
+
             const response = await fetch(`${api_key}User/Login`, {
                 method: 'POST',
                 headers: {
@@ -789,32 +905,66 @@ if (loginForm) {
             });
 
             if (!response.ok) {
-                return response.text().then(text => { throw new Error(text); });
+                const errorData = await response.json();
+                if (errorData && errorData.code) {
+                    // Handle specific error codes
+                    switch(errorData.code) {
+                        case 'account_inactive':
+                            showCustomAlert("Account Inactive", errorData.message, "warning");
+                            break;
+                        case 'account_banned':
+                            showCustomAlert("Account Banned", errorData.message, "error");
+                            break;
+                        case 'invalid_credentials':
+                            showCustomAlert("Login Failed", "Invalid email or password", "error");
+                            break;
+                        default:
+                            showCustomAlert("Login Error", errorData.message || "An error occurred", "error");
+                    }
+                } else {
+                    throw new Error("Login failed: " + response.statusText);
+                }
+                return;
             }
             
             const data = await response.json();
             console.log("Login response data:", data);
 
-            // Decode the token to extract userId
+            // Decode the token to extract claims
             const token = data.token;
             const payload = JSON.parse(atob(token.split('.')[1]));
-            const userId = payload.UserId;
+            
+            // Get user information from standard JWT claims
+            const userId = payload["http://schemas.xmlsoap.org/ws/2005/05/identity/claims/nameidentifier"];
+            const username = payload["http://schemas.xmlsoap.org/ws/2005/05/identity/claims/name"];
+            const role = payload["http://schemas.microsoft.com/ws/2008/06/identity/claims/role"];
+            const status = payload["status"];
 
-            if (!userId) {
-                throw new Error("Invalid user data received from the server.");
+            if (!userId || !username || !role) {
+                console.error("Payload content:", payload);
+                throw new Error("Invalid user data: required claims not found in token.");
             }
 
-            alert("Login successful!");
+            // Store user info in session storage
             sessionStorage.setItem("token", token);
-            sessionStorage.setItem("username", data.user.username);
-            sessionStorage.setItem("role", data.user.role);
-            sessionStorage.setItem("userId", userId.toString());
+            sessionStorage.setItem("username", username);
+            sessionStorage.setItem("role", role);
+            sessionStorage.setItem("userId", userId);
+            sessionStorage.setItem("status", status || "Active");
             
-            // Redirect to community page
-            window.location.href = 'community.html';
+            // Display success message
+            showCustomAlert("Success", "Login successful!", "success");
+            
+            // Update UI for logged in user
+            updateUIAfterLogin();
+            
+            // Redirect after a short delay
+            setTimeout(() => {
+                window.location.href = 'forums.html';
+            }, 1500);
         } catch (error) {
             console.error('Login error:', error);
-            alert('An error occurred during login: ' + error.message);
+            showCustomAlert("Login Error", error.message || "An error occurred during login", "error");
         }
     });
 }
@@ -935,7 +1085,7 @@ function handleRoleChange(selectElement) {
 function handleStatusChange(selectElement) {
     const userId = parseInt(selectElement.dataset.userId, 10);
     const newStatus = selectElement.value;
-
+    
     if (!userId || !newStatus) {
         console.warn('Invalid userId or status:', userId, newStatus);
         return;
@@ -945,10 +1095,12 @@ function handleStatusChange(selectElement) {
         pendingChanges.set(userId, {});
     }
     pendingChanges.get(userId).status = newStatus;
+    
+    // Add "status-changed" class to indicate there's a pending change
+    selectElement.classList.add('status-changed');
 
     console.log(`Status change stored for user ${userId}:`, pendingChanges.get(userId)); // Debugging log
 }
-
 
 // Thêm hàm kiểm tra user
 async function checkUserExists(userId) {
@@ -2056,9 +2208,9 @@ async function getLikesCount(postId) {
 
 // Thêm hàm closeReportModal
 function closeReportModal() {
-    const modal = document.getElementById('report-modal');
-    if (modal) {
-        modal.classList.add('hide');
+    const reportModal = document.getElementById('report-modal');
+    if (reportModal) {
+        reportModal.classList.add('hide');
     }
     
     // Xóa dữ liệu trong form
@@ -2076,12 +2228,27 @@ function showReportForm(button, type = 'post') {
         return;
     }
     
+    // Get the modal element first
+    const modal = document.getElementById('report-modal');
+    
     // Xác định ID của bài viết hoặc bình luận
     let contentId, contentType;
     if (type === 'comment') {
         const comment = button.closest('.comment');
         contentId = comment ? comment.getAttribute('data-comment-id') : null;
         contentType = 'comment';
+        
+        // Tìm postId từ comment (từ phần tử cha .post)
+        const post = comment.closest('.post');
+        if (post) {
+            const postId = post.getAttribute('data-post-id');
+            if (postId) {
+                // Lưu cả commentId và postId
+                contentId = postId; // Sử dụng postId cho API
+                // Lưu commentId vào thuộc tính khác để tham khảo nếu cần
+                modal.setAttribute('data-related-comment-id', comment.getAttribute('data-comment-id'));
+            }
+        }
     } else {
         const post = button.closest('.post');
         contentId = post ? post.getAttribute('data-post-id') : null;
@@ -2094,7 +2261,6 @@ function showReportForm(button, type = 'post') {
     }
     
     // Lưu thông tin vào modal để sử dụng khi gửi báo cáo
-    const modal = document.getElementById('report-modal');
     modal.setAttribute('data-content-id', contentId);
     modal.setAttribute('data-content-type', contentType);
     
@@ -2103,13 +2269,6 @@ function showReportForm(button, type = 'post') {
     
     // Focus vào textarea
     document.getElementById('report-reason').focus();
-    
-    // Thêm sự kiện đóng modal khi click ra ngoài
-    modal.onclick = function(event) {
-        if (event.target === modal) {
-            closeReportModal();
-        }
-    };
 }
 
 // Thêm hàm submitReport
@@ -2121,9 +2280,9 @@ function submitReport() {
         return;
     }
     
-    const modal = document.getElementById('report-modal');
-    const contentId = modal.getAttribute('data-content-id');
-    const contentType = modal.getAttribute('data-content-type');
+    const reportModal = document.getElementById('report-modal');
+    const contentId = reportModal.getAttribute('data-content-id');
+    const contentType = reportModal.getAttribute('data-content-type');
     const reason = document.getElementById('report-reason').value.trim();
     
     if (!reason) {
@@ -2139,10 +2298,9 @@ function submitReport() {
             'Authorization': `Bearer ${sessionStorage.getItem('token')}`
         },
         body: JSON.stringify({
-            contentId: parseInt(contentId),
-            contentType: contentType,
-            reason: reason,
-            userId: parseInt(sessionStorage.getItem('userId'))
+            postId: parseInt(contentId),
+            userId: parseInt(sessionStorage.getItem('userId')),
+            reason: reason
         })
     })
     .then(response => {
@@ -2337,4 +2495,302 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     `;
     document.head.appendChild(style);
+});
+
+// Variables for report management
+let currentReportId = null;
+let allReports = [];
+
+// Hàm để chuyển đổi tab trong Modctrl
+function showTab(tabId) {
+    // Ẩn tất cả các tab content
+    document.querySelectorAll('.tab-content').forEach(tab => {
+        tab.classList.remove('active');
+    });
+    
+    // Hiển thị tab được chọn
+    document.getElementById(tabId).classList.add('active');
+    
+    // Cập nhật trạng thái active cho tab buttons
+    document.querySelectorAll('.tab-button').forEach(btn => {
+        btn.classList.remove('active');
+    });
+    const activeButton = Array.from(document.querySelectorAll('.tab-button')).find(
+        btn => btn.getAttribute('onclick').includes(tabId)
+    );
+    if (activeButton) {
+        activeButton.classList.add('active');
+    }
+    
+    // Nếu chọn tab báo cáo, tải dữ liệu báo cáo
+    if (tabId === 'reports-management') {
+        fetchReports();
+        fetchPendingReportsCount();
+    }
+}
+
+// Fetch all reports
+async function fetchReports() {
+    try {
+        const response = await fetch(`${api_key}Report`);
+        if (!response.ok) {
+            throw new Error('Failed to fetch reports');
+        }
+        
+        const reports = await response.json();
+        allReports = reports;
+        
+        // Display all reports by default
+        displayReports(reports);
+        
+        return reports;
+    } catch (error) {
+        console.error('Error fetching reports:', error);
+        showError('Failed to load reports. Please try again later.');
+    }
+}
+
+// Display reports in table
+function displayReports(reports) {
+    const reportTableBody = document.getElementById('report-table-body');
+    if (!reportTableBody) return;
+    
+    reportTableBody.innerHTML = '';
+    
+    if (reports.length === 0) {
+        const emptyRow = document.createElement('tr');
+        emptyRow.innerHTML = `<td colspan="7" style="text-align: center;">No reports found</td>`;
+        reportTableBody.appendChild(emptyRow);
+        return;
+    }
+    
+    reports.forEach(report => {
+        const row = document.createElement('tr');
+        const statusClass = `status-${report.status.toLowerCase()}`;
+        
+        // Format date
+        const formattedDate = formatDate(report.createdAt);
+        
+        row.innerHTML = `
+            <td>${report.reportId}</td>
+            <td>${report.username}</td>
+            <td>${report.postId}</td>
+            <td class="reason-cell">${truncateString(report.reason, 50)}</td>
+            <td>${formattedDate}</td>
+            <td class="${statusClass}">${capitalizeFirstLetter(report.status)}</td>
+            <td class="report-actions">
+                <button onclick="viewReportDetails(${report.reportId})" class="action-btn view-btn">
+                    <i class="fa fa-eye"></i> View
+                </button>
+                ${report.status === 'pending' ? `
+                <button onclick="updateReportStatus(${report.reportId}, 'resolved')" class="action-btn resolve-btn">
+                    <i class="fa fa-check"></i> Resolve
+                </button>
+                <button onclick="updateReportStatus(${report.reportId}, 'rejected')" class="action-btn reject-btn">
+                    <i class="fa fa-times"></i> Reject
+                </button>
+                ` : ''}
+            </td>
+        `;
+        reportTableBody.appendChild(row);
+    });
+}
+
+// Helper function to truncate strings
+function truncateString(str, length) {
+    if (str.length <= length) return str;
+    return str.substring(0, length) + '...';
+}
+
+// Helper function to capitalize the first letter
+function capitalizeFirstLetter(string) {
+    return string.charAt(0).toUpperCase() + string.slice(1);
+}
+
+// Filter reports by status
+function filterReports(status) {
+    if (!allReports) return;
+    
+    // Update active button
+    document.querySelectorAll('#reports-management .filter-btn').forEach(btn => {
+        btn.classList.remove('active');
+    });
+    event.target.classList.add('active');
+    
+    // Filter reports
+    let filteredReports;
+    if (status === 'all') {
+        filteredReports = allReports;
+    } else {
+        filteredReports = allReports.filter(report => report.status.toLowerCase() === status.toLowerCase());
+    }
+    
+    displayReports(filteredReports);
+}
+
+// Update report status (resolve or reject)
+async function updateReportStatus(reportId, status) {
+    try {
+        const token = sessionStorage.getItem('token');
+        if (!token) {
+            alert('You must be logged in as admin or moderator to perform this action.');
+            return;
+        }
+        
+        const response = await fetch(`${api_key}Report/UpdateStatus/${reportId}`, {
+            method: 'PUT',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${token}`
+            },
+            body: JSON.stringify({ status })
+        });
+        
+        if (!response.ok) {
+            throw new Error('Failed to update report status');
+        }
+        
+        await refreshReports();
+        
+        // If the report details modal is open, close it
+        closeReportDetailsModal();
+        
+        // Show success message
+        alert(`Report ${status === 'resolved' ? 'resolved' : 'rejected'} successfully.`);
+    } catch (error) {
+        console.error('Error updating report status:', error);
+        showError('Failed to update report status. Please try again.');
+    }
+}
+
+// Refresh reports table
+async function refreshReports() {
+    const refreshBtn = document.querySelector('#reports-management .refresh-btn i');
+    refreshBtn.classList.add('spinning');
+    
+    try {
+        await fetchReports();
+        await fetchPendingReportsCount();
+        
+        setTimeout(() => {
+            refreshBtn.classList.remove('spinning');
+        }, 1000);
+    } catch (error) {
+        console.error('Error refreshing reports:', error);
+        refreshBtn.classList.remove('spinning');
+    }
+}
+
+// Fetch pending reports count
+async function fetchPendingReportsCount() {
+    try {
+        const response = await fetch(`${api_key}Report/PendingCount`);
+        if (!response.ok) {
+            throw new Error('Failed to fetch pending reports count');
+        }
+        
+        const count = await response.json();
+        
+        // Update badge
+        const pendingBadge = document.getElementById('pending-reports-count');
+        const pendingCount = document.querySelector('.pending-count');
+        
+        if (pendingBadge) {
+            pendingBadge.textContent = count;
+            pendingBadge.style.display = count > 0 ? 'inline-flex' : 'none';
+        }
+        
+        if (pendingCount) {
+            pendingCount.textContent = `(${count})`;
+        }
+        
+        return count;
+    } catch (error) {
+        console.error('Error fetching pending reports count:', error);
+    }
+}
+
+// View report details
+async function viewReportDetails(reportId) {
+    try {
+        currentReportId = reportId;
+        
+        // Find report in the cached reports
+        const report = allReports.find(r => r.reportId === reportId);
+        if (!report) {
+            throw new Error('Report not found');
+        }
+        
+        // Fetch post details
+        const postResponse = await fetch(`${api_key}Post/${report.postId}`);
+        if (!postResponse.ok) {
+            throw new Error('Failed to fetch post details');
+        }
+        
+        const post = await postResponse.json();
+        
+        // Update modal with report and post details
+        document.getElementById('reported-post-content').innerHTML = post.content;
+        document.getElementById('report-author').textContent = report.username;
+        document.getElementById('report-reason-display').textContent = report.reason;
+        document.getElementById('report-date').textContent = formatDate(report.createdAt);
+        
+        // Show or hide action buttons based on report status
+        const resolveBtn = document.querySelector('.resolve-btn');
+        const rejectBtn = document.querySelector('.reject-btn');
+        
+        if (report.status === 'pending') {
+            resolveBtn.style.display = 'inline-block';
+            rejectBtn.style.display = 'inline-block';
+        } else {
+            resolveBtn.style.display = 'none';
+            rejectBtn.style.display = 'none';
+        }
+        
+        // Show modal
+        const modal = document.getElementById('report-details-modal');
+        modal.classList.remove('hide');
+    } catch (error) {
+        console.error('Error viewing report details:', error);
+        showError('Failed to load report details. Please try again.');
+    }
+}
+
+// Resolve current report
+function resolveReport() {
+    if (currentReportId) {
+        updateReportStatus(currentReportId, 'resolved');
+    }
+}
+
+// Reject current report
+function rejectReport() {
+    if (currentReportId) {
+        updateReportStatus(currentReportId, 'rejected');
+    }
+}
+
+// Close report details modal
+function closeReportDetailsModal() {
+    const modal = document.getElementById('report-details-modal');
+    if (modal) {
+        modal.classList.add('hide');
+    }
+    currentReportId = null;
+}
+
+// Add event listener to initialize reports on page load
+document.addEventListener('DOMContentLoaded', function() {
+    // Initialize ModCtrl page if we're on that page
+    const modCtrlPage = document.getElementById('reports-management');
+    if (modCtrlPage) {
+        fetchPendingReportsCount();
+    }
+    
+    // Add event listeners for Escape key to close modals
+    document.addEventListener('keydown', function(event) {
+        if (event.key === 'Escape') {
+            closeReportDetailsModal();
+        }
+    });
 });

@@ -1,6 +1,41 @@
 /* ########################################### */
 /*                 Global                      */
 /* ########################################### */
+
+/* ===== ANIMATION VARIABLES ===== */
+:root {
+  --primary-color: #52057b;
+  --primary-light: #7b2cbf;
+  --primary-dark: #370355;
+  --secondary-color: #bc6ff1;
+  --accent-color: #ffd6ff;
+  
+  --bg-color: #f9f9f9;
+  --card-bg: #ffffff;
+  --border-color: #e0e0e0;
+  
+  --text-primary: #333333;
+  --text-secondary: #666666;
+  --text-light: #999999;
+  
+  --anim-duration-fast: 0.2s;
+  --anim-duration-medium: 0.4s;
+  --anim-duration-slow: 0.8s;
+  
+  /* Original variables - keep for compatibility */
+  --background-dark: #0a0a0f;
+  --background-light: #1a1c1d;
+  --text-muted: #a0a0a0;
+  --success-color: #388e3c;
+  --warning-color: #ff8f00;
+  --error-color: #d32f2f;
+  --info-color: #0288d1;
+  --animation-slow: var(--anim-duration-slow);
+  --animation-medium: var(--anim-duration-medium);
+  --animation-fast: var(--anim-duration-fast);
+  --animation-very-fast: 0.2s;
+}
+
 *{
     box-sizing: border-box;
 }
@@ -8,21 +43,168 @@
 html{
     font-size: 14px;
     font-family: 'Titillium Web', sans-serif;
-    background-color: #0a0a0f;
-    color: #e1e1ff;
+    background-color: var(--background-dark);
+    color: var(--text-light);
+}
+
+body {
+    animation: fadeIn var(--anim-duration-medium) ease-in-out;
 }
 
 a{
-    color:#FF0042;
+    color: var(--accent-color);
     font-weight: bolder;
     text-decoration: none;
+    transition: color var(--animation-very-fast) ease;
+    position: relative;
 }
 
-h1{
-    font-size:16px;
-    font-weight: bolder;
+a:hover {
+    color: var(--primary-light);
 }
 
+a::after {
+    content: '';
+    position: absolute;
+    bottom: -2px;
+    left: 0;
+    width: 0;
+    height: 1px;
+    background-color: var(--primary-light);
+    transition: width var(--anim-duration-fast) ease;
+}
+
+a:hover::after {
+    width: 100%;
+}
+
+h1, h2, h3, h4, h5, h6 {
+    position: relative;
+}
+
+h1::after, h2::after, h3::after {
+    content: '';
+    position: absolute;
+    bottom: -5px;
+    left: 0;
+    height: 3px;
+    width: 0;
+    background-color: var(--primary-color);
+    transition: width var(--anim-duration-medium) ease;
+}
+
+h1:hover::after, h2:hover::after, h3:hover::after {
+    width: 50px;
+    animation: lineExpand var(--anim-duration-medium) ease;
+}
+
+/* Button animations */
+.btn, button[type="submit"], input[type="submit"] {
+    transition: all var(--anim-duration-fast) ease;
+    position: relative;
+    overflow: hidden;
+}
+
+.btn:hover, button[type="submit"]:hover, input[type="submit"]:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+}
+
+.btn::after, button[type="submit"]::after, input[type="submit"]::after {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 5px;
+    height: 5px;
+    background: rgba(255, 255, 255, 0.5);
+    opacity: 0;
+    border-radius: 100%;
+    transform: scale(1, 1) translate(-50%, -50%);
+    transform-origin: 50% 50%;
+}
+
+.btn:active::after, button[type="submit"]:active::after, input[type="submit"]:active::after {
+    animation: ripple var(--anim-duration-medium) ease-out;
+}
+
+/* Form element animations */
+input, textarea, select {
+    transition: border-color var(--anim-duration-fast) ease, box-shadow var(--anim-duration-fast) ease;
+}
+
+input:focus, textarea:focus, select:focus {
+    animation: glow var(--anim-duration-slow) ease-out;
+}
+
+/* Navigation animations */
+.navbar {
+    transition: background-color var(--anim-duration-medium) ease;
+}
+
+.nav-item {
+    transition: transform var(--anim-duration-fast) ease;
+}
+
+.nav-item:hover {
+    transform: translateY(-2px);
+}
+
+/* List item animations */
+.post-list-item, .thread-list-item {
+    transition: transform var(--anim-duration-fast) ease, box-shadow var(--anim-duration-fast) ease;
+    animation: fadeInUp var(--anim-duration-medium) ease-out;
+    animation-fill-mode: both;
+}
+
+.post-list-item:hover, .thread-list-item:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.05);
+}
+
+/* Staggered animations for lists */
+.post-list-item:nth-child(1), .thread-list-item:nth-child(1) { animation-delay: 0.1s; }
+.post-list-item:nth-child(2), .thread-list-item:nth-child(2) { animation-delay: 0.2s; }
+.post-list-item:nth-child(3), .thread-list-item:nth-child(3) { animation-delay: 0.3s; }
+.post-list-item:nth-child(4), .thread-list-item:nth-child(4) { animation-delay: 0.4s; }
+.post-list-item:nth-child(5), .thread-list-item:nth-child(5) { animation-delay: 0.5s; }
+
+/* Modal animations */
+.modal {
+    animation: fadeIn var(--anim-duration-fast) ease-out;
+}
+
+.modal-content {
+    animation: fadeInUp var(--anim-duration-medium) ease-out;
+}
+
+/* Like button animation */
+.like-btn, .heart-btn {
+    transition: all var(--anim-duration-fast) ease;
+}
+
+.like-btn:hover, .heart-btn:hover {
+    transform: scale(1.1);
+}
+
+.like-btn.active, .heart-btn.active {
+    animation: heartPulse var(--anim-duration-slow) ease;
+}
+
+/* Loading spinner animation */
+.spinner, .loader {
+    animation: spin var(--anim-duration-medium) linear infinite;
+}
+
+/* Notification animations */
+.notification {
+    animation: slideInRight var(--anim-duration-medium) ease-out;
+}
+
+/* Toast animations */
+.toast {
+    animation: slideInUp var(--anim-duration-medium) ease-out;
+}
 
 html, body {
     height: 100%;
@@ -35,6 +217,7 @@ body {
     flex: 1;
     display: flex;
     flex-direction: column;
+    animation: fadeIn var(--anim-duration-medium) ease-in-out;
 }
 
 footer {
@@ -1351,7 +1534,7 @@ tr:hover {
 section h2 {
     color: var(--primary-color);
     text-align: center;
-    margin: 40px 0;
+    margin: 0 0;
     font-size: 2rem;
     letter-spacing: 2px;
     text-shadow: 0 0 10px rgba(0, 255, 157, 0.3);
@@ -2264,4 +2447,994 @@ section h2 {
 .like-processing {
     pointer-events: none;
     opacity: 0.7;
+}
+
+/* CSS Hoạt ảnh cho trang Forums */
+
+/* Hiệu ứng hero section */
+.hero-section {
+    position: relative;
+    background: linear-gradient(135deg, #000000, #52057b, #630680);
+    background-size: 400% 400%;
+    animation: gradientBG 15s ease infinite;
+    color: white;
+    padding: 120px 20px 200px; /* Tăng padding-bottom để tạo không gian */
+    text-align: center;
+    margin-bottom: 120px; /* Tăng margin-bottom để tạo khoảng cách với section sau */
+    overflow: visible; /* Cho phép nội dung tràn ra ngoài */
+    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.5);
+    border-bottom: 3px solid #892cdc;
+    z-index: 1; /* Đảm bảo section này có z-index */
+}
+
+.hero-section::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.4);
+    z-index: -1; /* Đặt ở phía sau nội dung */
+}
+
+/* Tách tiêu đề h1 ra khỏi hero-content */
+.hero-title {
+    position: relative;
+    z-index: 3;
+    font-size: 3.8rem;
+    margin-bottom: 40px;
+    text-shadow: 2px 2px 8px rgba(0, 0, 0, 0.8), 0 0 30px rgba(137, 44, 220, 0.8);
+    color: #ffffff;
+    font-weight: 700;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    background: linear-gradient(45deg, #ffffff, #d8b9ff);
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
+    display: inline-block;
+    animation: fadeInDown 1s ease-out;
+}
+
+/* Hiệu ứng cho tiêu đề */
+.hero-title::after {
+    content: '';
+    position: absolute;
+    bottom: -15px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 150px;
+    height: 4px;
+    background: linear-gradient(90deg, #52057b, #892cdc);
+    border-radius: 2px;
+    box-shadow: 0 0 10px rgba(137, 44, 220, 0.5);
+}
+
+/* Điều chỉnh hero-content để nổi lên trên các phần khác */
+.hero-content {
+    max-width: 800px;
+    margin: -50px auto 0; /* Để nội dung vượt ra khỏi hero section */
+    position: relative;
+    z-index: 10; /* Z-index cao hơn để không bị phần khác đè lên */
+    animation: fadeInUp 1s ease-out;
+    background: rgba(17, 19, 20, 0.95); /* Màu tối gần giống theme */
+    padding: 40px;
+    border-radius: 10px;
+    box-shadow: 0 15px 35px rgba(0, 0, 0, 0.6);
+    border: 1px solid rgba(82, 5, 123, 0.5);
+    transform: translateY(0); /* Tránh bị ảnh hưởng bởi animation float */
+}
+
+.hero-content p {
+    font-size: 1.3rem;
+    margin-bottom: 30px;
+    line-height: 1.7;
+    color: #e1e1ff;
+    text-shadow: 1px 1px 3px rgba(0, 0, 0, 0.8);
+    font-weight: 300;
+    max-width: 85%;
+    margin-left: auto;
+    margin-right: auto;
+}
+
+/* Chỉnh sửa Features section để không đè lên hero-content */
+.features-section {
+    padding: 80px 20px 60px;
+    background-color: #0a0a0f;
+    color: #e1e1ff;
+    position: relative;
+    z-index: 1; /* Z-index thấp hơn hero-content */
+    margin-top: 40px; /* Tạo thêm khoảng cách với hero */
+}
+
+/* Responsive cho màn hình nhỏ */
+@media screen and (max-width: 768px) {
+    .hero-section {
+        padding: 100px 20px 180px;
+        margin-bottom: 100px;
+    }
+    
+    .hero-title {
+        font-size: 2.8rem;
+    }
+    
+    .hero-content {
+        margin-top: -70px;
+        padding: 25px;
+    }
+}
+
+@media screen and (max-width: 480px) {
+    .hero-section {
+        padding: 80px 15px 150px;
+        margin-bottom: 80px;
+    }
+    
+    .hero-title {
+        font-size: 2.2rem;
+    }
+    
+    .hero-content {
+        margin-top: -60px;
+        padding: 20px;
+    }
+}
+
+/* Hiệu ứng cho feature cards */
+.features-container {
+    display: flex;
+    flex-direction: row;     /* Thay đổi từ column sang row */
+    flex-wrap: wrap;
+    justify-content: space-between;
+    gap: 30px;
+    max-width: 1200px;
+    margin: 0 auto;
+}
+
+.feature-card {
+    background-color: #111314;
+    border-radius: 10px;
+    padding: 30px;
+    width: calc(33.333% - 20px);    /* Chia làm 3 cột */
+    min-width: 280px;               /* Đảm bảo không quá nhỏ trên màn hình mobile */
+    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
+    text-align: center;
+    transition: transform 0.3s, box-shadow 0.3s;
+    animation: fadeIn 0.8s ease-out;
+    will-change: transform;
+    border: 1px solid rgba(82, 5, 123, 0.3);
+    flex-grow: 1;                   /* Cho phép mở rộng nếu có không gian */
+}
+
+.feature-card:hover {
+    transform: translateY(-10px);
+    box-shadow: 0 15px 30px rgba(82, 5, 123, 0.4);
+    border-color: #52057b;
+}
+
+.feature-card h3 {
+    font-size: 1.5rem;
+    margin-bottom: 15px;
+    color: #e1e1ff;
+}
+
+.feature-card p {
+    color: #9ea4ab;
+    line-height: 1.6;
+}
+
+/* Hiệu ứng cho category cards */
+.category-cards {
+    display: flex;
+    flex-direction: row;     /* Đảm bảo hiển thị theo hàng ngang */
+    flex-wrap: wrap;
+    justify-content: space-between;
+    gap: 30px;
+    max-width: 1200px;
+    margin: 0 auto;
+}
+
+.category-card {
+    background-color: #1a1a1a;
+    border-radius: 10px;
+    padding: 30px;
+    width: calc(33.333% - 20px);    /* Chia làm 3 cột */
+    min-width: 280px;               /* Đảm bảo không quá nhỏ trên màn hình mobile */
+    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
+    transition: all 0.3s ease;
+    position: relative;
+    overflow: hidden;
+    animation: slideInRight 0.8s ease-out;
+    border: 1px solid rgba(82, 5, 123, 0.3);
+    flex-grow: 1;                   /* Cho phép mở rộng nếu có không gian */
+}
+
+.category-card:hover {
+    transform: translateY(-10px);
+    box-shadow: 0 15px 30px rgba(82, 5, 123, 0.4);
+    border-color: #52057b;
+}
+
+.category-card h3 {
+    font-size: 1.5rem;
+    margin-bottom: 15px;
+    color: #e1e1ff;
+}
+
+.category-card p {
+    color: #9ea4ab;
+    line-height: 1.6;
+    margin-bottom: 20px;
+}
+
+/* Hiệu ứng cho activity feed */
+.activity-feed {
+    display: flex;
+    flex-direction: row;     /* Thay đổi từ column sang row */
+    flex-wrap: wrap;
+    justify-content: space-between;
+    gap: 20px;
+    max-width: 1200px;
+    margin: 0 auto;
+}
+
+.activity-card {
+    background-color: #111314;
+    border-radius: 10px;
+    padding: 20px;
+    margin-bottom: 0;              /* Bỏ margin bottom */
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.2);
+    display: flex;
+    align-items: center;
+    width: calc(33.333% - 14px);   /* Chia làm 3 cột */
+    min-width: 280px;              /* Đảm bảo không quá nhỏ trên màn hình mobile */
+    animation: fadeInLeft 0.6s ease-out;
+    transform-origin: left;
+    transition: transform 0.3s, box-shadow 0.3s;
+    border: 1px solid rgba(82, 5, 123, 0.2);
+    flex-grow: 1;                  /* Cho phép mở rộng nếu có không gian */
+}
+
+.activity-card:hover {
+    transform: scale(1.02);
+    box-shadow: 0 5px 15px rgba(82, 5, 123, 0.3);
+    border-color: #52057b;
+}
+
+.activity-user {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    min-width: 80px;
+}
+
+.activity-user i {
+    font-size: 2.5rem;
+    color: #52057b;
+    margin-bottom: 5px;
+}
+
+.activity-user span {
+    font-size: 0.9rem;
+    font-weight: bold;
+    color: #e1e1ff;
+}
+
+.activity-content {
+    flex: 1;
+}
+
+.activity-content p {
+    margin-bottom: 5px;
+    color: #9ea4ab;
+}
+
+.activity-content a {
+    color: #52057b;
+    text-decoration: none;
+    font-weight: bold;
+    transition: color 0.3s;
+}
+
+.activity-content a:hover {
+    color: #892cdc;
+    text-decoration: underline;
+}
+
+.activity-time {
+    font-size: 0.8rem;
+    color: #666;
+}
+
+.view-more-btn {
+    display: inline-block;
+    background-color: transparent;
+    color: #52057b;
+    border: 2px solid #52057b;
+    padding: 10px 25px;
+    border-radius: 5px;
+    font-weight: bold;
+    text-decoration: none;
+    transition: all 0.3s ease;
+}
+
+.view-more-btn:hover {
+    background-color: #52057b;
+    color: white;
+    transform: translateY(-3px);
+    box-shadow: 0 5px 15px rgba(82, 5, 123, 0.3);
+}
+
+/* Hiệu ứng cho CTA section */
+.cta-section {
+    background: linear-gradient(135deg, #1a1a1a, #52057b);
+    color: white;
+    padding: 80px 20px;
+    text-align: center;
+    position: relative;
+    overflow: hidden;
+}
+
+.cta-content {
+    max-width: 700px;
+    margin: 0 auto;
+    position: relative;
+    z-index: 2;
+    animation: fadeIn 1s ease-out;
+}
+
+.cta-content h2 {
+    font-size: 2.5rem;
+    margin-bottom: 20px;
+}
+
+.cta-content p {
+    font-size: 1.1rem;
+    margin-bottom: 30px;
+    line-height: 1.6;
+}
+
+.cta-buttons {
+    display: flex;
+    justify-content: center;
+    gap: 20px;
+}
+
+.cta-btn {
+    display: inline-block;
+    padding: 12px 30px;
+    border-radius: 5px;
+    font-weight: bold;
+    text-decoration: none;
+    transition: all 0.3s ease;
+}
+
+.cta-btn:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 10px 20px rgba(0, 0, 0, 0.2);
+}
+
+.cta-btn:first-child {
+    background-color: white;
+    color: #52057b;
+}
+
+.cta-btn.secondary {
+    background-color: transparent;
+    color: white;
+    border: 2px solid white;
+}
+
+/* Hiệu ứng cho footer */
+.footer-content {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: space-between;
+    padding: 40px 20px;
+    max-width: 1200px;
+    margin: 0 auto;
+    background-color: #0a0a0f;
+}
+
+.footer-section {
+    flex: 1;
+    min-width: 250px;
+    margin-bottom: 30px;
+}
+
+.footer-section h3 {
+    color: #52057b;
+    margin-bottom: 20px;
+    position: relative;
+    padding-bottom: 10px;
+}
+
+.footer-section h3:after {
+    content: "";
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    width: 50px;
+    height: 3px;
+    background-color: #52057b;
+}
+
+.footer-section ul {
+    list-style: none;
+    padding: 0;
+}
+
+.footer-section ul li {
+    margin-bottom: 10px;
+}
+
+.footer-section ul li a {
+    color: #9ea4ab;
+    text-decoration: none;
+    transition: color 0.3s, transform 0.3s;
+    display: inline-block;
+}
+
+.footer-section ul li a:hover {
+    color: #52057b;
+    transform: translateX(5px);
+}
+
+.social-icons {
+    display: flex;
+    gap: 15px;
+}
+
+.social-icons a {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 40px;
+    height: 40px;
+    background-color: #1a1a1a;
+    color: #e1e1ff;
+    border-radius: 50%;
+    text-decoration: none;
+    transition: all 0.3s ease;
+}
+
+.social-icons a:hover {
+    background-color: #52057b;
+    color: white;
+    transform: translateY(-5px);
+}
+
+.footer-bottom {
+    text-align: center;
+    padding: 20px;
+    background-color: #0a0a0f;
+    color: #666;
+    border-top: 1px solid #1a1a1a;
+}
+
+/* Keyframe Animations */
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+    }
+    to {
+        opacity: 1;
+    }
+}
+
+@keyframes fadeInUp {
+    from {
+        opacity: 0;
+        transform: translateY(20px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+@keyframes fadeInLeft {
+    from {
+        opacity: 0;
+        transform: translateX(-20px);
+    }
+    to {
+        opacity: 1;
+        transform: translateX(0);
+    }
+}
+
+@keyframes slideInRight {
+    from {
+        opacity: 0;
+        transform: translateX(50px);
+    }
+    to {
+        opacity: 1;
+        transform: translateX(0);
+    }
+}
+
+/* Animation Delays for Feature Cards */
+.feature-card:nth-child(1) {
+    animation-delay: 0.2s;
+}
+.feature-card:nth-child(2) {
+    animation-delay: 0.4s;
+}
+.feature-card:nth-child(3) {
+    animation-delay: 0.6s;
+}
+
+/* Animation Delays for Category Cards */
+.category-card:nth-child(1) {
+    animation-delay: 0.2s;
+}
+.category-card:nth-child(2) {
+    animation-delay: 0.4s;
+}
+.category-card:nth-child(3) {
+    animation-delay: 0.6s;
+}
+
+/* Animation Delays for Activity Cards */
+.activity-card:nth-child(1) {
+    animation-delay: 0.1s;
+}
+.activity-card:nth-child(2) {
+    animation-delay: 0.3s;
+}
+.activity-card:nth-child(3) {
+    animation-delay: 0.5s;
+}
+
+/* Hover Effects for Links */
+a:not(.hero-btn):not(.cta-btn):not(.category-link):not(.view-more-btn) {
+    position: relative;
+}
+
+a:not(.hero-btn):not(.cta-btn):not(.category-link):not(.view-more-btn)::after {
+    content: '';
+    position: absolute;
+    width: 100%;
+    height: 2px;
+    bottom: -2px;
+    left: 0;
+    background-color: #52057b;
+    transform: scaleX(0);
+    transform-origin: bottom right;
+    transition: transform 0.3s ease-out;
+}
+
+a:not(.hero-btn):not(.cta-btn):not(.category-link):not(.view-more-btn):hover::after {
+    transform: scaleX(1);
+    transform-origin: bottom left;
+}
+
+/* Responsive cho các card containers */
+@media screen and (max-width: 992px) {
+    .feature-card, .category-card, .activity-card {
+        width: calc(50% - 15px);   /* 2 columns trên màn hình tablet */
+    }
+}
+
+@media screen and (max-width: 768px) {
+    .features-container, .category-cards, .activity-feed {
+        flex-direction: column;    /* Chuyển về dạng cột trên màn hình mobile */
+        align-items: center;
+    }
+    
+    .feature-card, .category-card, .activity-card {
+        width: 100%;               /* Chiếm toàn bộ chiều rộng trên mobile */
+        max-width: 400px;          /* Giới hạn chiều rộng tối đa */
+    }
+}
+
+/* Chỉnh sửa lại kích thước cho activity card trên mobile */
+@media screen and (max-width: 576px) {
+    .activity-card {
+        flex-direction: column;    /* Chuyển sang hiển thị theo cột cho profile và nội dung */
+        text-align: center;
+    }
+    
+    .activity-user {
+        margin-bottom: 10px;
+    }
+}
+
+/* Styles cho tab navigation */
+.mod-tabs {
+    display: flex;
+    justify-content: center;
+    margin: 20px 0;
+    gap: 15px;
+}
+
+.tab-button {
+    padding: 12px 24px;
+    background-color: #1a1a1a;
+    color: #e1e1ff;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+    font-weight: bold;
+    font-size: 16px;
+    transition: all 0.3s ease;
+    position: relative;
+}
+
+.tab-button:hover {
+    background-color: #333;
+    transform: translateY(-3px);
+    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
+}
+
+.tab-button.active {
+    background: linear-gradient(45deg, #52057b, #892cdc);
+    color: white;
+}
+
+.tab-content {
+    display: none;
+    animation: fadeIn 0.5s ease-out;
+}
+
+.tab-content.active {
+    display: block;
+}
+
+/* Badge cho báo cáo đang chờ xử lý */
+.report-badge {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    background-color: #ff3860;
+    color: white;
+    font-size: 12px;
+    min-width: 20px;
+    height: 20px;
+    border-radius: 10px;
+    padding: 0 6px;
+    margin-left: 5px;
+}
+
+/* Styles cho bảng báo cáo */
+.report-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-bottom: 30px;
+    background-color: #111314;
+    border-radius: 8px;
+    overflow: hidden;
+    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
+}
+
+.report-table th,
+.report-table td {
+    padding: 15px;
+    text-align: left;
+    border-bottom: 1px solid #333;
+}
+
+.report-table th {
+    background-color: #0a0a0f;
+    color: #e1e1ff;
+    font-weight: bold;
+    text-transform: uppercase;
+    font-size: 14px;
+    letter-spacing: 1px;
+}
+
+.report-table tr:hover {
+    background-color: #1a1a1a;
+}
+
+.report-table .reason-cell {
+    max-width: 300px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+/* Status styles */
+.status-pending {
+    color: #ffdd57;
+    font-weight: bold;
+}
+
+.status-resolved {
+    color: #23d160;
+    font-weight: bold;
+}
+
+.status-rejected {
+    color: #ff3860;
+    font-weight: bold;
+}
+
+/* Nút action trong báo cáo */
+.report-actions {
+    display: flex;
+    gap: 10px;
+}
+
+.action-btn.view-btn {
+    background-color: #3273dc;
+}
+
+.action-btn.view-btn:hover {
+    background-color: #276cda;
+}
+
+.action-btn.resolve-btn {
+    background-color: #23d160;
+}
+
+.action-btn.resolve-btn:hover {
+    background-color: #22c65b;
+}
+
+.action-btn.reject-btn {
+    background-color: #ff3860;
+}
+
+.action-btn.reject-btn:hover {
+    background-color: #ff1f4b;
+}
+
+/* Styles cho modal chi tiết báo cáo */
+#report-details-modal .modal-content {
+    max-width: 700px;
+    width: 90%;
+}
+
+.report-details {
+    margin: 20px 0;
+    border: 1px solid #333;
+    border-radius: 5px;
+    padding: 20px;
+    background-color: #1a1a1a;
+}
+
+.post-content {
+    background-color: #0a0a0f;
+    padding: 15px;
+    border-radius: 5px;
+    margin-bottom: 20px;
+    border-left: 4px solid #52057b;
+}
+
+.report-info p {
+    margin: 10px 0;
+}
+
+@media screen and (max-width: 768px) {
+    .mod-tabs {
+        flex-direction: column;
+        align-items: center;
+    }
+
+    .tab-button {
+        width: 100%;
+    }
+
+    .report-table th:nth-child(5),
+    .report-table td:nth-child(5) {
+        display: none;
+    }
+}
+
+@media screen and (max-width: 480px) {
+    .report-table th:nth-child(3),
+    .report-table td:nth-child(3) {
+        display: none;
+    }
+}
+
+/* Custom Alerts Styles */
+.custom-alert {
+    font-family: 'Titillium Web', sans-serif;
+    background-color: #fff;
+    border-radius: 8px;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+    max-width: 450px;
+    width: 90%;
+    padding: 25px;
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    z-index: 10000;
+    animation: fadeIn 0.3s ease;
+}
+
+.custom-alert h3 {
+    margin-top: 0;
+    font-size: 1.5rem;
+    font-weight: 600;
+    margin-bottom: 15px;
+}
+
+.custom-alert p {
+    margin-bottom: 20px;
+    line-height: 1.5;
+}
+
+.custom-alert button {
+    background-color: #52057b;
+    color: white;
+    border: none;
+    padding: 10px 20px;
+    border-radius: 5px;
+    cursor: pointer;
+    font-weight: bold;
+    transition: background-color 0.2s;
+}
+
+.custom-alert button:hover {
+    background-color: #3b0458;
+}
+
+.alert-error {
+    border-top: 5px solid #d32f2f;
+}
+
+.alert-error h3 {
+    color: #d32f2f;
+}
+
+.alert-warning {
+    border-top: 5px solid #ff8f00;
+}
+
+.alert-warning h3 {
+    color: #ff8f00;
+}
+
+.alert-info {
+    border-top: 5px solid #0288d1;
+}
+
+.alert-info h3 {
+    color: #0288d1;
+}
+
+.alert-success {
+    border-top: 5px solid #388e3c;
+}
+
+.alert-success h3 {
+    color: #388e3c;
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; transform: translate(-50%, -60%); }
+    to { opacity: 1; transform: translate(-50%, -50%); }
+}
+
+/* ===== ANIMATION KEYFRAMES ===== */
+@keyframes fadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
+}
+
+@keyframes fadeOut {
+    from { opacity: 1; }
+    to { opacity: 0; }
+}
+
+@keyframes fadeInUp {
+    from { 
+        opacity: 0;
+        transform: translateY(20px);
+    }
+    to { 
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+@keyframes lineExpand {
+    from { width: 0; }
+    to { width: 50px; }
+}
+
+@keyframes heartPulse {
+    0% { transform: scale(1); }
+    15% { transform: scale(1.2); }
+    30% { transform: scale(1); }
+    45% { transform: scale(1.2); }
+    60% { transform: scale(1); }
+}
+
+@keyframes ripple {
+    0% {
+        transform: scale(0, 0);
+        opacity: 0.5;
+    }
+    20% {
+        transform: scale(25, 25);
+        opacity: 0.3;
+    }
+    100% {
+        opacity: 0;
+        transform: scale(40, 40);
+    }
+}
+
+@keyframes slideInRight {
+    from { 
+        transform: translateX(100%); 
+        opacity: 0;
+    }
+    to { 
+        transform: translateX(0); 
+        opacity: 1;
+    }
+}
+
+@keyframes slideInUp {
+    from { 
+        transform: translateY(30px); 
+        opacity: 0;
+    }
+    to { 
+        transform: translateY(0); 
+        opacity: 1;
+    }
+}
+
+@keyframes slideInLeft {
+    from { 
+        transform: translateX(-100%); 
+        opacity: 0;
+    }
+    to { 
+        transform: translateX(0); 
+        opacity: 1;
+    }
+}
+
+@keyframes glow {
+    0% { box-shadow: 0 0 0 rgba(82, 5, 123, 0); }
+    50% { box-shadow: 0 0 10px rgba(82, 5, 123, 0.5); }
+    100% { box-shadow: 0 0 0 rgba(82, 5, 123, 0); }
+}
+
+@keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}
+
+h1 {
+    font-size: 16px;
+    font-weight: bolder;
+    position: relative;
+}
+
+h2, h3 {
+    position: relative;
+}
+
+h1::after {
+    content: '';
+    position: absolute;
+    bottom: -5px;
+    left: 0;
+    width: 0;
+    height: 2px;
+    background: linear-gradient(to right, var(--primary-color), var(--accent-color));
+    animation: lineExpand var(--anim-duration-medium) forwards ease-out;
+}
+
+h2::after, h3::after {
+    content: '';
+    position: absolute;
+    bottom: -5px;
+    left: 0;
+    width: 0;
+    height: 2px;
+    background: linear-gradient(to right, var(--primary-color), var(--accent-color));
+    animation: lineExpand var(--anim-duration-medium) 0.3s forwards ease-out;
 }

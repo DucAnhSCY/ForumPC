@@ -21,7 +21,7 @@
                     <li class="nav-item"><a href="forums.html">Forums</a></li>
                     <li class="nav-item"><a href="categories.html">Categories</a></li>
                     <li class="nav-item"><a href="community.html">Community</a></li>
-                    <li class="nav-item hide"><a href="Modctrl.html">Modctrl</a></li>
+                    <li class="nav-item hide"><a href="Modctrl.html">Mod Control</a></li>
                     <li class="nav-item"><a href="login.html">Login</a></li>
                     <li class="nav-item logout-link hide"><a href="#" onclick="logout()">Logout</a></li>
                 </ul>
@@ -31,7 +31,15 @@
             <div id="top-right-username" class="top-right-username hide"></div>
         </div>
     </header>
-    <section>
+    
+    <!-- Tab Navigation -->
+    <div class="mod-tabs">
+        <button class="tab-button active" onclick="showTab('user-management')">User Management</button>
+        <button class="tab-button" onclick="showTab('reports-management')">User Reports <span id="pending-reports-count" class="report-badge">0</span></button>
+    </div>
+    
+    <!-- User Management Section -->
+    <section id="user-management" class="tab-content active">
         <h2>User Management</h2>
         <div class="filter-buttons">
             <button onclick="filterUsers('all')" class="filter-btn active">All Users</button>
@@ -65,6 +73,60 @@
             </div>
         </div>
     </section>    
+
+    <!-- Reports Management Section -->
+    <section id="reports-management" class="tab-content">
+        <h2>User Reports Management</h2>
+        <div class="filter-buttons">
+            <button onclick="filterReports('all')" class="filter-btn active">All Reports</button>
+            <button onclick="filterReports('pending')" class="filter-btn">Pending <span class="pending-count"></span></button>
+            <button onclick="filterReports('resolved')" class="filter-btn">Resolved</button>
+            <button onclick="filterReports('rejected')" class="filter-btn">Rejected</button>
+        </div>
+        <div class="table-container">
+            <table class="report-table">
+                <thead>
+                    <tr>
+                        <th>ID</th>
+                        <th>Reported By</th>
+                        <th>Post ID</th>
+                        <th>Reason</th>
+                        <th>Date</th>
+                        <th>Status</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody id="report-table-body">
+                    <!-- Reports will be populated here -->
+                </tbody>
+            </table>
+            <div class="table-actions">
+                <button onclick="refreshReports()" class="refresh-btn">
+                    <i class="fa fa-refresh"></i> Refresh Reports
+                </button>
+            </div>
+        </div>
+        
+        <!-- Report Details Modal -->
+        <div id="report-details-modal" class="modal hide">
+            <div class="modal-content">
+                <h3>Report Details</h3>
+                <div class="report-details">
+                    <div class="post-content" id="reported-post-content"></div>
+                    <div class="report-info">
+                        <p><strong>Reported by:</strong> <span id="report-author"></span></p>
+                        <p><strong>Reason:</strong> <span id="report-reason-display"></span></p>
+                        <p><strong>Date:</strong> <span id="report-date"></span></p>
+                    </div>
+                </div>
+                <div class="modal-buttons">
+                    <button onclick="resolveReport()" class="resolve-btn">Mark as Resolved</button>
+                    <button onclick="rejectReport()" class="reject-btn">Reject Report</button>
+                    <button onclick="closeReportDetailsModal()" class="close-btn">Close</button>
+                </div>
+            </div>
+        </div>
+    </section>
 
     <footer>
         <span>&copy; 2025 My Forum | All Rights Reserved</span>
