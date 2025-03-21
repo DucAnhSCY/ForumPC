@@ -5,6 +5,14 @@ document.addEventListener("DOMContentLoaded", function () {
     fetchUsers();
     if (sessionStorage.getItem("token")) {
         updateUIAfterLogin();
+        
+        // Show category creation box for admins
+        if (sessionStorage.getItem("role") === "Admin" || sessionStorage.getItem("role") === "admin") {
+            const addCategoryBox = document.getElementById("add-category-box");
+            if (addCategoryBox) {
+                addCategoryBox.classList.remove("hide");
+            }
+        }
     } else {
         updateUIAfterLogout();
     }
@@ -70,40 +78,69 @@ function togglePopup(id) {
 }
 
 function register() {
-    const username = document.getElementById("register-username").value;
-    const email = document.getElementById("register-email").value;
-    const password = document.getElementById("register-password").value;
-    const confirmPassword = document.getElementById("register-password2").value;
+    const username = document.getElementById("username").value.trim();
+    const email = document.getElementById("email").value.trim();
+    const password = document.getElementById("password").value;
+    const confirmPassword = document.getElementById("confirmPassword") ? document.getElementById("confirmPassword").value : document.getElementById("confirm-password").value;
 
+    // Validate input
     if (!username || !email || !password || !confirmPassword) {
-        alert("Please fill in all fields.");
+        Swal.fire({
+            title: 'Error',
+            text: 'Please fill in all fields.',
+            icon: 'error',
+            confirmButtonText: 'OK'
+        });
         return;
     }
 
     if (password !== confirmPassword) {
-        alert("Passwords do not match.");
+        Swal.fire({
+            title: 'Error',
+            text: 'Passwords do not match.',
+            icon: 'error',
+            confirmButtonText: 'OK'
+        });
         return;
     }
 
-    const userData = { username, email, password };
-
+    // Send registration request
     fetch(`${api_key}User/Register`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(userData)
+        headers: {
+            "Content-Type": "application/json"
+        },
+        body: JSON.stringify({
+            username: username,
+            email: email,
+            password: password
+        })
     })
     .then(response => {
         if (!response.ok) {
-            return response.json().then(err => { throw new Error(err.message); });
+            return response.json().then(data => { throw new Error(data.message || 'Registration failed'); });
         }
         return response.text();
     })
-    .then(() => {
-        alert("Registration successful! You can now log in.");
-        closePopup("register-popup");
+    .then(data => {
+        Swal.fire({
+            title: 'Success',
+            text: 'Registration successful! You can now log in.',
+            icon: 'success',
+            confirmButtonText: 'OK'
+        }).then((result) => {
+            if (result.isConfirmed) {
+                window.location.href = "login.html";
+            }
+        });
     })
     .catch(error => {
-        alert("Error: " + error.message);
+        Swal.fire({
+            title: 'Registration Failed',
+            text: error.message,
+            icon: 'error',
+            confirmButtonText: 'OK'
+        });
     });
 }
 
@@ -119,17 +156,17 @@ function login() {
     
     const email = emailInput.value;
     const password = passwordInput.value;
-    
+
     if (!email || !password) {
         showCustomAlert("Login Error", "Please enter both email and password", "error");
         return;
     }
-    
+
     const loginData = {
         email: email,
         password: password
     };
-    
+
     fetch(`${api_key}User/Login`, {
         method: "POST",
         headers: {
@@ -173,7 +210,7 @@ function login() {
             }
             
             // Update UI after successful login
-            updateUIAfterLogin();
+        updateUIAfterLogin();
             
             // Redirect to index page after successful login
             setTimeout(() => {
@@ -209,31 +246,12 @@ function login() {
 
 // Utility function to show custom styled alerts
 function showCustomAlert(title, message, type = "info") {
-    // Create the alert container
-    const alertElement = document.createElement("div");
-    alertElement.className = `custom-alert alert-${type}`;
-    
-    // Create title and message elements
-    const titleElement = document.createElement("h3");
-    titleElement.textContent = title;
-    
-    const messageElement = document.createElement("p");
-    messageElement.textContent = message;
-    
-    // Create close button
-    const closeButton = document.createElement("button");
-    closeButton.textContent = "OK";
-    closeButton.onclick = function() {
-        document.body.removeChild(alertElement);
-    };
-    
-    // Add all elements to the alert
-    alertElement.appendChild(titleElement);
-    alertElement.appendChild(messageElement);
-    alertElement.appendChild(closeButton);
-    
-    // Add alert to the body
-    document.body.appendChild(alertElement);
+    Swal.fire({
+        title: title,
+        text: message,
+        icon: type,
+        confirmButtonText: 'OK'
+    });
 }
 
 // Logout function to clear session data and update UI
@@ -249,10 +267,10 @@ function logout() {
     updateUIAfterLogout();
     
     // Redirect to homepage if not already there
-    if (window.location.pathname !== "/index.html" && 
+    if (window.location.pathname !== "/forums.html" && 
         window.location.pathname !== "/" && 
-        window.location.pathname !== "/ForumPC/index.html") {
-        window.location.href = "index.html";
+        window.location.pathname !== "/ForumPC/forums.html") {
+        window.location.href = "forums.html";
     }
 }
 
@@ -299,6 +317,14 @@ function updateUIAfterLogin() {
         if (role === "Admin" || role === "Moderator") {
             document.querySelectorAll("a[href='Modctrl.html']").forEach(el => el.parentElement.classList.remove("hide"));
         }
+        
+        // Show the category creation box for admins if on the categories page
+        if ((role === "Admin" || role === "admin") && window.location.href.includes("categories.html")) {
+            const addCategoryBox = document.getElementById("add-category-box");
+            if (addCategoryBox) {
+                addCategoryBox.classList.remove("hide");
+            }
+        }
     }
 }
 
@@ -326,14 +352,71 @@ function updateUIAfterLogout() {
 function createCategory() {
     const categoryName = document.getElementById("category-name").value.trim();
     if (!categoryName) {
-        alert("Please enter a category name.");
+        Swal.fire({
+            title: 'Error',
+            text: 'Please enter a category name.',
+            icon: 'error',
+            confirmButtonText: 'OK'
+        });
         return;
     }
 
     const token = sessionStorage.getItem("token");
     if (!token) {
-        alert("You must be logged in to create a category.");
+        Swal.fire({
+            title: 'Authentication Error',
+            text: 'You must be logged in to create a category.',
+            icon: 'warning',
+            confirmButtonText: 'OK'
+        });
         return;
+    }
+    
+    // Check if user has admin role
+    const role = sessionStorage.getItem('role');
+    if (role !== 'Admin' && role !== 'admin') {
+        Swal.fire({
+            title: 'Permission Denied',
+            text: 'Only administrators can create new categories.',
+            icon: 'error',
+            confirmButtonText: 'OK'
+        });
+        return;
+    }
+    
+    // Add animaton to the form container
+    const formContainer = document.getElementById("add-category-box");
+    if (formContainer) {
+        formContainer.style.transition = "all 0.3s ease";
+        formContainer.style.transform = "scale(0.98)";
+        formContainer.style.opacity = "0.8";
+    }
+    
+    // Also animate the direct form if it exists
+    const directForm = document.getElementById("direct-category-form");
+    if (directForm) {
+        directForm.style.transition = "all 0.3s ease";
+        directForm.style.transform = "scale(0.98)";
+        directForm.style.opacity = "0.8";
+    }
+    
+    // Show loading animation on whichever button was clicked
+    const createButton = document.getElementById("create-category-btn");
+    const directButton = document.getElementById("direct-create-category-btn");
+    
+    // Store original button text
+    const originalText = createButton ? createButton.innerHTML : '';
+    const originalDirectText = directButton ? directButton.innerHTML : '';
+    
+    // Update button states
+    if (createButton) {
+        createButton.innerHTML = '<i class="fa fa-spinner fa-spin"></i> Creating...';
+        createButton.disabled = true;
+    }
+    
+    if (directButton) {
+        directButton.innerHTML = '<i class="fa fa-spinner fa-spin"></i> Creating...';
+        directButton.disabled = true;
     }
 
     fetch(`${api_key}Category/Insert?name=${encodeURIComponent(categoryName)}`, {
@@ -349,12 +432,65 @@ function createCategory() {
         return response.json();
     })
     .then(data => {
-        alert("Category created successfully!");
-        document.getElementById("category-name").value = ""; // Clear input field
+        Swal.fire({
+            title: 'Success',
+            text: 'Category created successfully!',
+            icon: 'success',
+            confirmButtonText: 'OK'
+        });
+        
+        // Clear input fields
+        document.getElementById("category-name").value = "";
+        const directInput = document.getElementById("direct-category-name");
+        if (directInput) {
+            directInput.value = "";
+        }
+        
+        // Save the new category ID to highlight it after refresh
+        if (data && data.categoryId) {
+            sessionStorage.setItem('newCategoryId', data.categoryId);
+        }
+        
+        // Hide the form after successful creation
+        if (formContainer) {
+            formContainer.classList.add("hide");
+        }
+        
+        // Add a 350ms delay before refreshing the category list
+        setTimeout(() => {
         fetchCategories(); // Refresh category list and dropdown
+        }, 350);
     })
     .catch(error => {
-        alert("Error: " + error.message);
+        Swal.fire({
+            title: 'Error',
+            text: error.message || 'Failed to create category',
+            icon: 'error',
+            confirmButtonText: 'OK'
+        });
+    })
+    .finally(() => {
+        // Restore button states
+        if (createButton) {
+            createButton.innerHTML = originalText;
+            createButton.disabled = false;
+        }
+        
+        if (directButton) {
+            directButton.innerHTML = originalDirectText;
+            directButton.disabled = false;
+        }
+        
+        // Restore form container styles
+        if (formContainer) {
+            formContainer.style.transform = "";
+            formContainer.style.opacity = "";
+        }
+        
+        if (directForm) {
+            directForm.style.transform = "";
+            directForm.style.opacity = "";
+        }
     });
 }
 
@@ -393,31 +529,126 @@ function updateCategoryDropdown(categories) {
 }
 
 function updateCategoryList(categories) {
-    const categoryList = document.getElementById("categories-list"); // Changed from categoriesList to categories-list
+    const categoryList = document.getElementById("categories-list");
 
     if (!categoryList) {
         console.warn("Category list element not found.");
         return;
     }
 
-    // Clear and repopulate the list
-    categoryList.innerHTML = "";
-    
-    categories.forEach(category => {
-        const categoryDiv = document.createElement("div");
-        categoryDiv.className = "category-item";
-        categoryDiv.textContent = category.name;
+    // Clear current list with fade-out effect
+    const currentItems = categoryList.querySelectorAll('.category-item');
+    if (currentItems.length > 0) {
+        currentItems.forEach((item, index) => {
+            // Add staggered fade-out effect
+            setTimeout(() => {
+                item.style.opacity = '0';
+                item.style.transform = 'translateY(20px)';
+            }, index * 50);
+        });
         
-        // Add delete button for admins
-        if (sessionStorage.getItem("role") === "admin" || sessionStorage.getItem("role") === "Admin") {
-            const deleteBtn = document.createElement("button");
-            deleteBtn.className = "delete-category-btn";
-            deleteBtn.textContent = "Delete";
-            deleteBtn.onclick = () => deleteCategory(category.categoryId);
-            categoryDiv.appendChild(deleteBtn);
+        // After all items have faded out, clear and add new items
+        setTimeout(() => {
+    categoryList.innerHTML = "";
+            addCategoryItems(categories, categoryList);
+        }, currentItems.length * 50 + 300);
+    } else {
+        // If no items exist, just add new ones
+        categoryList.innerHTML = "";
+        addCategoryItems(categories, categoryList);
+    }
+}
+
+function addCategoryItems(categories, container) {
+    if (categories.length === 0) {
+        // Show empty state with message
+        const emptyState = document.createElement('div');
+        emptyState.className = 'empty-categories';
+        emptyState.innerHTML = `
+            <i class="fa fa-folder-open"></i>
+            <p>No categories found. Create a new one!</p>
+        `;
+        container.appendChild(emptyState);
+        return;
+    }
+
+    const newCategoryId = sessionStorage.getItem('newCategoryId');
+    
+    categories.forEach((category, index) => {
+        const delay = index * 0.1;
+        
+        const categoryItem = document.createElement('div');
+        categoryItem.className = 'category-item';
+        categoryItem.style.animationDelay = `${delay}s`;
+        
+        // If this is the newly created category, add the highlight class
+        if (newCategoryId && category.categoryId.toString() === newCategoryId) {
+            categoryItem.classList.add('new-item');
+            // Clear the newCategoryId after highlighting
+            setTimeout(() => {
+                sessionStorage.removeItem('newCategoryId');
+            }, 2000);
         }
         
-        categoryList.appendChild(categoryDiv);
+        const categoryContent = document.createElement('div');
+        categoryContent.className = 'category-content';
+        
+        // Create folder icon with the new purple color
+        const folderIcon = document.createElement('i');
+        folderIcon.className = 'fa fa-folder';
+        folderIcon.style.color = 'var(--folder-color)';
+        
+        const categoryName = document.createElement('span');
+        categoryName.textContent = category.name;
+        
+        categoryContent.appendChild(folderIcon);
+        categoryContent.appendChild(categoryName);
+        
+        // Make clicking on the category go to its threads
+        categoryItem.addEventListener('click', () => {
+            window.location.href = `forums.html?category=${category.categoryId}`;
+        });
+        
+        categoryItem.appendChild(categoryContent);
+        
+        // Add delete button for admins
+        const role = sessionStorage.getItem('role');
+        if (role === 'Admin' || role === 'admin') {
+            const deleteButton = document.createElement('button');
+            deleteButton.className = 'delete-category-btn';
+            deleteButton.textContent = 'Delete';
+            deleteButton.addEventListener('click', (e) => {
+                e.stopPropagation(); // Prevent navigation to forum
+                confirmDeleteCategory(category.categoryId, category.name);
+            });
+            categoryItem.appendChild(deleteButton);
+        }
+        
+        container.appendChild(categoryItem);
+    });
+}
+
+function confirmDeleteCategory(categoryId, categoryName) {
+    Swal.fire({
+        title: 'Delete Category',
+        text: `Are you sure you want to delete the category "${categoryName}"?`,
+        icon: 'warning',
+        showCancelButton: true,
+        confirmButtonColor: '#6a11cb',
+        cancelButtonColor: '#2575fc',
+        confirmButtonText: 'Yes, delete it!',
+        cancelButtonText: 'Cancel',
+        backdrop: true,
+        showClass: {
+            popup: 'animate__animated animate__fadeInDown'
+        },
+        hideClass: {
+            popup: 'animate__animated animate__fadeOutUp'
+        }
+    }).then((result) => {
+        if (result.isConfirmed) {
+            deleteCategory(categoryId);
+        }
     });
 }
 
@@ -428,12 +659,22 @@ fetchCategories();
 function deleteCategory(categoryId) {
     const token = sessionStorage.getItem("token");
     if (!token) {
-        alert("You must be logged in as Admin to delete categories.");
+        Swal.fire({
+            title: 'Authentication Error',
+            text: 'You must be logged in to delete a category.',
+            icon: 'warning',
+            confirmButtonText: 'OK'
+        });
         return;
     }
 
-    if (!confirm("Are you sure you want to delete this category?")) {
-        return;
+    // Find the category element to animate its removal
+    const categoryElement = document.querySelector(`.category-item[data-id="${categoryId}"]`);
+    if (categoryElement) {
+        // Add deletion animation
+        categoryElement.style.transition = "all 0.5s ease";
+        categoryElement.style.transform = "scale(0.8)";
+        categoryElement.style.opacity = "0";
     }
 
     fetch(`${api_key}Category/Delete/${categoryId}`, {
@@ -444,16 +685,32 @@ function deleteCategory(categoryId) {
     })
     .then(response => {
         if (!response.ok) {
-            return response.json().then(err => { throw new Error(err.message); });
+            throw new Error("Failed to delete category");
         }
         return response.json();
     })
-    .then(() => {
-        alert("Category deleted successfully!");
-        fetchCategories(); // Refresh the list and dropdown
+    .then(data => {
+        Swal.fire({
+            title: 'Deleted!',
+            text: 'Category has been deleted successfully.',
+            icon: 'success',
+            confirmButtonText: 'OK'
+        });
+        fetchCategories(); // Refresh category list and dropdown
     })
     .catch(error => {
-        alert("Error: " + error.message);
+        Swal.fire({
+            title: 'Error',
+            text: error.message || 'Failed to delete category',
+            icon: 'error',
+            confirmButtonText: 'OK'
+        });
+        
+        // Restore the category element if deletion failed
+        if (categoryElement) {
+            categoryElement.style.transform = "scale(1)";
+            categoryElement.style.opacity = "1";
+        }
     });
 }
 
@@ -477,30 +734,20 @@ function cancelThreadForm() {
 
 // Thêm hàm showNewThreadForm nếu cần thiết
 function showNewThreadForm() {
-    // Kiểm tra đăng nhập
-    if (!sessionStorage.getItem('token')) {
-        alert('Please log in to create a new thread.');
-        return;
-    }
+    const createThreadSection = document.getElementById('create-thread-section');
+    createThreadSection.classList.remove('hide');
+    createThreadSection.classList.add('show');
     
-    const formSection = document.getElementById('create-thread-section');
-    if (formSection) {
-        formSection.classList.remove('hide');
-        // Focus vào select category
-        const categoryElement = document.getElementById('thread-category');
-        if (categoryElement) categoryElement.focus();
-    }
-    
-    // Tải danh sách categories nếu chưa có
-    const categorySelect = document.getElementById('thread-category');
-    if (categorySelect && categorySelect.options.length <= 1) {
-        fetchCategories();
-    }
+    // Scroll to the form with smooth animation
+    setTimeout(() => {
+        createThreadSection.scrollIntoView({ behavior: 'smooth' });
+    }, 100);
 }
 
-// Giữ lại hàm hideNewThreadForm hiện tại để đảm bảo tương thích ngược
 function hideNewThreadForm() {
-    cancelThreadForm();
+    const createThreadSection = document.getElementById('create-thread-section');
+    createThreadSection.classList.remove('show');
+    createThreadSection.classList.add('hide');
 }
 
 // Đảm bảo rằng hàm clearThreadForm hiện tại chuyển sang gọi cancelThreadForm
@@ -570,6 +817,10 @@ async function createThread() {
 
 async function fetchAndDisplayThreads() {
     try {
+        // Hiển thị shimmer loading
+        const threadsDisplay = document.getElementById('threads-display');
+        threadsDisplay.innerHTML = '<div class="loading-shimmer">Loading threads...</div>';
+        
         // Fetch all threads
         const threadsResponse = await fetch(`${api_key}Thread`);
         
@@ -578,6 +829,18 @@ async function fetchAndDisplayThreads() {
         }
         
         const threads = await threadsResponse.json();
+        
+        // Cho mỗi thread, lấy thêm thông tin về lượt like
+        for (let thread of threads) {
+            try {
+                // Lấy tổng số like cho mỗi thread (tổng hợp từ các bài post trong thread)
+                thread = await getThreadTotalLikes(thread.threadId, thread);
+            } catch (error) {
+                console.error(`Error getting likes for thread ${thread.threadId}:`, error);
+                thread.total_likes = 0;
+            }
+        }
+        
         displayThreads(threads);
     } catch (error) {
         console.error('Error fetching data:', error);
@@ -586,54 +849,244 @@ async function fetchAndDisplayThreads() {
     }
 }
 
-// Updated to accept userMap parameter
-function displayThreads(threads) {
-    const threadsContainer = document.getElementById('threads-display');
-    
-    if (!threadsContainer) {
-        console.warn('Threads display container not found');
-        return;
+async function getThreadTotalLikes(threadId, thread) {
+    try {
+        // Lấy tất cả các bài post trong thread
+        const postsResponse = await fetch(`${api_key}Post/ByThread/${threadId}`);
+        
+        if (!postsResponse.ok) {
+            return thread;
+        }
+        
+        const posts = await postsResponse.json();
+        
+        // Tổng hợp số like từ tất cả các bài post
+        let totalLikes = 0;
+        
+        for (const post of posts) {
+            const likesResponse = await fetch(`${api_key}Likes/Count/${post.postId}`);
+            if (likesResponse.ok) {
+                const likesCount = await likesResponse.json();
+                totalLikes += likesCount;
+            }
+        }
+        
+        // Thêm thông tin vào đối tượng thread
+        thread.total_likes = totalLikes;
+        return thread;
+    } catch (error) {
+        console.error('Error getting thread total likes:', error);
+        thread.total_likes = 0;
+        return thread;
     }
-    
-    threadsContainer.innerHTML = '';
-    
-    threads.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+}
+
+function displayThreads(threads) {
+    const threadsDisplay = document.getElementById('threads-display');
+    threadsDisplay.innerHTML = '';
     
     if (threads.length === 0) {
-        threadsContainer.innerHTML = '<p class="no-threads">No threads yet. Be the first to create one!</p>';
+        threadsDisplay.innerHTML = '<div class="no-threads animate-fade-in">No threads found. Be the first to create one!</div>';
         return;
     }
+
+    // Sắp xếp thread theo thời gian tạo (mới nhất lên đầu)
+    threads.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
     
     threads.forEach(thread => {
         const threadElement = document.createElement('div');
         threadElement.className = 'thread-item';
-        threadElement.setAttribute('data-thread-id', thread.threadId);
         
-        // Add click event to navigate to thread detail page
-        threadElement.addEventListener('click', function() {
-            window.location.href = `thread-detail.html?id=${thread.threadId}`;
-        });
-        
-        const createdDate = new Date(thread.createdAt);
-        const formattedDate = `${createdDate.toLocaleDateString()} at ${createdDate.toLocaleTimeString()}`;
-        
-        const username = thread.username || "Unknown User";
+        // Format nội dung để hiển thị rõ hơn
+        const truncatedContent = truncateContent(thread.content, 150);
+        const formattedDate = formatDate(thread.createdAt);
         
         threadElement.innerHTML = `
-            <div class="thread-header">
                 <h3 class="thread-title">${thread.title}</h3>
                 <div class="thread-meta">
-                    <span class="thread-category">${thread.categoryName}</span>
+                <span class="thread-author"><i class="fa fa-user"></i> ${thread.username}</span>
+                <span class="thread-time"><i class="fa fa-clock-o"></i> ${formattedDate}</span>
+                <span class="thread-category"><i class="fa fa-folder"></i> ${thread.categoryName || 'Uncategorized'}</span>
                 </div>
-            </div>
-            <div class="thread-content">${thread.content}</div>
+            <div class="thread-content">${truncatedContent}</div>
             <div class="thread-footer">
-                <span class="thread-date">Posted on ${formattedDate}</span>
-                <span class="thread-author">by: ${username}</span> <!-- ✅ Display Correct Username -->
+                <a href="thread-detail.html?id=${thread.threadId}" class="thread-link">Read More</a>
+                <div class="thread-stats">
+                    <span class="thread-views"><i class="fa fa-eye"></i> ${thread.views || 0}</span>
+                    <span class="thread-likes"><i class="fa fa-heart"></i> ${thread.total_likes || 0}</span>
+                    <span class="thread-comments"><i class="fa fa-comment"></i> ${thread.post_count || 0}</span>
+                </div>
             </div>
         `;
         
-        threadsContainer.appendChild(threadElement);
+        // Thêm hiệu ứng nhấp nháy khi thread được tạo mới
+        const createdDate = new Date(thread.createdAt);
+        const currentDate = new Date();
+        const diffTime = Math.abs(currentDate - createdDate);
+        const diffHours = diffTime / (1000 * 60 * 60);
+        
+        if (diffHours < 24) {
+            threadElement.classList.add('new-thread');
+        }
+        
+        threadsDisplay.appendChild(threadElement);
+    });
+    
+    // Thêm sự kiện hover cho các thread item
+    addThreadHoverEffects();
+}
+
+function truncateContent(content, maxLength) {
+    if (!content) return '';
+    if (content.length <= maxLength) return content;
+    
+    // Tìm vị trí khoảng trắng gần nhất trước maxLength để cắt đúng từ
+    const truncated = content.substr(0, maxLength);
+    const lastSpace = truncated.lastIndexOf(' ');
+    
+    // Nếu không tìm thấy khoảng trắng, cắt tại maxLength
+    if (lastSpace === -1) return truncated + '...';
+    
+    // Cắt tại khoảng trắng gần nhất
+    return truncated.substr(0, lastSpace) + '...';
+}
+
+function addThreadHoverEffects() {
+    const threadItems = document.querySelectorAll('.thread-item');
+    threadItems.forEach(item => {
+        item.addEventListener('mouseenter', () => {
+            item.style.transform = 'translateY(-5px) scale(1.02)';
+            item.style.boxShadow = '0 8px 20px rgba(0, 0, 0, 0.15)';
+            item.style.zIndex = '1';
+        });
+        
+        item.addEventListener('mouseleave', () => {
+            item.style.transform = 'translateY(0) scale(1)';
+            item.style.boxShadow = '0 4px 10px rgba(0, 0, 0, 0.1)';
+            item.style.zIndex = '0';
+        });
+    });
+}
+
+// Hàm format thời gian
+function formatDate(dateString) {
+    if (!dateString) return 'Unknown';
+    
+    const date = new Date(dateString);
+    const now = new Date();
+    const diffTime = Math.abs(now - date);
+    const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
+    
+    if (diffDays === 0) {
+        // Cùng ngày, hiển thị giờ
+        const hours = date.getHours();
+        const minutes = date.getMinutes();
+        return `Today at ${hours}:${minutes < 10 ? '0' + minutes : minutes}`;
+    } else if (diffDays === 1) {
+        return 'Yesterday';
+    } else if (diffDays < 7) {
+        return `${diffDays} days ago`;
+    } else {
+        // Format ngày đầy đủ cho các ngày cũ hơn
+        return `${date.getDate()}/${date.getMonth() + 1}/${date.getFullYear()}`;
+    }
+}
+
+// Cập nhật cho incrementThreadViews để đảm bảo hiển thị cập nhật
+async function incrementThreadViews(threadId) {
+    try {
+        const response = await fetch(`${api_key}Thread/IncrementViews/${threadId}`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            }
+        });
+        
+        if (!response.ok) {
+            console.warn('Failed to increment view count:', response.status);
+            return;
+        }
+        
+        // Update views in the UI
+        const viewsElement = document.getElementById('thread-views');
+        if (viewsElement) {
+            const currentViews = parseInt(viewsElement.textContent) || 0;
+            viewsElement.textContent = (currentViews + 1).toString();
+            
+            // Cập nhật badge trạng thái dựa trên số lượt xem
+            updateEngagementStatus();
+        }
+        
+        console.log('View count incremented for thread', threadId);
+    } catch (error) {
+        console.error('Error incrementing view count:', error);
+    }
+}
+
+// Hàm cập nhật trạng thái engagement
+function updateEngagementStatus(views, likes) {
+    const status = document.getElementById('thread-status');
+    if (!status) return;
+    
+    // Xóa tất cả trạng thái hiện tại
+    status.classList.remove('active', 'recent', 'archived');
+    
+    // Thiết lập trạng thái và tooltip dựa trên lượt xem và lượt thích
+    if (views > 200 || likes > 50) {
+        status.textContent = 'Nổi bật';
+        status.classList.add('active');
+        status.setAttribute('data-tooltip', 'Chủ đề có nhiều lượt xem và lượt thích');
+    } else if (views > 50 || likes > 10) {
+        status.textContent = 'Phổ biến';
+        status.classList.add('recent');
+        status.setAttribute('data-tooltip', 'Chủ đề đang thu hút sự quan tâm');
+    } else {
+        status.textContent = 'Mới';
+        status.classList.add('archived');
+        status.setAttribute('data-tooltip', 'Chủ đề mới được tạo');
+    }
+    
+    // Kích hoạt rule-badge tương ứng
+    updateRuleBadges(views, likes);
+}
+
+// Hàm khởi tạo trang thread detail
+function initThreadDetailPage() {
+    const threadId = getCurrentThreadId();
+    if (!threadId) {
+        showError('Thread ID not found');
+        return;
+    }
+
+    // Hiển thị trạng thái loading
+    document.getElementById('posts-container').innerHTML = '<div class="loading-shimmer">Loading posts...</div>';
+    
+    // Sử dụng Promise.all để đồng thời gọi tất cả API cần thiết
+    Promise.all([
+        loadThreadDetail(threadId),         // Tải thông tin thread
+        loadPosts(threadId),                // Tải tất cả bài post
+        incrementThreadViews(threadId)      // Tăng lượt xem
+    ]).then(([threadData, _]) => {
+        // Sau khi tải xong thread data và posts, tải các thread liên quan
+        loadRelatedThreads(threadId);
+        
+        // Cập nhật số lượng post
+        const postCount = document.getElementById('post-count');
+        if (postCount) {
+            // Cập nhật UI với số lượng posts đã tải được
+            const postsContainer = document.getElementById('posts-container');
+            const numberOfPosts = postsContainer.querySelectorAll('.post').length;
+            postCount.textContent = numberOfPosts;
+        }
+        
+        // Cập nhật engagement status dựa trên views và likes
+        updateEngagementStatus(
+            parseInt(document.getElementById('thread-views').textContent) || 0,
+            parseInt(document.getElementById('thread-likes').textContent) || 0
+        );
+    }).catch(error => {
+        console.error('Error initializing thread detail page:', error);
+        showError('Failed to load thread details or posts');
     });
 }
 
@@ -721,11 +1174,11 @@ async function saveChanges(userId) {
         // Apply role changes if any
         if (changes.role) {
             const rolePromise = fetch(`${api_key}User/UpdateRole/${userId}`, {
-                method: "PUT",
-                headers: {
-                    "Content-Type": "application/json",
-                    "Authorization": `Bearer ${token}`
-                },
+            method: "PUT",
+            headers: {
+                "Content-Type": "application/json",
+                "Authorization": `Bearer ${token}`
+            },
                 body: JSON.stringify({ role: changes.role })
             });
             promises.push(rolePromise);
@@ -749,7 +1202,7 @@ async function saveChanges(userId) {
         
         // Check if any response was not ok
         for (const response of responses) {
-            if (!response.ok) {
+        if (!response.ok) {
                 const errorText = await response.text();
                 throw new Error(errorText || 'Could not update user');
             }
@@ -775,11 +1228,11 @@ async function saveAllChanges() {
             // Handle role changes
             if (changes.role) {
                 const rolePromise = fetch(`${api_key}User/UpdateRole/${userId}`, {
-                    method: "PUT",
-                    headers: {
-                        "Content-Type": "application/json",
-                        "Authorization": `Bearer ${token}`
-                    },
+                method: "PUT",
+                headers: {
+                    "Content-Type": "application/json",
+                    "Authorization": `Bearer ${token}`
+                },
                     body: JSON.stringify({ role: changes.role })
                 });
                 promises.push(rolePromise);
@@ -891,10 +1344,10 @@ const loginForm = document.getElementById('loginForm');
 if (loginForm) {
     loginForm.addEventListener('submit', async (e) => {
         e.preventDefault();
-
+        
         try {
-            const email = document.getElementById('email').value;
-            const password = document.getElementById('password').value;
+        const email = document.getElementById('email').value;
+        const password = document.getElementById('password').value;
 
             const response = await fetch(`${api_key}User/Login`, {
                 method: 'POST',
@@ -1085,7 +1538,7 @@ function handleRoleChange(selectElement) {
 function handleStatusChange(selectElement) {
     const userId = parseInt(selectElement.dataset.userId, 10);
     const newStatus = selectElement.value;
-    
+
     if (!userId || !newStatus) {
         console.warn('Invalid userId or status:', userId, newStatus);
         return;
@@ -1199,18 +1652,33 @@ async function loadThreadDetails(threadId) {
 // Load posts for a specific thread
 async function loadPosts(threadId) {
     try {
-        const response = await fetch(`${api_key}Post/ByThread/${threadId}`);
+        const postsContainer = document.getElementById('posts-container');
         
+        // Hiển thị trạng thái loading
+        postsContainer.innerHTML = '<div class="loading-shimmer">Loading posts...</div>';
+        
+        const response = await fetch(`${api_key}Post/ByThread/${threadId}`);
         if (!response.ok) {
-            throw new Error('Failed to fetch posts');
+            throw new Error('Failed to load posts');
         }
         
         const posts = await response.json();
+        
+        // Hiển thị các bài post
         displayPosts(posts);
         
+        // Cập nhật số lượng post trong sidebar
+        const postCount = document.getElementById('post-count');
+        if (postCount) {
+            postCount.textContent = posts.length.toString();
+        }
+        
+        return posts;
     } catch (error) {
         console.error('Error loading posts:', error);
-        document.getElementById('comments-container').innerHTML = '<p class="error-message">Failed to load posts. Please try again later.</p>';
+        document.getElementById('posts-container').innerHTML = 
+            '<div class="error-message">Failed to load posts. Please try again later.</div>';
+        throw error;
     }
 }
 
@@ -1218,139 +1686,160 @@ async function loadPosts(threadId) {
 function displayPosts(posts) {
     const postsContainer = document.getElementById('posts-container');
     
-    // Xóa hết các bài viết hiện tại
+    // Xóa shimmer loading
     postsContainer.innerHTML = '';
     
     if (posts.length === 0) {
-        const noPostsMessage = document.createElement('p');
-        noPostsMessage.textContent = 'Chưa có bài viết nào.';
-        noPostsMessage.classList.add('no-posts-message');
-        postsContainer.appendChild(noPostsMessage);
+        postsContainer.innerHTML = '<div class="no-posts">No posts in this thread yet. Be the first to post!</div>';
         return;
     }
     
-    // Hiển thị từng bài viết
+    // Sắp xếp posts theo thời gian tạo (mới nhất lên trên)
+    posts.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+    
+    // Tạo element cho mỗi post và thêm vào container
     posts.forEach(post => {
         const postElement = createPostElement(post);
         postsContainer.appendChild(postElement);
         
-        // Tải các bình luận cho bài viết
+        // Tải comments cho post này
         loadComments(post.postId, postElement.querySelector('.comments-container'));
+        
+        // Khởi tạo trạng thái like cho mỗi post
+        const likeButton = postElement.querySelector('.like-button');
+        initializeLikeStatus(post.postId, likeButton);
     });
     
-    // Cập nhật số lượng bài viết
-    updatePostCount(posts.length);
+    // Thêm sự kiện click cho các nút action
+    setupPostActionButtons();
 }
 
-// Create a post element for the UI
+// Create a post element for the UI with added animation
 function createPostElement(post) {
-    const template = document.getElementById("post-template");
-    if (!template) {
-        console.error('Post template not found');
-        return null;
+    // Sử dụng template có sẵn nếu có
+    const template = document.getElementById('post-template');
+    let postElement;
+    
+    if (template) {
+        postElement = template.content.cloneNode(true).querySelector('.post');
+    } else {
+        // Nếu không có template, tạo mới element
+        postElement = document.createElement('div');
+        postElement.className = 'post';
+        // Thêm HTML structure cho post
+        postElement.innerHTML = `
+            <div class="post-header">
+                <div class="post-author-info">
+                    <div class="user-avatar">
+                        <i class="fa fa-user-circle"></i>
+                    </div>
+                    <div class="author-details">
+                        <span class="post-author">${post.username}</span>
+                        <span class="post-date">${formatDate(post.createdAt)}</span>
+                    </div>
+                </div>
+                <div class="post-actions">
+                    <button class="action-button edit-post hide">
+                        <i class="fa fa-edit"></i> Edit
+                    </button>
+                    <button class="action-button delete-post hide">
+                        <i class="fa fa-trash"></i> Delete
+                    </button>
+                </div>
+            </div>
+            <div class="post-content">${post.content}</div>
+            <div class="post-footer">
+                <div class="post-interactions">
+                    <button class="action-button like-button" onclick="toggleLike(this)">
+                        <i class="fa fa-heart-o"></i> <span class="like-count">0</span>
+                    </button>
+                    <button class="action-button comment-button" onclick="toggleCommentForm(this)">
+                        <i class="fa fa-comment"></i> <span class="comment-count">0</span>
+                    </button>
+                    <button class="action-button report-button" onclick="showReportForm(this)">
+                        <i class="fa fa-flag"></i> Report
+                    </button>
+                </div>
+            </div>
+            <div class="comment-form hide">
+                <div class="form-content">
+                    <textarea placeholder="Write a comment..."></textarea>
+                    <button class="button" onclick="submitComment(this)">Add Comment</button>
+                </div>
+            </div>
+            <div class="comments-container">
+                <!-- Comments will be loaded here -->
+            </div>
+        `;
     }
     
-    const postElement = document.importNode(template.content, true).querySelector('.post');
-    
-    // Thiết lập ID cho post element
+    // Thêm data attributes để dễ dàng truy cập sau này
     postElement.setAttribute('data-post-id', post.postId);
+    postElement.setAttribute('data-user-id', post.userId);
     
-    const authorElement = postElement.querySelector(".post-author");
+    // Cập nhật nội dung post
+    const authorElement = postElement.querySelector('.post-author');
+    const dateElement = postElement.querySelector('.post-date');
+    const contentElement = postElement.querySelector('.post-content');
+    
     if (authorElement) authorElement.textContent = post.username;
-    
-    const dateElement = postElement.querySelector(".post-date");
-    if (dateElement) dateElement.textContent = formatDate(post.createdAt);
-    
-    const contentElement = postElement.querySelector(".post-content");
-    if (contentElement) contentElement.textContent = post.content;
-    
-    // Tìm và thiết lập các buttons cho post actions
-    const likeButton = postElement.querySelector('.like-button');
-    const commentButton = postElement.querySelector('.comment-button');
-    const editButton = postElement.querySelector('.edit-post');
-    const deleteButton = postElement.querySelector('.delete-post');
-    
-    // Show/hide edit and delete buttons
-    const isAuthor = parseInt(sessionStorage.getItem('userId')) === post.userId;
-    if (isAuthor) {
-        editButton.classList.remove("hide");
-        deleteButton.classList.remove("hide");
-        
-        editButton.onclick = () => editPost(post.postId);
-        deleteButton.onclick = () => deletePost(post.postId);
+    if (dateElement) {
+        const formattedDate = formatDate(post.createdAt);
+        dateElement.textContent = formattedDate;
+        // Thêm tooltip cho ngày đầy đủ
+        dateElement.setAttribute('data-tooltip', new Date(post.createdAt).toLocaleString());
     }
+    if (contentElement) contentElement.innerHTML = post.content;
     
-    // Set up comment form
-    const commentForm = postElement.querySelector(".comment-form");
-    const submitCommentButton = commentForm.querySelector("button");
-    submitCommentButton.onclick = function() {
-        submitComment(this);
-    };
+    // Kiểm tra xem post có mới không (24h)
+    const createdDate = new Date(post.createdAt);
+    const now = new Date();
+    const diffTime = Math.abs(now - createdDate);
+    const diffHours = diffTime / (1000 * 60 * 60);
     
-    // Load comments for this post
-    loadComments(post.postId, postElement.querySelector(".comments-container"));
-    
-    // Khởi tạo trạng thái like ngay sau khi tạo post element
-    initializeLikeStatus(post.postId, likeButton);
+    if (diffHours < 24) {
+        postElement.classList.add('new-post');
+    }
     
     return postElement;
 }
 
 // Sửa hàm initializeLikeStatus để sử dụng đúng endpoints
 async function initializeLikeStatus(postId, likeButton) {
-    if (!likeButton) {
-        console.error('Like button not found for post ID:', postId);
-        return;
-    }
+    if (!likeButton) return;
     
     try {
-        // Lấy thông tin số lượng like từ API
-        const likesResponse = await fetch(`${api_key}Likes/ByPost/${postId}`);
-        if (!likesResponse.ok) {
-            throw new Error(`Failed to fetch likes for post ${postId}: ${likesResponse.status}`);
-        }
-        
-        const likesData = await likesResponse.json();
-        console.log(`Post ${postId} has ${likesData.likeCount} likes`);
-        
-        // Cập nhật số lượng like trên UI
-        const likeCountElement = likeButton.querySelector('.like-count');
-        if (likeCountElement) {
-            likeCountElement.textContent = likesData.likeCount;
-        }
-        
-        // Kiểm tra xem người dùng đã đăng nhập chưa
+        // Lấy userID từ session storage
         const userId = sessionStorage.getItem('userId');
-        if (!userId) {
-            console.log('User not logged in, not checking like status');
-            return;
+        if (!userId) return;
+        
+        // Kiểm tra xem người dùng đã like bài post chưa
+        const response = await fetch(`${api_key}Likes/Check/${postId}/${userId}`);
+        if (!response.ok) {
+            throw new Error('Failed to check like status');
         }
         
-        // Kiểm tra nếu người dùng đã like bài post này
-        const checkLikeResponse = await fetch(`${api_key}Likes/Check/${postId}/${userId}`);
-        if (!checkLikeResponse.ok) {
-            throw new Error(`Failed to check like status for post ${postId}: ${checkLikeResponse.status}`);
+        const liked = await response.json();
+        
+        // Cập nhật UI dựa trên trạng thái like
+        if (liked) {
+            likeButton.classList.add('active', 'liked');
+            const icon = likeButton.querySelector('i');
+            if (icon) {
+                icon.classList.remove('fa-heart-o');
+                icon.classList.add('fa-heart');
+            }
         }
         
-        const userLiked = await checkLikeResponse.json();
-        console.log(`User ${userId} has ${userLiked ? 'liked' : 'not liked'} post ${postId}`);
-        
-        // Cập nhật giao diện dựa vào kết quả
-        const likeIcon = likeButton.querySelector('i');
-        
-        if (userLiked) {
-            // Người dùng đã like - hiển thị trái tim đỏ
-            likeIcon.className = 'fa fa-heart';
-            likeIcon.style.color = '#e25822';
-            likeButton.classList.add('liked');
-        } else {
-            // Người dùng chưa like - hiển thị trái tim rỗng
-            likeIcon.className = 'fa fa-heart-o';
-            likeIcon.style.color = '';
-            likeButton.classList.remove('liked');
-        }
+        // Lấy số lượng like
+        getLikesCount(postId).then(count => {
+            const countElement = likeButton.querySelector('.like-count');
+            if (countElement) {
+                countElement.textContent = count.toString();
+            }
+        });
     } catch (error) {
-        console.error('Error initializing like status:', error);
+        console.error(`Error initializing like status for post ${postId}:`, error);
     }
 }
 
@@ -1471,36 +1960,44 @@ function getCurrentThreadId() {
     return urlParams.get('id');
 }
 
-// Initialize thread detail page
+// Initialize thread detail page with animations
 function initThreadDetailPage() {
-    // Ẩn form report khi trang tải
-    const reportModal = document.getElementById('report-modal');
-    if (reportModal) {
-        reportModal.classList.add('hide');
-    }
-    
-    // Lấy thread ID từ URL
     const threadId = getCurrentThreadId();
-    if (threadId) {
-        try {
-            // Tải thông tin chi tiết thread
-            loadThreadDetail(threadId)
-                .then(() => {
-                    // Cập nhật UI dựa vào trạng thái đăng nhập
-                    updateUIAfterLogin();
-                })
-                .catch(error => {
-                    console.error('Error loading thread detail:', error);
-                    alert('Không thể tải thông tin thread. Vui lòng thử lại sau.');
-                });
-        } catch (error) {
-            console.error('Error initializing thread detail page:', error);
-            alert('Không thể tải thông tin thread. Vui lòng thử lại sau.');
-        }
-    } else {
-        alert('Thread ID không hợp lệ.');
-        window.location.href = 'community.html';
+    if (!threadId) {
+        showError('Thread ID not found');
+        return;
     }
+
+    // Hiển thị trạng thái loading
+    document.getElementById('posts-container').innerHTML = '<div class="loading-shimmer">Loading posts...</div>';
+    
+    // Sử dụng Promise.all để đồng thời gọi tất cả API cần thiết
+    Promise.all([
+        loadThreadDetail(threadId),         // Tải thông tin thread
+        loadPosts(threadId),                // Tải tất cả bài post
+        incrementThreadViews(threadId)      // Tăng lượt xem
+    ]).then(([threadData, _]) => {
+        // Sau khi tải xong thread data và posts, tải các thread liên quan
+        loadRelatedThreads(threadId);
+        
+        // Cập nhật số lượng post
+        const postCount = document.getElementById('post-count');
+        if (postCount) {
+            // Cập nhật UI với số lượng posts đã tải được
+            const postsContainer = document.getElementById('posts-container');
+            const numberOfPosts = postsContainer.querySelectorAll('.post').length;
+            postCount.textContent = numberOfPosts;
+        }
+        
+        // Cập nhật engagement status dựa trên views và likes
+        updateEngagementStatus(
+            parseInt(document.getElementById('thread-views').textContent) || 0,
+            parseInt(document.getElementById('thread-likes').textContent) || 0
+        );
+    }).catch(error => {
+        console.error('Error initializing thread detail page:', error);
+        showError('Failed to load thread details or posts');
+    });
 }
 
 // Check if we're on the thread detail page and initialize
@@ -1518,130 +2015,168 @@ document.addEventListener('DOMContentLoaded', function() {
 
 // Update sidebar information
 function updateSidebarInfo(thread) {
+    // Cập nhật tên danh mục
     const categoryElement = document.getElementById('thread-category');
-    const dateElement = document.getElementById('thread-posted-date');
-    const commentCountElement = document.getElementById('sidebar-comment-count');
-    const viewsElement = document.getElementById('thread-views');
+    if (categoryElement) {
+        categoryElement.textContent = thread.categoryName;
+        categoryElement.parentElement.classList.add('category');
+    }
     
-    if (categoryElement) categoryElement.textContent = thread.category || 'General';
-    if (dateElement) dateElement.textContent = formatDate(thread.createdAt);
-    if (commentCountElement) commentCountElement.textContent = thread.commentCount || '0';
-    if (viewsElement) viewsElement.textContent = thread.views || '0';
+    // Cập nhật ngày tạo
+    const postedDateElement = document.getElementById('thread-posted-date');
+    if (postedDateElement) {
+        postedDateElement.textContent = formatDate(thread.createdAt);
+        postedDateElement.parentElement.classList.add('date');
+    }
+    
+    // Cập nhật số lượng likes với highlight
+    const likesElement = document.getElementById('thread-likes');
+    if (likesElement) {
+        likesElement.innerHTML = `<span class="highlight-number">${thread.likes || 0}</span>`;
+        likesElement.parentElement.classList.add('likes');
+    }
+    
+    // Cập nhật lượt xem với highlight
+    const viewsElement = document.getElementById('thread-views');
+    if (viewsElement) {
+        viewsElement.innerHTML = `<span class="highlight-number">${thread.views || 0}</span>`;
+        viewsElement.parentElement.classList.add('views');
+    }
+    
+    // Cập nhật số lượng bài viết với highlight
+    const postCountElement = document.getElementById('post-count');
+    if (postCountElement) {
+        postCountElement.innerHTML = `<span class="highlight-number">0</span>`;
+        postCountElement.parentElement.classList.add('posts');
+    }
+    
+    // Cập nhật trạng thái
+    const statusElement = document.getElementById('thread-status');
+    if (statusElement) {
+        statusElement.parentElement.classList.add('status');
+    }
+    
+    // Cập nhật trạng thái engagement dựa trên lượt xem và lượt thích
+    updateEngagementStatus(
+        parseInt(thread.views) || 0,
+        parseInt(thread.likes) || 0
+    );
 }
 
-// Load and display related threads
+// Hàm cập nhật trạng thái engagement
+function updateEngagementStatus(views, likes) {
+    const status = document.getElementById('thread-status');
+    if (!status) return;
+    
+    // Xóa tất cả trạng thái hiện tại
+    status.classList.remove('active', 'recent', 'archived');
+    
+    // Thiết lập trạng thái và tooltip dựa trên lượt xem và lượt thích
+    if (views > 200 || likes > 50) {
+        status.textContent = 'Nổi bật';
+        status.classList.add('active');
+        status.setAttribute('data-tooltip', 'Chủ đề có nhiều lượt xem và lượt thích');
+    } else if (views > 50 || likes > 10) {
+        status.textContent = 'Phổ biến';
+        status.classList.add('recent');
+        status.setAttribute('data-tooltip', 'Chủ đề đang thu hút sự quan tâm');
+    } else {
+        status.textContent = 'Mới';
+        status.classList.add('archived');
+        status.setAttribute('data-tooltip', 'Chủ đề mới được tạo');
+    }
+    
+    // Kích hoạt rule-badge tương ứng
+    updateRuleBadges(views, likes);
+}
+
+// Hàm tải threads liên quan
 async function loadRelatedThreads(currentThreadId) {
     try {
-        // Try to fetch related threads
-        const response = await fetch(`${api_key}Thread/Related/${currentThreadId}`);
-        
-        // If endpoint doesn't exist or fails, fetch all threads and filter them
+        const response = await fetch(`${api_key}Thread`);
         if (!response.ok) {
-            console.log('Related threads endpoint failed, using fallback method');
-            const allThreadsResponse = await fetch(`${api_key}Thread`);
-            
-            if (allThreadsResponse.ok) {
-                const allThreads = await allThreadsResponse.json();
-                // Filter out current thread and limit to 5 related threads
-                const relatedThreads = allThreads
-                    .filter(thread => thread.threadId != currentThreadId)
-                    .slice(0, 5)
-                    .map(thread => ({
-                        id: thread.threadId,
-                        title: thread.title
-                    }));
-                
-                displayRelatedThreads(relatedThreads);
-                return;
-            } else {
-                throw new Error('Failed to fetch threads for fallback');
-            }
+            throw new Error('Failed to load related threads');
         }
         
-        const relatedThreads = await response.json();
+        const threads = await response.json();
+        
+        // Lấy thread hiện tại để biết categoryId
+        const currentThread = threads.find(t => t.threadId == currentThreadId);
+        if (!currentThread) return;
+        
+        // Lọc các thread cùng category nhưng khác ID
+        const relatedThreads = threads
+            .filter(t => t.categoryId === currentThread.categoryId && t.threadId != currentThreadId)
+            .slice(0, 5); // Chỉ lấy 5 thread liên quan
+        
         displayRelatedThreads(relatedThreads);
     } catch (error) {
         console.error('Error loading related threads:', error);
-        // Display a fallback message in the related threads section
-        const container = document.getElementById('related-threads');
-        if (container) {
-            container.innerHTML = '<li class="no-threads">Unable to load related threads</li>';
-        }
+        document.getElementById('related-threads').innerHTML = 
+            '<li>Failed to load related threads</li>';
     }
 }
 
-// Display related threads in sidebar
+// Hiển thị các thread liên quan
 function displayRelatedThreads(threads) {
     const container = document.getElementById('related-threads');
-    container.innerHTML = '';
+    if (!container) return;
 
-    if (!threads || threads.length === 0) {
-        container.innerHTML = '<li class="no-threads">No related threads found</li>';
+    if (threads.length === 0) {
+        container.innerHTML = '<li>No related threads found</li>';
         return;
     }
 
+    container.innerHTML = '';
     threads.forEach(thread => {
         const li = document.createElement('li');
         li.innerHTML = `
-            <a href="thread-detail.html?id=${thread.id}">
+            <a href="thread-detail.html?id=${thread.threadId}">
                 ${thread.title}
+                <small>(${formatDate(thread.createdAt)})</small>
             </a>
         `;
         container.appendChild(li);
     });
 }
 
-// Update the loadThreadDetail function to include sidebar updates
+// Hàm tải chi tiết thread
 async function loadThreadDetail(threadId) {
     try {
         const response = await fetch(`${api_key}Thread/${threadId}`);
-        if (!response.ok) throw new Error('Failed to fetch thread details');
+        if (!response.ok) {
+            throw new Error('Failed to load thread details');
+        }
         
         const thread = await response.json();
-        console.log('Thread loaded:', thread);
         
-        // Update main thread content
-        const titleElement = document.getElementById('thread-title');
-        const authorElement = document.getElementById('thread-author');
-        const dateElement = document.getElementById('thread-date');
-        const contentElement = document.getElementById('thread-content');
+        // Cập nhật tiêu đề trang
+        document.title = `${thread.title} - Forum`;
         
-        if (titleElement) titleElement.textContent = thread.title || 'Untitled Thread';
-        if (authorElement) authorElement.textContent = thread.username || 'Unknown User';
-        if (dateElement) dateElement.textContent = formatDate(thread.createdAt);
-        if (contentElement) contentElement.innerHTML = thread.content || '';
+        // Cập nhật nội dung thread
+        document.getElementById('thread-title').textContent = thread.title;
+        document.getElementById('thread-author').textContent = thread.username;
+        document.getElementById('thread-date').textContent = formatDate(thread.createdAt);
+        document.getElementById('thread-content').innerHTML = thread.content;
         
-        // Update page title
-        document.title = `${thread.title || 'Thread'} - Forum`;
+        // Lấy và hiển thị tổng số lượt like
+        const threadWithLikes = await getThreadTotalLikes(threadId, thread);
+        document.getElementById('thread-likes').textContent = threadWithLikes.total_likes || '0';
         
-        // Update sidebar information
+        // Cập nhật sidebar
         updateSidebarInfo(thread);
         
-        // Load related threads
-        loadRelatedThreads(threadId);
-        
-        // Load comments/posts
-        loadPosts(threadId);
+        // Cập nhật badge engagement
+        updateEngagementStatus(
+            parseInt(document.getElementById('thread-views').textContent) || 0,
+            parseInt(document.getElementById('thread-likes').textContent) || 0
+        );
         
         return thread;
     } catch (error) {
-        console.error('Error loading thread details:', error);
-        showError('Failed to load thread details. Please try again later.');
+        console.error('Error loading thread detail:', error);
         throw error;
     }
-}
-
-// Helper function to format dates
-function formatDate(dateString) {
-    if (!dateString) return 'Unknown';
-    const date = new Date(dateString);
-    return date.toLocaleDateString('en-US', {
-        year: 'numeric',
-        month: 'short',
-        day: 'numeric',
-        hour: '2-digit',
-        minute: '2-digit'
-    });
 }
 
 // ===== POST & COMMENT FUNCTIONS =====
@@ -1692,18 +2227,33 @@ async function submitPost() {
 // Load posts for a thread
 async function loadPosts(threadId) {
     try {
+        const postsContainer = document.getElementById('posts-container');
+        
+        // Hiển thị trạng thái loading
+        postsContainer.innerHTML = '<div class="loading-shimmer">Loading posts...</div>';
+        
         const response = await fetch(`${api_key}Post/ByThread/${threadId}`);
         if (!response.ok) {
-            throw new Error("Failed to fetch posts");
+            throw new Error('Failed to load posts');
         }
-
+        
         const posts = await response.json();
+        
+        // Hiển thị các bài post
         displayPosts(posts);
-        updatePostCount(posts.length);
+        
+        // Cập nhật số lượng post trong sidebar
+        const postCount = document.getElementById('post-count');
+        if (postCount) {
+            postCount.textContent = posts.length.toString();
+        }
+        
+        return posts;
     } catch (error) {
-        console.error("Error loading posts:", error);
-        document.getElementById("posts-container").innerHTML = 
-            '<p class="error-message">Failed to load posts. Please try again later.</p>';
+        console.error('Error loading posts:', error);
+        document.getElementById('posts-container').innerHTML = 
+            '<div class="error-message">Failed to load posts. Please try again later.</div>';
+        throw error;
     }
 }
 
@@ -1711,28 +2261,32 @@ async function loadPosts(threadId) {
 function displayPosts(posts) {
     const postsContainer = document.getElementById('posts-container');
     
-    // Xóa hết các bài viết hiện tại
+    // Xóa shimmer loading
     postsContainer.innerHTML = '';
     
     if (posts.length === 0) {
-        const noPostsMessage = document.createElement('p');
-        noPostsMessage.textContent = 'Chưa có bài viết nào.';
-        noPostsMessage.classList.add('no-posts-message');
-        postsContainer.appendChild(noPostsMessage);
+        postsContainer.innerHTML = '<div class="no-posts">No posts in this thread yet. Be the first to post!</div>';
         return;
     }
     
-    // Hiển thị từng bài viết
+    // Sắp xếp posts theo thời gian tạo (mới nhất lên trên)
+    posts.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+    
+    // Tạo element cho mỗi post và thêm vào container
     posts.forEach(post => {
         const postElement = createPostElement(post);
         postsContainer.appendChild(postElement);
         
-        // Tải các bình luận cho bài viết
+        // Tải comments cho post này
         loadComments(post.postId, postElement.querySelector('.comments-container'));
+        
+        // Khởi tạo trạng thái like cho mỗi post
+        const likeButton = postElement.querySelector('.like-button');
+        initializeLikeStatus(post.postId, likeButton);
     });
     
-    // Cập nhật số lượng bài viết
-    updatePostCount(posts.length);
+    // Thêm sự kiện click cho các nút action
+    setupPostActionButtons();
 }
 
 // Create a post element
@@ -1863,31 +2417,27 @@ async function submitComment(button) {
 
 // Load comments for a post
 async function loadComments(postId, container) {
-    if (!container) {
-        console.error('Comment container is missing');
-        return;
-    }
-    
     try {
+        // Hiển thị loading state
+        container.innerHTML = '<div class="loading-comments">Loading comments...</div>';
+        
         const response = await fetch(`${api_key}Comment/ByPost/${postId}`);
         if (!response.ok) {
-            throw new Error('Failed to fetch comments');
+            throw new Error('Failed to load comments');
         }
         
         const comments = await response.json();
+        
+        // Hiển thị comments
         displayComments(comments, container);
         
-        // Update comment count in the post
-        const post = container.closest('.post');
-        if (post) {
-            const commentCountElement = post.querySelector('.comment-count');
-            if (commentCountElement) {
-                commentCountElement.textContent = comments.length;
-            }
-        }
+        // Cập nhật số lượng comments trên post
+        updateCommentCount(postId, comments.length);
+        
+        return comments;
     } catch (error) {
-        console.error('Error loading comments:', error);
-        container.innerHTML = '<p class="error-message">Failed to load comments. Please try again later.</p>';
+        console.error(`Error loading comments for post ${postId}:`, error);
+        container.innerHTML = '<div class="error-message">Failed to load comments</div>';
     }
 }
 
@@ -1913,7 +2463,7 @@ function displayComments(comments, container) {
     });
 }
 
-// Create a comment element
+// Create a comment element with animation
 function createCommentElement(comment) {
     const template = document.getElementById('comment-template');
     if (!template) {
@@ -1927,31 +2477,39 @@ function createCommentElement(comment) {
         return null;
     }
     
+    // Add new-comment class for entry animation
+    commentElement.classList.add('new-comment');
+    
     // Set comment data
     commentElement.setAttribute('data-comment-id', comment.commentId);
     commentElement.querySelector('.comment-author').textContent = comment.username;
     commentElement.querySelector('.comment-date').textContent = formatDate(comment.createdAt);
     commentElement.querySelector('.comment-content').textContent = comment.content;
     
-    // Kiểm tra quyền
+    // Check permissions
     const currentUserId = parseInt(sessionStorage.getItem('userId'));
     const userRole = sessionStorage.getItem('role');
     const isAuthor = currentUserId === comment.userId;
     const isAdmin = userRole === 'Admin' || userRole === 'admin';
     
-    // Nút chỉnh sửa comment - chỉ hiển thị cho tác giả
+    // Edit button - only show for author
     const editButton = commentElement.querySelector('.edit-comment');
     if (editButton && isAuthor) {
         editButton.classList.remove('hide');
         editButton.onclick = () => editComment(comment.commentId);
     }
     
-    // Nút xóa comment - hiển thị cho tác giả và admin
+    // Delete button - show for author and admin
     const deleteButton = commentElement.querySelector('.delete-comment');
     if (deleteButton && (isAuthor || isAdmin)) {
         deleteButton.classList.remove('hide');
         deleteButton.onclick = () => deleteComment(comment.commentId);
     }
+    
+    // Remove the animation class after animation completes
+    setTimeout(() => {
+        commentElement.classList.remove('new-comment');
+    }, 2000);
     
     return commentElement;
 }
@@ -2091,9 +2649,15 @@ function getPostIdFromComment(commentElement) {
 
 // Thêm chức năng toggleLike để kết nối với LikeController
 async function toggleLike(button) {
-    // Kiểm tra người dùng đã đăng nhập chưa
+    // Check if user is logged in
     if (!sessionStorage.getItem('token')) {
-        alert('Vui lòng đăng nhập để thích bài viết.');
+        Swal.fire({
+            title: 'Authentication Required',
+            text: 'Please log in to like posts',
+            icon: 'warning',
+            confirmButtonText: 'OK',
+            confirmButtonColor: '#6a11cb'
+        });
         return;
     }
 
@@ -2108,20 +2672,49 @@ async function toggleLike(button) {
     
     if (isNaN(postId) || isNaN(userId)) {
         console.error(`Invalid postId (${postId}) or userId (${userId})`);
-        alert('Dữ liệu không hợp lệ. Vui lòng tải lại trang.');
+        Swal.fire({
+            title: 'Error',
+            text: 'Invalid data. Please reload the page.',
+            icon: 'error',
+            confirmButtonText: 'OK',
+            confirmButtonColor: '#6a11cb'
+        });
         return;
     }
     
     const likeIcon = button.querySelector('i');
     const likeCount = button.querySelector('.like-count');
+    const isCurrentlyLiked = likeIcon.classList.contains('fa-heart');
 
-    // Thêm animation và visual feedback ngay lập tức
-    button.classList.add('like-processing');
+    // Add immediate visual feedback
+    if (!isCurrentlyLiked) {
+        // If not already liked, show animation and change icon
+        likeIcon.className = 'fa fa-heart';
+        button.classList.add('liked');
+        
+        // Temporarily increment like count for immediate feedback
+        if (likeCount) {
+            const currentLikes = parseInt(likeCount.textContent) || 0;
+            likeCount.textContent = currentLikes + 1;
+        }
+    } else {
+        // If already liked, remove heart
+        likeIcon.className = 'fa fa-heart-o';
+        button.classList.remove('liked');
+        
+        // Temporarily decrement like count
+        if (likeCount) {
+            const currentLikes = parseInt(likeCount.textContent) || 0;
+            if (currentLikes > 0) {
+                likeCount.textContent = currentLikes - 1;
+            }
+        }
+    }
     
     try {
         console.log(`Toggling like for post ${postId} and user ${userId}`);
         
-        // Gửi yêu cầu toggle like đến API
+        // Send toggle like request to API
         const toggleResponse = await fetch(`${api_key}Likes/Toggle`, {
             method: 'POST',
             headers: {
@@ -2139,24 +2732,31 @@ async function toggleLike(button) {
             throw new Error(`Failed to toggle like: ${errorText}`);
         }
         
-        // Sau khi toggle thành công, cập nhật trạng thái like và số lượng
+        // After successful toggle, update the like status and count from the server
         await initializeLikeStatus(postId, button);
-        
-        // Thêm hiệu ứng ripple khi click
-        const ripple = document.createElement('span');
-        ripple.classList.add('ripple');
-        button.appendChild(ripple);
-        
-        setTimeout(() => {
-            ripple.remove();
-        }, 800);
 
     } catch (error) {
         console.error('Error toggling like:', error);
-        alert('Không thể cập nhật trạng thái like. Vui lòng thử lại.');
-    } finally {
-        // Xóa class processing
-        button.classList.remove('like-processing');
+        
+        // Revert visual changes if there was an error
+        if (!isCurrentlyLiked) {
+            likeIcon.className = 'fa fa-heart-o';
+            button.classList.remove('liked');
+        } else {
+            likeIcon.className = 'fa fa-heart';
+            button.classList.add('liked');
+        }
+        
+        // Revert the like count
+        await initializeLikeStatus(postId, button);
+        
+        Swal.fire({
+            title: 'Error',
+            text: 'Failed to update like status. Please try again.',
+            icon: 'error',
+            confirmButtonText: 'OK',
+            confirmButtonColor: '#6a11cb'
+        });
     }
 }
 
@@ -2224,19 +2824,34 @@ function closeReportModal() {
 function showReportForm(button, type = 'post') {
     // Kiểm tra đăng nhập
     if (!sessionStorage.getItem('token')) {
-        alert('Vui lòng đăng nhập để báo cáo nội dung.');
+        Swal.fire({
+            title: 'Authentication Required',
+            text: 'Please log in to report content.',
+            icon: 'warning',
+            confirmButtonText: 'OK'
+        });
         return;
     }
     
     // Get the modal element first
-    const modal = document.getElementById('report-modal');
+    const reportModal = document.getElementById('report-modal');
     
     // Xác định ID của bài viết hoặc bình luận
     let contentId, contentType;
     if (type === 'comment') {
         const comment = button.closest('.comment');
-        contentId = comment ? comment.getAttribute('data-comment-id') : null;
+        const commentId = comment ? comment.getAttribute('data-comment-id') : null;
         contentType = 'comment';
+        
+        if (!commentId) {
+            Swal.fire({
+                title: 'Error',
+                text: 'Could not determine comment ID to report',
+                icon: 'error',
+                confirmButtonText: 'OK'
+            });
+            return;
+        }
         
         // Tìm postId từ comment (từ phần tử cha .post)
         const post = comment.closest('.post');
@@ -2246,8 +2861,24 @@ function showReportForm(button, type = 'post') {
                 // Lưu cả commentId và postId
                 contentId = postId; // Sử dụng postId cho API
                 // Lưu commentId vào thuộc tính khác để tham khảo nếu cần
-                modal.setAttribute('data-related-comment-id', comment.getAttribute('data-comment-id'));
+                reportModal.setAttribute('data-related-comment-id', commentId);
+            } else {
+                Swal.fire({
+                    title: 'Error',
+                    text: 'Could not determine the parent post for this comment',
+                    icon: 'error',
+                    confirmButtonText: 'OK'
+                });
+                return;
             }
+        } else {
+            Swal.fire({
+                title: 'Error',
+                text: 'Could not determine the parent post for this comment',
+                icon: 'error',
+                confirmButtonText: 'OK'
+            });
+            return;
         }
     } else {
         const post = button.closest('.post');
@@ -2256,16 +2887,21 @@ function showReportForm(button, type = 'post') {
     }
     
     if (!contentId) {
-        console.error('Không thể xác định ID nội dung để báo cáo');
+        Swal.fire({
+            title: 'Error',
+            text: 'Could not determine content ID to report',
+            icon: 'error',
+            confirmButtonText: 'OK'
+        });
         return;
     }
     
     // Lưu thông tin vào modal để sử dụng khi gửi báo cáo
-    modal.setAttribute('data-content-id', contentId);
-    modal.setAttribute('data-content-type', contentType);
+    reportModal.setAttribute('data-content-id', contentId);
+    reportModal.setAttribute('data-content-type', contentType);
     
     // Hiển thị modal
-    modal.classList.remove('hide');
+    reportModal.classList.remove('hide');
     
     // Focus vào textarea
     document.getElementById('report-reason').focus();
@@ -2275,7 +2911,12 @@ function showReportForm(button, type = 'post') {
 function submitReport() {
     // Kiểm tra đăng nhập
     if (!sessionStorage.getItem('token')) {
-        alert('Vui lòng đăng nhập để báo cáo nội dung.');
+        Swal.fire({
+            title: 'Authentication Required',
+            text: 'Please log in to report content.',
+            icon: 'warning',
+            confirmButtonText: 'OK'
+        });
         closeReportModal();
         return;
     }
@@ -2286,36 +2927,70 @@ function submitReport() {
     const reason = document.getElementById('report-reason').value.trim();
     
     if (!reason) {
-        alert('Vui lòng nhập lý do báo cáo.');
+        Swal.fire({
+            title: 'Input Required',
+            text: 'Please enter a reason for the report.',
+            icon: 'warning',
+            confirmButtonText: 'OK'
+        });
         return;
     }
     
     // Gửi báo cáo đến server
-    fetch(`${api_key}Report/Insert`, {
+    console.log('Submitting report:', {
+        contentId,
+        contentType,
+        userId: sessionStorage.getItem('userId'),
+        reason
+    });
+    
+    // Determine if we're reporting a post or comment
+    const apiEndpoint = `${api_key}Report/Insert`;
+    const requestBody = {
+        postId: parseInt(contentId),
+        userId: parseInt(sessionStorage.getItem('userId')),
+        reason: reason
+    };
+    
+    // For debugging only
+    console.log('Sending request to:', apiEndpoint);
+    console.log('Request body:', requestBody);
+    
+    fetch(apiEndpoint, {
         method: 'POST',
         headers: {
             'Content-Type': 'application/json',
             'Authorization': `Bearer ${sessionStorage.getItem('token')}`
         },
-        body: JSON.stringify({
-            postId: parseInt(contentId),
-            userId: parseInt(sessionStorage.getItem('userId')),
-            reason: reason
-        })
+        body: JSON.stringify(requestBody)
     })
     .then(response => {
+        console.log('Response status:', response.status);
         if (!response.ok) {
-            throw new Error('Không thể gửi báo cáo');
+            return response.json().then(errorData => {
+                console.error('Report submission error:', errorData);
+                throw new Error(errorData.message || 'Could not send report');
+            });
         }
         return response.json();
     })
     .then(data => {
-        alert('Báo cáo đã được gửi. Cảm ơn bạn đã góp phần xây dựng cộng đồng lành mạnh.');
+        Swal.fire({
+            title: 'Report Submitted',
+            text: 'Your report has been submitted. Thank you for helping to keep our community safe.',
+            icon: 'success',
+            confirmButtonText: 'OK'
+        });
         closeReportModal();
     })
     .catch(error => {
-        console.error('Lỗi khi gửi báo cáo:', error);
-        alert('Có lỗi xảy ra khi gửi báo cáo. Vui lòng thử lại sau.');
+        console.error('Error sending report:', error);
+        Swal.fire({
+            title: 'Error',
+            text: 'An error occurred while submitting your report. Please try again later.',
+            icon: 'error',
+            confirmButtonText: 'OK'
+        });
     });
 }
 
@@ -2794,3 +3469,116 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     });
 });
+
+// Function to increment thread views
+async function incrementThreadViews(threadId) {
+    try {
+        // Check if this thread has been viewed in this session
+        const viewedThreads = JSON.parse(sessionStorage.getItem('viewedThreads') || '{}');
+        
+        // If already viewed in this session, don't increment
+        if (viewedThreads[threadId]) {
+            return;
+        }
+        
+        // Mark as viewed in this session
+        viewedThreads[threadId] = true;
+        sessionStorage.setItem('viewedThreads', JSON.stringify(viewedThreads));
+        
+        // Send request to increment views
+        const response = await fetch(`${api_key}Thread/IncrementViews/${threadId}`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            }
+        });
+        
+        if (!response.ok) {
+            console.warn('Failed to increment view count:', response.status);
+            return;
+        }
+        
+        // Update views in the UI
+        const viewsElement = document.getElementById('thread-views');
+        if (viewsElement) {
+            const currentViews = parseInt(viewsElement.textContent) || 0;
+            viewsElement.textContent = (currentViews + 1).toString();
+        }
+        
+        console.log('View count incremented for thread', threadId);
+    } catch (error) {
+        console.error('Error incrementing view count:', error);
+    }
+}
+
+function setupPostActionButtons() {
+    // Thiết lập các nút edit và delete cho người dùng là tác giả
+    const userId = sessionStorage.getItem('userId');
+    const userRole = sessionStorage.getItem('role');
+    
+    // Nếu người dùng đã đăng nhập
+    if (userId) {
+        document.querySelectorAll('.post').forEach(post => {
+            const postUserId = post.getAttribute('data-user-id');
+            const editBtn = post.querySelector('.edit-post');
+            const deleteBtn = post.querySelector('.delete-post');
+            
+            // Hiện nút chỉnh sửa và xóa nếu là người viết hoặc là admin/mod
+            if (postUserId === userId || userRole === 'Admin' || userRole === 'Moderator') {
+                if (editBtn) editBtn.classList.remove('hide');
+                if (deleteBtn) deleteBtn.classList.remove('hide');
+                
+                // Thêm sự kiện cho nút edit
+                if (editBtn) {
+                    editBtn.addEventListener('click', function() {
+                        const postId = post.getAttribute('data-post-id');
+                        editPost(postId);
+                    });
+                }
+                
+                // Thêm sự kiện cho nút delete
+                if (deleteBtn) {
+                    deleteBtn.addEventListener('click', function() {
+                        const postId = post.getAttribute('data-post-id');
+                        deletePost(postId);
+                    });
+                }
+            }
+        });
+    }
+}
+
+// Thêm event listener cho sự kiện DOMContentLoaded
+document.addEventListener('DOMContentLoaded', function() {
+    // Kiểm tra xem đang ở trang thread-detail.html không
+    if (window.location.pathname.includes('thread-detail.html')) {
+        initThreadDetailPage();
+    }
+});
+
+function updateRuleBadges(views, likes) {
+    // Reset tất cả badge
+    document.querySelectorAll('.rule-badge').forEach(badge => {
+        badge.classList.remove('active');
+    });
+    
+    // Kích hoạt badge phù hợp dựa trên views và likes
+    if (views > 500 && likes > 100) {
+        document.getElementById('badge-platinum').classList.add('active');
+    } else if (views > 200 && likes > 50) {
+        document.getElementById('badge-gold').classList.add('active');
+    } else if (views > 50 && likes > 10) {
+        document.getElementById('badge-silver').classList.add('active');
+    } else {
+        document.getElementById('badge-bronze').classList.add('active');
+    }
+    
+    // Thêm hiệu ứng chuyển động cho badge đang active
+    const activeBadge = document.querySelector('.rule-badge.active');
+    if (activeBadge) {
+        activeBadge.classList.add('animate-pulse');
+        setTimeout(() => {
+            activeBadge.classList.remove('animate-pulse');
+        }, 2000);
+    }
+}

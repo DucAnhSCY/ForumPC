@@ -8,6 +8,7 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css">
     <link rel="preconnect" href="https://fonts.gstatic.com">
     <link href="https://fonts.googleapis.com/css2?family=Titillium+Web:ital@1&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <script src="main.js" defer></script>
 </head>
 <body>
@@ -86,12 +87,20 @@
                             <span id="thread-posted-date">Loading...</span>
                         </div>
                         <div class="thread-info-item">
-                            <span>Posts</span>
-                            <span id="post-count">0</span>
+                            <span>Likes</span>
+                            <span id="thread-likes">0</span>
                         </div>
                         <div class="thread-info-item">
                             <span>Views</span>
                             <span id="thread-views">0</span>
+                        </div>
+                        <div class="thread-info-item">
+                            <span>Posts</span>
+                            <span id="post-count">0</span>
+                        </div>
+                        <div class="thread-info-item">
+                            <span>Status</span>
+                            <span id="thread-status" class="thread-status">Active</span>
                         </div>
                     </div>
                 </div>
@@ -102,17 +111,6 @@
                     <ul class="related-threads" id="related-threads">
                         <!-- Related threads will be loaded here -->
                     </ul>
-                </div>
-
-                <!-- Thread Rules -->
-                <div class="sidebar-section">
-                    <h3 class="sidebar-title">Thread Rules</h3>
-                    <ol class="thread-rules">
-                        <li>Be respectful to others</li>
-                        <li>No spam or self-promotion</li>
-                        <li>Stay on topic</li>
-                        <li>Follow forum guidelines</li>
-                    </ol>
                 </div>
             </div>
         </div>
