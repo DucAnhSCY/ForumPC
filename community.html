@@ -32,7 +32,12 @@
         </div>
     </header>
 
-    <!-- Create Thread Section -->
+    <!-- Thread Actions -->
+    <div class="thread-actions">
+        <button class="create-thread-btn" onclick="showNewThreadForm()">Create New Thread</button>
+    </div>
+
+    <!-- Create Thread Section (mặc định ẩn) -->
     <div id="create-thread-section" class="hide">
         <h2>Create a New Thread</h2>
         <div class="thread-form">
@@ -43,10 +48,11 @@
             <textarea id="thread-content" placeholder="Write your thread content here..." required></textarea>
             <div class="thread-buttons">
                 <button onclick="createThread()">Create Thread</button>
-                <button onclick="clearThreadForm()">Cancel</button>
+                <button onclick="cancelThreadForm()">Cancel</button>
             </div>
         </div>
     </div>
+
     <!-- Threads Display Section -->
     <div class="threads-section">
         <h2>Recent Threads</h2>

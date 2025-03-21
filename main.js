@@ -364,6 +364,58 @@ function deleteCategory(categoryId) {
     });
 }
 
+// Đổi tên hàm clearThreadForm thành cancelThreadForm
+function cancelThreadForm() {
+    // Xóa dữ liệu đã nhập
+    const titleElement = document.getElementById('thread-title');
+    const contentElement = document.getElementById('thread-content');
+    const categoryElement = document.getElementById('thread-category');
+    
+    if (titleElement) titleElement.value = '';
+    if (contentElement) contentElement.value = '';
+    if (categoryElement) categoryElement.value = '';
+    
+    // Ẩn form
+    const formSection = document.getElementById('create-thread-section');
+    if (formSection) {
+        formSection.classList.add('hide');
+    }
+}
+
+// Thêm hàm showNewThreadForm nếu cần thiết
+function showNewThreadForm() {
+    // Kiểm tra đăng nhập
+    if (!sessionStorage.getItem('token')) {
+        alert('Please log in to create a new thread.');
+        return;
+    }
+    
+    const formSection = document.getElementById('create-thread-section');
+    if (formSection) {
+        formSection.classList.remove('hide');
+        // Focus vào select category
+        const categoryElement = document.getElementById('thread-category');
+        if (categoryElement) categoryElement.focus();
+    }
+    
+    // Tải danh sách categories nếu chưa có
+    const categorySelect = document.getElementById('thread-category');
+    if (categorySelect && categorySelect.options.length <= 1) {
+        fetchCategories();
+    }
+}
+
+// Giữ lại hàm hideNewThreadForm hiện tại để đảm bảo tương thích ngược
+function hideNewThreadForm() {
+    cancelThreadForm();
+}
+
+// Đảm bảo rằng hàm clearThreadForm hiện tại chuyển sang gọi cancelThreadForm
+function clearThreadForm() {
+    cancelThreadForm();
+}
+
+// Sửa lại hàm createThread để sử dụng cancelThreadForm thay vì clearThreadForm
 async function createThread() {
     const title = document.getElementById('thread-title').value;
     const content = document.getElementById('thread-content').value;
@@ -377,11 +429,8 @@ async function createThread() {
     }
 
     // Get the current user's ID and username from the session
-    const userId = parseInt(sessionStorage.getItem('userId'), 10); // Ensure userId is parsed as an integer
+    const userId = parseInt(sessionStorage.getItem('userId'), 10);
     const username = sessionStorage.getItem('username');
-
-    console.log("Retrieved userId:", userId);
-    console.log("Retrieved username:", username);
 
     try {
         const response = await fetch(`${api_key}Thread/Insert`, {
@@ -393,12 +442,12 @@ async function createThread() {
             body: JSON.stringify({ 
                 title: title, 
                 content: content, 
-                categoryId: parseInt(categoryId, 10), // Ensure categoryId is parsed as an integer
-                userId: userId, // Use the actual user ID from session storage
+                categoryId: parseInt(categoryId, 10),
+                userId: userId,
                 categoryName: categoryName,
-                username: username, // Add username here
+                username: username,
                 threadId: 0,
-                createdAt: new Date().toISOString() // Ensure the date is in ISO format
+                createdAt: new Date().toISOString()
             })
         });
         
@@ -406,8 +455,10 @@ async function createThread() {
             const data = await response.json();
             console.log('Thread created successfully:', data);
             alert('Thread created successfully!');
-            clearThreadForm();
-            fetchAndDisplayThreads(); // Refresh threads after creating a new one
+            cancelThreadForm(); // Thay đổi ở đây
+            
+            // Chuyển hướng đến thread vừa tạo
+            window.location.href = `thread-detail.html?id=${data.threadId}`;
         } else {
             const errorText = await response.text();
             console.error('Error response:', errorText);
@@ -422,13 +473,6 @@ async function createThread() {
         console.error('Fetch error:', error);
         alert(`Error: ${error.message}`);
     }
-}
-
-// Function to clear the thread form
-function clearThreadForm() {
-    document.getElementById('thread-title').value = '';
-    document.getElementById('thread-content').value = '';
-    document.getElementById('thread-category').value = '';
 }
 
 async function fetchAndDisplayThreads() {
@@ -1084,6 +1128,24 @@ function createPostElement(post) {
         }
     }
     
+    // Khởi tạo trạng thái like
+    const likeButton = postElement.querySelector(".like-button");
+    if (likeButton) {
+        // Đảm bảo onclick event được gán đúng
+        likeButton.onclick = function() {
+            toggleLike(this);
+        };
+        
+        // Khởi tạo giá trị like count ban đầu (hiển thị số 0)
+        const likeCount = likeButton.querySelector(".like-count");
+        if (likeCount) {
+            likeCount.textContent = '0';
+        }
+        
+        // Kiểm tra và cập nhật trạng thái like ngay khi tạo element
+        initializeLikeStatus(post.postId, likeButton);
+    }
+    
     // Load comments for this post
     const commentsContainer = postElement.querySelector(".comments-container");
     if (commentsContainer) {
@@ -1091,6 +1153,65 @@ function createPostElement(post) {
     }
     
     return postElement;
+}
+
+// Sửa hàm initializeLikeStatus để sử dụng đúng endpoints
+async function initializeLikeStatus(postId, likeButton) {
+    if (!likeButton) {
+        console.error('Like button not found');
+        return;
+    }
+    
+    try {
+        // Lấy thông tin likes từ API
+        const likesResponse = await fetch(`${api_key}Likes/ByPost/${postId}`);
+        if (!likesResponse.ok) {
+            throw new Error(`Failed to fetch likes for post ${postId}: ${likesResponse.status}`);
+        }
+        
+        const likesData = await likesResponse.json();
+        console.log(`Post ${postId} has ${likesData.likeCount} likes`);
+        
+        // Cập nhật số lượng like
+        const likeCountElement = likeButton.querySelector('.like-count');
+        if (likeCountElement) {
+            likeCountElement.textContent = likesData.likeCount;
+        }
+        
+        // Kiểm tra xem người dùng đã đăng nhập chưa
+        if (!sessionStorage.getItem('userId')) {
+            return;
+        }
+        
+        const userId = parseInt(sessionStorage.getItem('userId'));
+        
+        // Kiểm tra nếu người dùng đã like bài post này
+        const checkLikeResponse = await fetch(`${api_key}Likes/Check/${postId}/${userId}`);
+        if (!checkLikeResponse.ok) {
+            throw new Error(`Failed to check like status for post ${postId}: ${checkLikeResponse.status}`);
+        }
+        
+        const userLiked = await checkLikeResponse.json();
+        
+        console.log(`User ${userId} has ${userLiked ? 'liked' : 'not liked'} post ${postId}`);
+        
+        // Cập nhật giao diện dựa vào kết quả
+        const likeIcon = likeButton.querySelector('i');
+        
+        if (userLiked) {
+            // Người dùng đã like
+            likeIcon.className = 'fa fa-heart';
+            likeIcon.style.color = '#e25822';
+            likeButton.classList.add('liked');
+        } else {
+            // Người dùng chưa like
+            likeIcon.className = 'fa fa-heart-o';
+            likeIcon.style.color = '';
+            likeButton.classList.remove('liked');
+        }
+    } catch (error) {
+        console.error('Error initializing like status:', error);
+    }
 }
 
 // Toggle reply form visibility
@@ -1226,6 +1347,12 @@ function initThreadDetailPage() {
 document.addEventListener('DOMContentLoaded', function() {
     if (window.location.href.includes('thread-detail.html')) {
         initThreadDetailPage();
+        
+        // Đảm bảo modal ẩn đi khi tải trang
+        const reportModal = document.getElementById('report-modal');
+        if (reportModal) {
+            reportModal.classList.add('hide');
+        }
     }
 });
 
@@ -1579,6 +1706,10 @@ function createCommentElement(comment) {
     }
 
     const commentElement = template.content.cloneNode(true).querySelector('.comment');
+    if (!commentElement) {
+        console.error('Comment element not found in template');
+        return null;
+    }
     
     // Set comment data
     commentElement.setAttribute('data-comment-id', comment.commentId);
@@ -1586,34 +1717,47 @@ function createCommentElement(comment) {
     commentElement.querySelector('.comment-date').textContent = formatDate(comment.createdAt);
     commentElement.querySelector('.comment-content').textContent = comment.content;
     
-    // Show edit/delete buttons for comment author
+    // Kiểm tra quyền
     const currentUserId = parseInt(sessionStorage.getItem('userId'));
-    if (currentUserId === comment.userId) {
-        const editButton = commentElement.querySelector('.edit-comment');
-        const deleteButton = commentElement.querySelector('.delete-comment');
-        
+    const userRole = sessionStorage.getItem('role');
+    const isAuthor = currentUserId === comment.userId;
+    const isAdmin = userRole === 'Admin' || userRole === 'admin';
+    
+    // Nút chỉnh sửa comment - chỉ hiển thị cho tác giả
+    const editButton = commentElement.querySelector('.edit-comment');
+    if (editButton && isAuthor) {
         editButton.classList.remove('hide');
-        deleteButton.classList.remove('hide');
-        
         editButton.onclick = () => editComment(comment.commentId);
+    }
+    
+    // Nút xóa comment - hiển thị cho tác giả và admin
+    const deleteButton = commentElement.querySelector('.delete-comment');
+    if (deleteButton && (isAuthor || isAdmin)) {
+        deleteButton.classList.remove('hide');
         deleteButton.onclick = () => deleteComment(comment.commentId);
     }
     
     return commentElement;
 }
 
-// Edit a comment
+// Cập nhật hàm editComment để kết nối với CommentController
 async function editComment(commentId) {
+    // Kiểm tra đăng nhập
+    if (!sessionStorage.getItem('token')) {
+        alert('Vui lòng đăng nhập để chỉnh sửa bình luận.');
+        return;
+    }
+
     const commentElement = document.querySelector(`[data-comment-id="${commentId}"]`);
     if (!commentElement) {
-        console.error('Comment element not found');
+        console.error('Không tìm thấy bình luận để chỉnh sửa');
         return;
     }
 
     const contentElement = commentElement.querySelector('.comment-content');
     const currentContent = contentElement.textContent;
     
-    const newContent = prompt('Edit your comment:', currentContent);
+    const newContent = prompt('Chỉnh sửa bình luận:', currentContent);
     if (!newContent || newContent === currentContent) {
         return;
     }
@@ -1631,20 +1775,35 @@ async function editComment(commentId) {
         });
 
         if (!response.ok) {
-            throw new Error('Failed to update comment');
+            const errorText = await response.text();
+            throw new Error(errorText || 'Không thể cập nhật bình luận');
         }
 
         contentElement.textContent = newContent;
+        
+        // Hiệu ứng thành công
+        commentElement.classList.add('comment-updated');
+        setTimeout(() => {
+            commentElement.classList.remove('comment-updated');
+        }, 1500);
+
+        console.log('Bình luận đã được cập nhật thành công');
 
     } catch (error) {
-        console.error('Error updating comment:', error);
-        alert('Failed to update comment. Please try again.');
+        console.error('Lỗi khi cập nhật bình luận:', error);
+        alert('Không thể cập nhật bình luận. Vui lòng thử lại.');
     }
 }
 
-// Delete a comment
+// Cập nhật hàm deleteComment để kết nối với CommentController
 async function deleteComment(commentId) {
-    if (!confirm('Are you sure you want to delete this comment?')) {
+    // Kiểm tra đăng nhập
+    if (!sessionStorage.getItem('token')) {
+        alert('Vui lòng đăng nhập để xóa bình luận.');
+        return;
+    }
+
+    if (!confirm('Bạn có chắc chắn muốn xóa bình luận này?')) {
         return;
     }
 
@@ -1657,51 +1816,40 @@ async function deleteComment(commentId) {
         });
 
         if (!response.ok) {
-            throw new Error('Failed to delete comment');
+            const errorText = await response.text();
+            throw new Error(errorText || 'Không thể xóa bình luận');
         }
 
-        // Remove comment from UI
+        // Xóa bình luận khỏi UI
         const commentElement = document.querySelector(`[data-comment-id="${commentId}"]`);
-        const post = commentElement.closest('.post');
-        commentElement.remove();
-
-        // Update comment count
-        const commentCount = post.querySelector('.comment-count');
-        if (commentCount) {
-            const currentCount = parseInt(commentCount.textContent) || 0;
-            commentCount.textContent = Math.max(0, currentCount - 1);
+        if (!commentElement) {
+            console.error('Không tìm thấy bình luận để xóa khỏi UI');
+            return;
         }
+        
+        const post = commentElement.closest('.post');
+        
+        // Hiệu ứng xóa
+        commentElement.style.animation = 'fadeOut 0.5s';
+        setTimeout(() => {
+            commentElement.remove();
+            
+            // Cập nhật số lượng bình luận
+            if (post) {
+                const commentContainer = post.querySelector('.comments-container');
+                const remainingComments = commentContainer.querySelectorAll('.comment').length;
+                const commentCountElement = post.querySelector('.comment-count');
+                if (commentCountElement) {
+                    commentCountElement.textContent = remainingComments;
+                }
+            }
+        }, 500);
+
+        console.log('Bình luận đã được xóa thành công');
 
     } catch (error) {
-        console.error('Error deleting comment:', error);
-        alert('Failed to delete comment. Please try again.');
-    }
-}
-
-// Toggle comment form visibility
-function toggleCommentForm(button) {
-    if (!sessionStorage.getItem('token')) {
-        alert('Please log in to comment.');
-        return;
-    }
-    
-    const post = button.closest('.post');
-    if (!post) {
-        console.error('Post element not found');
-        return;
-    }
-
-    const form = post.querySelector('.comment-form');
-    if (!form) {
-        console.error('Comment form not found');
-        return;
-    }
-    
-    if (form.classList.contains('hide')) {
-        form.classList.remove('hide');
-        form.querySelector('textarea').focus();
-    } else {
-        form.classList.add('hide');
+        console.error('Lỗi khi xóa bình luận:', error);
+        alert('Không thể xóa bình luận. Vui lòng thử lại.');
     }
 }
 
@@ -1722,5 +1870,398 @@ function getPostIdFromComment(commentElement) {
     return parseInt(post.getAttribute("data-post-id"));
 }
 
+// Thêm chức năng toggleLike để kết nối với LikeController
+async function toggleLike(button) {
+    // Kiểm tra người dùng đã đăng nhập chưa
+    if (!sessionStorage.getItem('token')) {
+        alert('Vui lòng đăng nhập để thích bài viết.');
+        return;
+    }
 
+    const postElement = button.closest('.post');
+    if (!postElement) {
+        console.error('Post element not found');
+        return;
+    }
 
+    const postId = parseInt(postElement.getAttribute('data-post-id'));
+    const userId = parseInt(sessionStorage.getItem('userId'));
+    
+    if (isNaN(postId) || isNaN(userId)) {
+        console.error(`Invalid postId (${postId}) or userId (${userId})`);
+        alert('Dữ liệu không hợp lệ. Vui lòng tải lại trang.');
+        return;
+    }
+    
+    const likeIcon = button.querySelector('i');
+    const likeCount = button.querySelector('.like-count');
+
+    // Thêm animation và visual feedback ngay lập tức
+    button.classList.add('like-processing');
+    
+    try {
+        console.log(`Toggling like for post ${postId} and user ${userId}`);
+        
+        // Gửi yêu cầu toggle like đến API
+        const toggleResponse = await fetch(`${api_key}Likes/Toggle`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${sessionStorage.getItem('token')}`
+            },
+            body: JSON.stringify({
+                postId,
+                userId
+            })
+        });
+
+        const responseText = await toggleResponse.text();
+        console.log("Toggle response:", responseText);
+        
+        if (!toggleResponse.ok) {
+            throw new Error(`Failed to toggle like: ${responseText}`);
+        }
+
+        // Lấy trạng thái like hiện tại của người dùng sau khi toggle
+        const checkLikeResponse = await fetch(`${api_key}Likes/Check/${postId}/${userId}`);
+        if (!checkLikeResponse.ok) {
+            throw new Error('Không thể kiểm tra trạng thái like');
+        }
+        
+        const checkLikeData = await checkLikeResponse.json();
+        const userLiked = checkLikeData;  // API trả về trực tiếp true/false
+        
+        console.log(`User ${userId} ${userLiked ? 'now likes' : 'no longer likes'} post ${postId}`);
+        
+        // Lấy số lượng like mới nhất
+        const likesResponse = await fetch(`${api_key}Likes/ByPost/${postId}`);
+        if (!likesResponse.ok) {
+            throw new Error('Không thể lấy số lượng like');
+        }
+        
+        const likesData = await likesResponse.json();
+        console.log(`Post ${postId} has ${likesData.likeCount} likes`);
+        
+        // Cập nhật số lượng like
+        if (likeCount) {
+            likeCount.textContent = likesData.likeCount;
+        }
+        
+        // Cập nhật UI dựa trên kết quả
+        if (userLiked) {
+            // Người dùng đã like
+            likeIcon.className = 'fa fa-heart';
+            likeIcon.style.color = '#e25822';
+            button.classList.add('liked');
+        } else {
+            // Người dùng chưa like
+            likeIcon.className = 'fa fa-heart-o';
+            likeIcon.style.color = '';
+            button.classList.remove('liked');
+        }
+
+        // Thêm hiệu ứng ripple khi click
+        const ripple = document.createElement('span');
+        ripple.classList.add('ripple');
+        button.appendChild(ripple);
+        
+        setTimeout(() => {
+            ripple.remove();
+        }, 800);
+
+    } catch (error) {
+        console.error('Error toggling like:', error);
+        alert('Không thể cập nhật trạng thái like. Vui lòng thử lại.');
+    } finally {
+        // Xóa class processing
+        button.classList.remove('like-processing');
+    }
+}
+
+// Thêm hàm kiểm tra trạng thái like của người dùng
+async function checkUserLike(postId) {
+    const userId = sessionStorage.getItem('userId');
+    if (!userId || !postId) {
+        console.log(`Skip checking like for post ${postId} - user not logged in`);
+        return false;
+    }
+
+    try {
+        console.log(`Checking if user ${userId} liked post ${postId}`);
+        const response = await fetch(`${api_key}Likes/ByPost/${postId}`);
+        
+        if (!response.ok) {
+            console.error(`Error response from Likes/ByPost: ${response.status}`);
+            return false;
+        }
+        
+        const likes = await response.json();
+        const userLiked = likes.some(like => like.userId === parseInt(userId));
+        console.log(`Like check result for post ${postId}: ${userLiked ? 'liked' : 'not liked'}`);
+        return userLiked;
+    } catch (error) {
+        console.error('Error checking like status:', error);
+        return false;
+    }
+}
+
+// Cập nhật hàm getLikesCount để sử dụng API endpoint chính xác
+async function getLikesCount(postId) {
+    if (!postId) return 0;
+    
+    try {
+        const response = await fetch(`${api_key}Likes/ByPost/${postId}`);
+        if (!response.ok) {
+            console.error(`Error fetching likes for post ${postId}: ${response.status}`);
+            return 0;
+        }
+        
+        const likesData = await response.json();
+        return likesData.likeCount;
+    } catch (error) {
+        console.error('Error fetching likes count:', error);
+        return 0;
+    }
+}
+
+// Thêm hàm closeReportModal
+function closeReportModal() {
+    const modal = document.getElementById('report-modal');
+    if (modal) {
+        modal.classList.add('hide');
+    }
+    
+    // Xóa dữ liệu trong form
+    const reportReason = document.getElementById('report-reason');
+    if (reportReason) {
+        reportReason.value = '';
+    }
+}
+
+// Thêm hàm showReportForm
+function showReportForm(button, type = 'post') {
+    // Kiểm tra đăng nhập
+    if (!sessionStorage.getItem('token')) {
+        alert('Vui lòng đăng nhập để báo cáo nội dung.');
+        return;
+    }
+    
+    // Xác định ID của bài viết hoặc bình luận
+    let contentId, contentType;
+    if (type === 'comment') {
+        const comment = button.closest('.comment');
+        contentId = comment ? comment.getAttribute('data-comment-id') : null;
+        contentType = 'comment';
+    } else {
+        const post = button.closest('.post');
+        contentId = post ? post.getAttribute('data-post-id') : null;
+        contentType = 'post';
+    }
+    
+    if (!contentId) {
+        console.error('Không thể xác định ID nội dung để báo cáo');
+        return;
+    }
+    
+    // Lưu thông tin vào modal để sử dụng khi gửi báo cáo
+    const modal = document.getElementById('report-modal');
+    modal.setAttribute('data-content-id', contentId);
+    modal.setAttribute('data-content-type', contentType);
+    
+    // Hiển thị modal
+    modal.classList.remove('hide');
+    
+    // Focus vào textarea
+    document.getElementById('report-reason').focus();
+    
+    // Thêm sự kiện đóng modal khi click ra ngoài
+    modal.onclick = function(event) {
+        if (event.target === modal) {
+            closeReportModal();
+        }
+    };
+}
+
+// Thêm hàm submitReport
+function submitReport() {
+    // Kiểm tra đăng nhập
+    if (!sessionStorage.getItem('token')) {
+        alert('Vui lòng đăng nhập để báo cáo nội dung.');
+        closeReportModal();
+        return;
+    }
+    
+    const modal = document.getElementById('report-modal');
+    const contentId = modal.getAttribute('data-content-id');
+    const contentType = modal.getAttribute('data-content-type');
+    const reason = document.getElementById('report-reason').value.trim();
+    
+    if (!reason) {
+        alert('Vui lòng nhập lý do báo cáo.');
+        return;
+    }
+    
+    // Gửi báo cáo đến server
+    fetch(`${api_key}Report/Insert`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${sessionStorage.getItem('token')}`
+        },
+        body: JSON.stringify({
+            contentId: parseInt(contentId),
+            contentType: contentType,
+            reason: reason,
+            userId: parseInt(sessionStorage.getItem('userId'))
+        })
+    })
+    .then(response => {
+        if (!response.ok) {
+            throw new Error('Không thể gửi báo cáo');
+        }
+        return response.json();
+    })
+    .then(data => {
+        alert('Báo cáo đã được gửi. Cảm ơn bạn đã góp phần xây dựng cộng đồng lành mạnh.');
+        closeReportModal();
+    })
+    .catch(error => {
+        console.error('Lỗi khi gửi báo cáo:', error);
+        alert('Có lỗi xảy ra khi gửi báo cáo. Vui lòng thử lại sau.');
+    });
+}
+
+async function debugLikeStatus() {
+    if (!sessionStorage.getItem('userId')) {
+        console.log('Không thể debug: Người dùng chưa đăng nhập');
+        return;
+    }
+    
+    const posts = document.querySelectorAll('.post');
+    console.log(`Kiểm tra ${posts.length} bài viết`);
+    
+    posts.forEach(post => {
+        const postId = post.getAttribute('data-post-id');
+        const likeButton = post.querySelector('.like-button');
+        const isLiked = likeButton.classList.contains('liked');
+        
+        console.log(`Bài viết ID ${postId}: UI hiển thị ${isLiked ? 'đã like' : 'chưa like'}`);
+        
+        // Kiểm tra trạng thái like thực tế từ server
+        const userId = sessionStorage.getItem('userId');
+        fetch(`${api_key}Likes/Check/${postId}/${userId}`)
+            .then(response => response.json())
+            .then(data => {
+                console.log(`Bài viết ID ${postId}: Server trả về ${data.liked ? 'đã like' : 'chưa like'}`);
+                
+                // Kiểm tra nếu có sự khác biệt
+                if (isLiked !== data.liked) {
+                    console.error(`Không đồng bộ! Bài viết ${postId}: UI hiển thị ${isLiked ? 'đã like' : 'chưa like'} nhưng server trả về ${data.liked ? 'đã like' : 'chưa like'}`);
+                }
+            })
+            .catch(error => {
+                console.error(`Lỗi khi kiểm tra bài viết ${postId}:`, error);
+                console.error(`Lỗi khi kiểm tra bài viết ${postId}:`, error.message);
+            });
+    });
+}
+
+// Thêm hàm editPost
+async function editPost(postId) {
+    // Kiểm tra đăng nhập
+    if (!sessionStorage.getItem('token')) {
+        alert('Vui lòng đăng nhập để chỉnh sửa bài viết.');
+        return;
+    }
+
+    const postElement = document.querySelector(`[data-post-id="${postId}"]`);
+    if (!postElement) {
+        console.error('Không tìm thấy bài viết để chỉnh sửa');
+        return;
+    }
+
+    const contentElement = postElement.querySelector('.post-content');
+    const currentContent = contentElement.textContent;
+    
+    const newContent = prompt('Chỉnh sửa bài viết:', currentContent);
+    if (!newContent || newContent === currentContent) {
+        return;
+    }
+
+    try {
+        const response = await fetch(`${api_key}Post/Update/${postId}`, {
+            method: 'PUT',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${sessionStorage.getItem('token')}`
+            },
+            body: JSON.stringify({
+                content: newContent
+            })
+        });
+
+        if (!response.ok) {
+            throw new Error('Không thể cập nhật bài viết');
+        }
+
+        contentElement.textContent = newContent;
+        
+        // Hiệu ứng thành công
+        postElement.classList.add('post-updated');
+        setTimeout(() => {
+            postElement.classList.remove('post-updated');
+        }, 1500);
+
+        console.log('Bài viết đã được cập nhật thành công');
+
+    } catch (error) {
+        console.error('Lỗi khi cập nhật bài viết:', error);
+        alert('Không thể cập nhật bài viết. Vui lòng thử lại.');
+    }
+}
+
+// Thêm hàm deletePost
+async function deletePost(postId) {
+    // Kiểm tra đăng nhập
+    if (!sessionStorage.getItem('token')) {
+        alert('Vui lòng đăng nhập để xóa bài viết.');
+        return;
+    }
+
+    if (!confirm('Bạn có chắc chắn muốn xóa bài viết này?')) {
+        return;
+    }
+
+    try {
+        const response = await fetch(`${api_key}Post/Delete/${postId}`, {
+            method: 'DELETE',
+            headers: {
+                'Authorization': `Bearer ${sessionStorage.getItem('token')}`
+            }
+        });
+
+        if (!response.ok) {
+            throw new Error('Không thể xóa bài viết');
+        }
+
+        // Xóa bài viết khỏi UI
+        const postElement = document.querySelector(`[data-post-id="${postId}"]`);
+        if (postElement) {
+            // Hiệu ứng xóa
+            postElement.style.animation = 'fadeOut 0.5s';
+            setTimeout(() => {
+                postElement.remove();
+                // Cập nhật số lượng bài viết
+                const postsContainer = document.getElementById('posts-container');
+                const remainingPosts = postsContainer.querySelectorAll('.post').length;
+                updatePostCount(remainingPosts);
+            }, 500);
+        }
+
+        console.log('Bài viết đã được xóa thành công');
+
+    } catch (error) {
+        console.error('Lỗi khi xóa bài viết:', error);
+        alert('Không thể xóa bài viết. Vui lòng thử lại.');
+    }
+}
