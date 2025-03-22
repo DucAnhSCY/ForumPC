@@ -802,7 +802,7 @@ footer{
     width: 90%;
     max-width: 1000px;
     margin: 10px auto;
-    display: block;
+    display: block ;
 }
 
 #thread-box {
@@ -1004,7 +1004,7 @@ footer{
 }
 
 .thread-buttons button:first-of-type {
-    background-color: #28a745;
+    background-color: #28a745 !important;
     color: white;
 }
 
@@ -1013,7 +1013,7 @@ footer{
 }
 
 .thread-buttons button:last-of-type {
-    background-color: #dc3545;
+    background-color: #dc3545 !important;
     color: white;
 }
 
@@ -5243,10 +5243,7 @@ textarea:focus, .button:focus, .action-button:focus {
 }
 
 /* Ensure button animations work well */
-.thread-buttons button:first-of-type {
-    animation: glow 2s infinite alternate;
-    background: linear-gradient(45deg, #6a11cb, #2575fc);
-}
+
 
 .thread-buttons button:last-of-type {
     background: #333;

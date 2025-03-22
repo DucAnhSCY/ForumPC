@@ -8,15 +8,30 @@ document.addEventListener("DOMContentLoaded", function () {
         
         // Show category creation box for admins
         if (sessionStorage.getItem("role") === "Admin" || sessionStorage.getItem("role") === "admin") {
-            const addCategoryBox = document.getElementById("add-category-box");
-            if (addCategoryBox) {
-                addCategoryBox.classList.remove("hide");
-            }
+            showCategoryForm();
+        } else {
+            hideCategoryForm(); // Hide the category form for non-admin users
         }
+        
     } else {
         updateUIAfterLogout();
+        hideCreateThreadSection();
+        hideCategoryForm(); // Hide the category form for non-logged-in users
     }
 });
+
+function hideCreateThreadSection() {
+    const createThreadBtn = document.getElementById("create-thread-btn");
+    const createThreadSection = document.getElementById("create-thread-section");
+    if (createThreadBtn) createThreadBtn.style.display = "none";
+    if (createThreadSection) createThreadSection.style.display = "none";
+}
+function hideCategoryForm() {
+    const directCategoryForm = document.getElementById("direct-category-form");
+    const addCategoryBox = document.getElementById("add-category-box");
+    if (directCategoryForm) directCategoryForm.style.display = "none";
+    if (addCategoryBox) addCategoryBox.style.display = "none";
+}
 
 function initializePage() {
     document.querySelectorAll('.nav-bar .nav-link').forEach(link => {
@@ -840,7 +855,6 @@ async function fetchAndDisplayThreads() {
                 thread.total_likes = 0;
             }
         }
-        
         displayThreads(threads);
     } catch (error) {
         console.error('Error fetching data:', error);
