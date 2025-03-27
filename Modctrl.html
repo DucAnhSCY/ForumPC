@@ -35,16 +35,15 @@
     
     <!-- Tab Navigation -->
     <div class="mod-tabs">
-        <button class="tab-button active" onclick="showTab('user-management')">User Management</button>
+        <button class="tab-button admin-only" onclick="showTab('user-management')">User Management</button>
         <button class="tab-button" onclick="showTab('reports-management')">User Reports <span id="pending-reports-count" class="report-badge">0</span></button>
     </div>
     
     <!-- User Management Section -->
-    <section id="user-management" class="tab-content active">
+    <section id="user-management" class="tab-content admin-only">
         <h2>User Management</h2>
         <div class="filter-buttons">
             <button onclick="filterUsers('all')" class="filter-btn active">All Users</button>
-            <button onclick="filterUsers('Admin')" class="filter-btn">Admins</button>
             <button onclick="filterUsers('Moderator')" class="filter-btn">Moderators</button>
             <button onclick="filterUsers('User')" class="filter-btn">Users</button>
         </div>
@@ -132,5 +131,81 @@
     <footer>
         <span>&copy; 2025 My Forum | All Rights Reserved</span>
     </footer>
+
+    <script>
+        // Initialize the page when loaded
+        document.addEventListener('DOMContentLoaded', function() {
+            // Check user role and show/hide sections accordingly
+            const role = sessionStorage.getItem('role');
+            if (!role) {
+                window.location.href = 'login.html';
+                return;
+            }
+
+            // For moderators, only show User Reports tab
+            if (role === 'Moderator' || role === 'moderator') {
+                // Hide admin-only elements
+                document.querySelectorAll('.admin-only').forEach(el => {
+                    el.style.display = 'none';
+                });
+                
+                // Show only reports management tab and content
+                showTab('reports-management');
+            } else {
+                // For admins, default to user management tab
+                showTab('user-management');
+            }
+            
+            // Always fetch reports in background to have them ready
+            fetchReports();
+            fetchPendingReportsCount();
+        });
+
+        // Override the showTab function to respect role permissions
+        function showModTab(tabId) {
+            const role = sessionStorage.getItem('role');
+            
+            // If user is a moderator and trying to access user-management, redirect to reports
+            if ((role === 'Moderator' || role === 'moderator') && tabId === 'user-management') {
+                tabId = 'reports-management';
+            }
+            
+            // Hide all tab contents
+            document.querySelectorAll('.tab-content').forEach(tab => {
+                tab.style.display = 'none';
+            });
+            
+            // Show the selected tab
+            const selectedTab = document.getElementById(tabId);
+            if (selectedTab) {
+                selectedTab.style.display = 'block';
+            }
+            
+            // Update active state for tab buttons
+            document.querySelectorAll('.tab-button').forEach(btn => {
+                btn.classList.remove('active');
+            });
+            
+            // Find and activate the correct button
+            const buttons = document.querySelectorAll('.tab-button');
+            for (let btn of buttons) {
+                if (btn.getAttribute('onclick').includes(tabId)) {
+                    btn.classList.add('active');
+                    break;
+                }
+            }
+            
+            // If reports tab is selected, fetch reports data
+            if (tabId === 'reports-management') {
+                fetchReports();
+                fetchPendingReportsCount();
+            }
+        }
+
+        // Replace the original showTab function
+        function showTab(tabId) {
+            showModTab(tabId);
+        }
+    </script>
 </body>
 </html>

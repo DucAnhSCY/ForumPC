@@ -293,54 +293,36 @@ function logout() {
 function updateUIAfterLogin() {
     const username = sessionStorage.getItem("username");
     const role = sessionStorage.getItem("role");
-    const status = sessionStorage.getItem("status");
     
-    // Kiểm tra trạng thái tài khoản
-    if (status === "Inactive" || status === "Ban") {
-        let message = "Your account is currently not active.";
-        let title = "Account Restricted";
-        
-        if (status === "Inactive") {
-            message = "Your account is inactive. Please contact an administrator to activate your account.";
-        } else if (status === "Ban") {
-            message = "Your account has been banned. Please contact an administrator for more information.";
-            title = "Account Banned";
-        }
-        
-        // Thông báo cho người dùng
-        showCustomAlert(title, message, status === "Ban" ? "error" : "warning");
-        
-        // Đăng xuất người dùng
-        logout();
-        return;
+    // Display username in the top right corner
+    const topRightUsername = document.getElementById("top-right-username");
+    if (topRightUsername) {
+        topRightUsername.textContent = username;
+        topRightUsername.classList.remove("hide");
     }
     
-    // Continue with normal UI updates for active accounts
-    if (username) {
-        // Show logout links, hide login links
-        document.querySelectorAll(".logout-link").forEach(el => el.classList.remove("hide"));
-        document.querySelectorAll("a[href='login.html']").forEach(el => el.parentElement.classList.add("hide"));
-
-        // Display username in top right corner
-        const usernameElement = document.getElementById("top-right-username");
-        if (usernameElement) {
-            usernameElement.textContent = username;
-            usernameElement.classList.remove("hide");
+    // Show logout links and hide login links
+    const logoutLinks = document.querySelectorAll(".logout-link");
+    const loginLinks = document.querySelectorAll("a[href='login.html']");
+    
+    logoutLinks.forEach(link => link.classList.remove("hide"));
+    loginLinks.forEach(link => link.parentElement.classList.add("hide"));
+    
+    // Show/hide Mod Control based on role
+    const modControlLinks = document.querySelectorAll("a[href='Modctrl.html']");
+    modControlLinks.forEach(link => {
+        if (role === "Admin" || role === "admin" || role === "Moderator" || role === "moderator") {
+            link.parentElement.classList.remove("hide");
+        } else {
+            link.parentElement.classList.add("hide");
         }
-
-        // Show Mod Control link for admins and moderators
-        if (role === "Admin" || role === "Moderator") {
-            document.querySelectorAll("a[href='Modctrl.html']").forEach(el => el.parentElement.classList.remove("hide"));
-        }
-        
-        // Show the category creation box for admins if on the categories page
-        if ((role === "Admin" || role === "admin") && window.location.href.includes("categories.html")) {
-            const addCategoryBox = document.getElementById("add-category-box");
-            if (addCategoryBox) {
-                addCategoryBox.classList.remove("hide");
-            }
-        }
-    }
+    });
+    
+    // Show the create thread button for logged-in users
+    const createThreadBtn = document.getElementById("create-thread-btn");
+    const createThreadSection = document.getElementById("create-thread-section");
+    if (createThreadBtn) createThreadBtn.style.display = "block";
+    if (createThreadSection) createThreadSection.style.display = "block";
 }
 
 // Update UI after logout
@@ -1068,40 +1050,19 @@ function updateEngagementStatus(views, likes) {
 function initThreadDetailPage() {
     const threadId = getCurrentThreadId();
     if (!threadId) {
-        showError('Thread ID not found');
+        Swal.fire({
+            title: 'Error',
+            text: 'Invalid thread ID',
+            icon: 'error',
+            confirmButtonText: 'OK'
+        }).then(() => {
+            window.location.href = 'forums.html';
+        });
         return;
     }
 
-    // Hiển thị trạng thái loading
-    document.getElementById('posts-container').innerHTML = '<div class="loading-shimmer">Loading posts...</div>';
-    
-    // Sử dụng Promise.all để đồng thời gọi tất cả API cần thiết
-    Promise.all([
-        loadThreadDetail(threadId),         // Tải thông tin thread
-        loadPosts(threadId),                // Tải tất cả bài post
-        incrementThreadViews(threadId)      // Tăng lượt xem
-    ]).then(([threadData, _]) => {
-        // Sau khi tải xong thread data và posts, tải các thread liên quan
-        loadRelatedThreads(threadId);
-        
-        // Cập nhật số lượng post
-        const postCount = document.getElementById('post-count');
-        if (postCount) {
-            // Cập nhật UI với số lượng posts đã tải được
-            const postsContainer = document.getElementById('posts-container');
-            const numberOfPosts = postsContainer.querySelectorAll('.post').length;
-            postCount.textContent = numberOfPosts;
-        }
-        
-        // Cập nhật engagement status dựa trên views và likes
-        updateEngagementStatus(
-            parseInt(document.getElementById('thread-views').textContent) || 0,
-            parseInt(document.getElementById('thread-likes').textContent) || 0
-        );
-    }).catch(error => {
-        console.error('Error initializing thread detail page:', error);
-        showError('Failed to load thread details or posts');
-    });
+    // Load thread details and posts
+    loadThreadDetails(threadId);
 }
 
 function fetchUsers() {
@@ -1127,6 +1088,9 @@ function displayUsers(users) {
     userTableBody.innerHTML = "";
     
     users.forEach(user => {
+        // Skip displaying admin users
+        if (user.role === "Admin" || user.role === "admin") return;
+
         const row = document.createElement("tr");
         const roleClass = `role-${user.role.toLowerCase()}`; // Thêm class cho role
         const statusClass = `status-${user.status.toLowerCase()}`; // Class cho status
@@ -1139,7 +1103,6 @@ function displayUsers(users) {
                 <select class="role-select ${roleClass}" data-user-id="${user.userId}" onchange="handleRoleChange(this)">
                     <option value="User" ${user.role === 'User' ? 'selected' : ''} class="role-user">User</option>
                     <option value="Moderator" ${user.role === 'Moderator' ? 'selected' : ''} class="role-moderator">Moderator</option>
-                    <option value="Admin" ${user.role === 'Admin' ? 'selected' : ''} class="role-admin">Admin</option>
                 </select>
             </td>
             <td>
@@ -1187,7 +1150,7 @@ async function saveChanges(userId) {
 
         // Apply role changes if any
         if (changes.role) {
-            const rolePromise = fetch(`${api_key}User/UpdateRole/${userId}`, {
+            const rolePromise = fetch(`${api_key}User/UpdateUser/${userId}`, {
             method: "PUT",
             headers: {
                 "Content-Type": "application/json",
@@ -1631,16 +1594,22 @@ async function loadThreadDetails(threadId) {
         const response = await fetch(`${api_key}Thread/${threadId}`);
         
         if (!response.ok) {
-            throw new Error('Failed to fetch thread details');
+            const errorData = await response.json().catch(() => ({}));
+            throw new Error(errorData.message || 'Failed to fetch thread details');
         }
         
         const thread = await response.json();
         
-        // Kiểm tra các phần tử trước khi cập nhật
+        // Update thread details
         const titleElement = document.getElementById('thread-title');
         const authorElement = document.getElementById('thread-author');
         const dateElement = document.getElementById('thread-date');
         const contentElement = document.getElementById('thread-content');
+        const categoryElement = document.getElementById('thread-category');
+        const postedDateElement = document.getElementById('thread-posted-date');
+        const likesElement = document.getElementById('thread-likes');
+        const viewsElement = document.getElementById('thread-views');
+        const deleteThreadBtn = document.getElementById('delete-thread-btn');
         
         if (titleElement) titleElement.textContent = thread.title;
         if (authorElement) authorElement.textContent = thread.username || 'Unknown User';
@@ -1651,17 +1620,75 @@ async function loadThreadDetails(threadId) {
         }
         
         if (contentElement) contentElement.textContent = thread.content;
+        if (categoryElement) categoryElement.textContent = thread.categoryName || 'Uncategorized';
+        if (postedDateElement) {
+            const createdDate = new Date(thread.createdAt);
+            postedDateElement.textContent = createdDate.toLocaleDateString();
+        }
+        if (likesElement) likesElement.textContent = thread.likes || '0';
+        if (viewsElement) viewsElement.textContent = thread.views || '0';
+        
+        // Check if current user is the thread creator and show delete button
+        const currentUsername = sessionStorage.getItem('username');
+        if (deleteThreadBtn && currentUsername && thread.username === currentUsername) {
+            deleteThreadBtn.classList.remove('hide');
+            // Store thread ID as data attribute for delete functionality
+            deleteThreadBtn.setAttribute('data-thread-id', threadId);
+        } else if (deleteThreadBtn) {
+            deleteThreadBtn.classList.add('hide');
+        }
         
         document.title = `${thread.title} - Forum`;
         
+        // Load posts after thread details are loaded
+        await loadPosts(threadId);
+        
     } catch (error) {
         console.error('Error loading thread details:', error);
-        const contentElement = document.getElementById('thread-content');
-        if (contentElement) {
-            contentElement.innerHTML = '<p class="error-message">Failed to load thread details. Please try again later.</p>';
-        }
+        Swal.fire({
+            title: 'Error',
+            text: 'Failed to load thread details or posts. Please try again later.',
+            icon: 'error',
+            confirmButtonText: 'OK'
+        }).then(() => {
+            // Redirect to forums page on error
+            window.location.href = 'forums.html';
+        });
     }
 }
+
+// Initialize thread detail page
+function initThreadDetailPage() {
+    const threadId = getCurrentThreadId();
+    if (!threadId) {
+        Swal.fire({
+            title: 'Error',
+            text: 'Invalid thread ID',
+            icon: 'error',
+            confirmButtonText: 'OK'
+        }).then(() => {
+            window.location.href = 'forums.html';
+        });
+        return;
+    }
+
+    // Load thread details and posts
+    loadThreadDetails(threadId);
+}
+
+// Get current thread ID from URL
+function getCurrentThreadId() {
+    const urlParams = new URLSearchParams(window.location.search);
+    return urlParams.get('id');
+}
+
+// Initialize page when DOM is loaded
+document.addEventListener('DOMContentLoaded', function() {
+    if (window.location.pathname.includes('thread-detail.html')) {
+        initThreadDetailPage();
+    }
+    // ... existing code ...
+});
 
 // Load posts for a specific thread
 async function loadPosts(threadId) {
@@ -1968,50 +1995,23 @@ async function submitReply(button, parentPostId) {
     }
 }
 
-// Helper function to get current thread ID from URL
-function getCurrentThreadId() {
-    const urlParams = new URLSearchParams(window.location.search);
-    return urlParams.get('id');
-}
-
 // Initialize thread detail page with animations
 function initThreadDetailPage() {
     const threadId = getCurrentThreadId();
     if (!threadId) {
-        showError('Thread ID not found');
+        Swal.fire({
+            title: 'Error',
+            text: 'Invalid thread ID',
+            icon: 'error',
+            confirmButtonText: 'OK'
+        }).then(() => {
+            window.location.href = 'forums.html';
+        });
         return;
     }
 
-    // Hiển thị trạng thái loading
-    document.getElementById('posts-container').innerHTML = '<div class="loading-shimmer">Loading posts...</div>';
-    
-    // Sử dụng Promise.all để đồng thời gọi tất cả API cần thiết
-    Promise.all([
-        loadThreadDetail(threadId),         // Tải thông tin thread
-        loadPosts(threadId),                // Tải tất cả bài post
-        incrementThreadViews(threadId)      // Tăng lượt xem
-    ]).then(([threadData, _]) => {
-        // Sau khi tải xong thread data và posts, tải các thread liên quan
-        loadRelatedThreads(threadId);
-        
-        // Cập nhật số lượng post
-        const postCount = document.getElementById('post-count');
-        if (postCount) {
-            // Cập nhật UI với số lượng posts đã tải được
-            const postsContainer = document.getElementById('posts-container');
-            const numberOfPosts = postsContainer.querySelectorAll('.post').length;
-            postCount.textContent = numberOfPosts;
-        }
-        
-        // Cập nhật engagement status dựa trên views và likes
-        updateEngagementStatus(
-            parseInt(document.getElementById('thread-views').textContent) || 0,
-            parseInt(document.getElementById('thread-likes').textContent) || 0
-        );
-    }).catch(error => {
-        console.error('Error initializing thread detail page:', error);
-        showError('Failed to load thread details or posts');
-    });
+    // Load thread details and posts
+    loadThreadDetails(threadId);
 }
 
 // Check if we're on the thread detail page and initialize
@@ -3192,26 +3192,39 @@ let allReports = [];
 
 // Hàm để chuyển đổi tab trong Modctrl
 function showTab(tabId) {
-    // Ẩn tất cả các tab content
+    const role = sessionStorage.getItem('role');
+    
+    // If user is a moderator and trying to access user-management, redirect to reports
+    if ((role === 'Moderator' || role === 'moderator') && tabId === 'user-management') {
+        tabId = 'reports-management';
+    }
+    
+    // Hide all tab contents
     document.querySelectorAll('.tab-content').forEach(tab => {
-        tab.classList.remove('active');
+        tab.style.display = 'none';
     });
     
-    // Hiển thị tab được chọn
-    document.getElementById(tabId).classList.add('active');
+    // Show the selected tab
+    const selectedTab = document.getElementById(tabId);
+    if (selectedTab) {
+        selectedTab.style.display = 'block';
+    }
     
-    // Cập nhật trạng thái active cho tab buttons
+    // Update active state for tab buttons
     document.querySelectorAll('.tab-button').forEach(btn => {
         btn.classList.remove('active');
     });
-    const activeButton = Array.from(document.querySelectorAll('.tab-button')).find(
-        btn => btn.getAttribute('onclick').includes(tabId)
-    );
-    if (activeButton) {
-        activeButton.classList.add('active');
+    
+    // Find and activate the correct button
+    const buttons = document.querySelectorAll('.tab-button');
+    for (let btn of buttons) {
+        if (btn.getAttribute('onclick').includes(tabId)) {
+            btn.classList.add('active');
+            break;
+        }
     }
     
-    // Nếu chọn tab báo cáo, tải dữ liệu báo cáo
+    // If reports tab is selected, fetch reports data
     if (tabId === 'reports-management') {
         fetchReports();
         fetchPendingReportsCount();
@@ -3594,5 +3607,74 @@ function updateRuleBadges(views, likes) {
         setTimeout(() => {
             activeBadge.classList.remove('animate-pulse');
         }, 2000);
+    }
+}
+
+// Delete thread function
+async function deleteThread() {
+    const deleteThreadBtn = document.getElementById('delete-thread-btn');
+    const threadId = deleteThreadBtn.getAttribute('data-thread-id');
+    
+    if (!threadId) {
+        Swal.fire({
+            title: 'Error',
+            text: 'Thread ID not found',
+            icon: 'error',
+            confirmButtonText: 'OK'
+        });
+        return;
+    }
+    
+    // Confirm deletion
+    const result = await Swal.fire({
+        title: 'Delete Thread',
+        text: 'Are you sure you want to delete this thread? This action cannot be undone.',
+        icon: 'warning',
+        showCancelButton: true,
+        confirmButtonText: 'Delete',
+        cancelButtonText: 'Cancel',
+        confirmButtonColor: '#d33',
+        cancelButtonColor: '#3085d6'
+    });
+    
+    if (!result.isConfirmed) {
+        return;
+    }
+    
+    try {
+        const token = sessionStorage.getItem('token');
+        if (!token) {
+            throw new Error('You must be logged in to delete a thread');
+        }
+        
+        const response = await fetch(`${api_key}Thread/Delete/${threadId}`, {
+            method: 'DELETE',
+            headers: {
+                'Authorization': `Bearer ${token}`
+            }
+        });
+        
+        if (!response.ok) {
+            const errorData = await response.json().catch(() => ({}));
+            throw new Error(errorData.message || 'Failed to delete thread');
+        }
+        
+        Swal.fire({
+            title: 'Success',
+            text: 'Thread deleted successfully',
+            icon: 'success',
+            confirmButtonText: 'OK'
+        }).then(() => {
+            // Redirect to forums page after successful deletion
+            window.location.href = 'forums.html';
+        });
+    } catch (error) {
+        console.error('Error deleting thread:', error);
+        Swal.fire({
+            title: 'Error',
+            text: error.message || 'Failed to delete thread',
+            icon: 'error',
+            confirmButtonText: 'OK'
+        });
     }
 }
