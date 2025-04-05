@@ -6167,3 +6167,50 @@ footer {
     visibility: visible;
     bottom: calc(100% + 5px);
 }
+
+/* Styles for CKEditor */
+.editor-container {
+    margin-bottom: 20px;
+    width: 100%;
+}
+
+/* Style the CKEditor toolbar */
+.cke_top {
+    background: linear-gradient(to right, var(--gradient-start), var(--gradient-end)) !important;
+    border-color: var(--border-color) !important;
+}
+
+/* Style CKEditor content area */
+.cke_contents {
+    border-color: var(--border-color) !important;
+    min-height: 250px !important;
+}
+
+/* Style CKEditor buttons */
+.cke_button {
+    background: transparent !important;
+}
+
+.cke_button:hover {
+    background: rgba(255, 255, 255, 0.2) !important;
+}
+
+/* Fix for image size in CKEditor */
+.cke_editable img {
+    max-width: 100%;
+    height: auto;
+}
+
+/* Style displayed image in posts */
+.post-content img {
+    max-width: 100%;
+    height: auto;
+    border-radius: 5px;
+    margin: 10px 0;
+    box-shadow: 0 3px 8px rgba(0, 0, 0, 0.1);
+    transition: transform 0.3s ease;
+}
+
+.post-content img:hover {
+    transform: scale(1.02);
+}

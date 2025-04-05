@@ -8,7 +8,11 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css">
     <link rel="preconnect" href="https://fonts.gstatic.com">
     <link href="https://fonts.googleapis.com/css2?family=Titillium+Web:ital@1&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="ckeditor-custom.css">
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <!-- CKEditor CDN -->
+    <script src="https://cdn.ckeditor.com/4.16.2/standard-all/ckeditor.js"></script>
+    <script src="ckeditor-config.js"></script>
     <script src="main.js" defer></script>
 </head>
 <body>
@@ -49,7 +53,12 @@
                     <option value="" disabled selected>Select Category</option>
                 </select>
                 <textarea id="thread-title" placeholder="Thread Title" required></textarea>
-                <textarea id="thread-content" placeholder="Write your thread content here..." required></textarea>
+                <div class="editor-container">
+                    <textarea id="thread-content" placeholder="Write your thread content here..." required></textarea>
+                    <div class="editor-help">
+                        <p><i class="fa fa-info-circle"></i> Write your thread content here.</p>
+                    </div>
+                </div>
                 <div class="thread-buttons">
                     <button onclick="createThread()"><i class="fa fa-check"></i> Create Thread</button>
                     <button onclick="cancelThreadForm()"><i class="fa fa-times"></i> Cancel</button>

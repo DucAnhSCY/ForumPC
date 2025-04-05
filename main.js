@@ -713,20 +713,11 @@ function deleteCategory(categoryId) {
 
 // Đổi tên hàm clearThreadForm thành cancelThreadForm
 function cancelThreadForm() {
-    // Xóa dữ liệu đã nhập
-    const titleElement = document.getElementById('thread-title');
-    const contentElement = document.getElementById('thread-content');
-    const categoryElement = document.getElementById('thread-category');
+    // Clear the form
+    clearThreadForm();
     
-    if (titleElement) titleElement.value = '';
-    if (contentElement) contentElement.value = '';
-    if (categoryElement) categoryElement.value = '';
-    
-    // Ẩn form
-    const formSection = document.getElementById('create-thread-section');
-    if (formSection) {
-        formSection.classList.add('hide');
-    }
+    // Hide the form
+    hideNewThreadForm();
 }
 
 // Thêm hàm showNewThreadForm nếu cần thiết
@@ -745,28 +736,36 @@ function hideNewThreadForm() {
     const createThreadSection = document.getElementById('create-thread-section');
     createThreadSection.classList.remove('show');
     createThreadSection.classList.add('hide');
+    
+    // Clean up any CKEditor instance if it exists
+    if (CKEDITOR.instances['thread-content']) {
+        CKEDITOR.instances['thread-content'].destroy();
+    }
 }
 
 // Đảm bảo rằng hàm clearThreadForm hiện tại chuyển sang gọi cancelThreadForm
 function clearThreadForm() {
-    cancelThreadForm();
+    document.getElementById('thread-title').value = '';
+    document.getElementById('thread-content').value = '';
+    document.getElementById('thread-category').selectedIndex = 0;
 }
 
 // Sửa lại hàm createThread để sử dụng cancelThreadForm thay vì clearThreadForm
 async function createThread() {
     const title = document.getElementById('thread-title').value;
     const content = document.getElementById('thread-content').value;
+    
     const categorySelect = document.getElementById('thread-category');
     const categoryId = categorySelect.value;
     const categoryName = categorySelect.options[categorySelect.selectedIndex].text;
     
-    if (!title || !content || !categoryId) {
-        alert('Please fill in all fields including selecting a category.');
+    // Basic validation
+    if (!title.trim() || !content.trim() || !categoryId) {
+        alert('Please fill all required fields.');
         return;
     }
-
-    // Get the current user's ID and username from the session
-    const userId = parseInt(sessionStorage.getItem('userId'), 10);
+    
+    const userId = parseInt(sessionStorage.getItem('userId'));
     const username = sessionStorage.getItem('username');
 
     try {
@@ -879,72 +878,108 @@ async function getThreadTotalLikes(threadId, thread) {
 
 function displayThreads(threads) {
     const threadsDisplay = document.getElementById('threads-display');
+    if (!threadsDisplay) return;
+    
     threadsDisplay.innerHTML = '';
     
     if (threads.length === 0) {
-        threadsDisplay.innerHTML = '<div class="no-threads animate-fade-in">No threads found. Be the first to create one!</div>';
+        threadsDisplay.innerHTML = `
+            <div class="no-threads">
+                <i class="fa fa-comments-o"></i>
+                <p>No threads found. Be the first to create a thread!</p>
+            </div>
+        `;
         return;
     }
-
-    // Sắp xếp thread theo thời gian tạo (mới nhất lên đầu)
-    threads.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
     
     threads.forEach(thread => {
         const threadElement = document.createElement('div');
         threadElement.className = 'thread-item';
         
-        // Format nội dung để hiển thị rõ hơn
+        // Truncate content - Keep HTML structure but limit length
         const truncatedContent = truncateContent(thread.content, 150);
-        const formattedDate = formatDate(thread.createdAt);
         
         threadElement.innerHTML = `
+            <div class="thread-header">
                 <h3 class="thread-title">${thread.title}</h3>
                 <div class="thread-meta">
-                <span class="thread-author"><i class="fa fa-user"></i> ${thread.username}</span>
-                <span class="thread-time"><i class="fa fa-clock-o"></i> ${formattedDate}</span>
-                <span class="thread-category"><i class="fa fa-folder"></i> ${thread.categoryName || 'Uncategorized'}</span>
-                </div>
-            <div class="thread-content">${truncatedContent}</div>
-            <div class="thread-footer">
-                <a href="thread-detail.html?id=${thread.threadId}" class="thread-link">Read More</a>
-                <div class="thread-stats">
-                    <span class="thread-views"><i class="fa fa-eye"></i> ${thread.views || 0}</span>
-                    <span class="thread-likes"><i class="fa fa-heart"></i> ${thread.total_likes || 0}</span>
-                    <span class="thread-comments"><i class="fa fa-comment"></i> ${thread.post_count || 0}</span>
+                    <span class="thread-author"><i class="fa fa-user"></i> ${thread.username || 'Unknown User'}</span>
+                    <span class="thread-date"><i class="fa fa-calendar"></i> ${formatDate(thread.createdAt)}</span>
                 </div>
             </div>
+            <div class="thread-content">${truncatedContent}</div>
+            <div class="thread-footer">
+                <div class="thread-stats">
+                    <span class="thread-views"><i class="fa fa-eye"></i> ${thread.views || 0} views</span>
+                    <span class="thread-likes"><i class="fa fa-heart"></i> ${thread.likes || 0} likes</span>
+                </div>
+                <a href="thread-detail.html?id=${thread.threadId}" class="thread-read-more">Read More</a>
+            </div>
         `;
-        
-        // Thêm hiệu ứng nhấp nháy khi thread được tạo mới
-        const createdDate = new Date(thread.createdAt);
-        const currentDate = new Date();
-        const diffTime = Math.abs(currentDate - createdDate);
-        const diffHours = diffTime / (1000 * 60 * 60);
-        
-        if (diffHours < 24) {
-            threadElement.classList.add('new-thread');
-        }
         
         threadsDisplay.appendChild(threadElement);
     });
     
-    // Thêm sự kiện hover cho các thread item
     addThreadHoverEffects();
 }
 
 function truncateContent(content, maxLength) {
     if (!content) return '';
-    if (content.length <= maxLength) return content;
     
-    // Tìm vị trí khoảng trắng gần nhất trước maxLength để cắt đúng từ
-    const truncated = content.substr(0, maxLength);
-    const lastSpace = truncated.lastIndexOf(' ');
+    // Create a temporary div to handle HTML content
+    const tempDiv = document.createElement('div');
+    tempDiv.innerHTML = content;
     
-    // Nếu không tìm thấy khoảng trắng, cắt tại maxLength
-    if (lastSpace === -1) return truncated + '...';
+    // Get the text content
+    const textContent = tempDiv.textContent || tempDiv.innerText;
     
-    // Cắt tại khoảng trắng gần nhất
-    return truncated.substr(0, lastSpace) + '...';
+    if (textContent.length <= maxLength) {
+        return content;
+    }
+    
+    // If content is too long, create a truncated version
+    // First, remove any iframes (videos) from the truncated version
+    const contentWithoutIframes = content.replace(/<iframe[^>]*>.*?<\/iframe>/ig, '[Video]');
+    
+    // Then limit the text length
+    const tempDiv2 = document.createElement('div');
+    tempDiv2.innerHTML = contentWithoutIframes;
+    
+    let truncated = '';
+    let currentLength = 0;
+    const children = Array.from(tempDiv2.childNodes);
+    
+    for (let i = 0; i < children.length; i++) {
+        const node = children[i];
+        
+        if (node.nodeType === 3) { // Text node
+            const text = node.textContent;
+            if (currentLength + text.length > maxLength) {
+                truncated += text.substr(0, maxLength - currentLength) + '...';
+                break;
+            } else {
+                truncated += text;
+                currentLength += text.length;
+            }
+        } else if (node.nodeType === 1) { // Element node
+            // For images, just add a placeholder
+            if (node.tagName === 'IMG') {
+                truncated += '[Image]';
+                currentLength += 7;
+            } else {
+                const clonedNode = node.cloneNode(true);
+                truncated += clonedNode.outerHTML;
+                currentLength += (clonedNode.textContent || clonedNode.innerText).length;
+            }
+        }
+        
+        if (currentLength >= maxLength) {
+            truncated += '...';
+            break;
+        }
+    }
+    
+    return truncated;
 }
 
 function addThreadHoverEffects() {
@@ -1049,20 +1084,17 @@ function updateEngagementStatus(views, likes) {
 // Hàm khởi tạo trang thread detail
 function initThreadDetailPage() {
     const threadId = getCurrentThreadId();
-    if (!threadId) {
-        Swal.fire({
-            title: 'Error',
-            text: 'Invalid thread ID',
-            icon: 'error',
-            confirmButtonText: 'OK'
-        }).then(() => {
-            window.location.href = 'forums.html';
-        });
-        return;
+    if (threadId) {
+        loadThreadDetails(threadId);
+        loadPosts(threadId);
+        incrementThreadViews(threadId);
+        loadRelatedThreads(threadId);
+        
+        // Initialize CKEditor for post input
+        if (document.getElementById('post-input') && !CKEDITOR.instances['post-input']) {
+            CKEDITOR.replace('post-input');
+        }
     }
-
-    // Load thread details and posts
-    loadThreadDetails(threadId);
 }
 
 function fetchUsers() {
@@ -1660,20 +1692,17 @@ async function loadThreadDetails(threadId) {
 // Initialize thread detail page
 function initThreadDetailPage() {
     const threadId = getCurrentThreadId();
-    if (!threadId) {
-        Swal.fire({
-            title: 'Error',
-            text: 'Invalid thread ID',
-            icon: 'error',
-            confirmButtonText: 'OK'
-        }).then(() => {
-            window.location.href = 'forums.html';
-        });
-        return;
+    if (threadId) {
+        loadThreadDetails(threadId);
+        loadPosts(threadId);
+        incrementThreadViews(threadId);
+        loadRelatedThreads(threadId);
+        
+        // Initialize CKEditor for post input
+        if (document.getElementById('post-input') && !CKEDITOR.instances['post-input']) {
+            CKEDITOR.replace('post-input');
+        }
     }
-
-    // Load thread details and posts
-    loadThreadDetails(threadId);
 }
 
 // Get current thread ID from URL
@@ -1726,121 +1755,90 @@ async function loadPosts(threadId) {
 // Display posts in the UI
 function displayPosts(posts) {
     const postsContainer = document.getElementById('posts-container');
+    if (!postsContainer) return;
     
-    // Xóa shimmer loading
     postsContainer.innerHTML = '';
     
     if (posts.length === 0) {
-        postsContainer.innerHTML = '<div class="no-posts">No posts in this thread yet. Be the first to post!</div>';
+        postsContainer.innerHTML = `
+            <div class="no-posts">
+                <i class="fa fa-comment-o"></i>
+                <p>No posts yet. Be the first to post!</p>
+            </div>
+        `;
         return;
     }
     
-    // Sắp xếp posts theo thời gian tạo (mới nhất lên trên)
-    posts.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
-    
-    // Tạo element cho mỗi post và thêm vào container
     posts.forEach(post => {
         const postElement = createPostElement(post);
         postsContainer.appendChild(postElement);
-        
-        // Tải comments cho post này
-        loadComments(post.postId, postElement.querySelector('.comments-container'));
-        
-        // Khởi tạo trạng thái like cho mỗi post
-        const likeButton = postElement.querySelector('.like-button');
-        initializeLikeStatus(post.postId, likeButton);
     });
-    
-    // Thêm sự kiện click cho các nút action
-    setupPostActionButtons();
 }
 
 // Create a post element for the UI with added animation
 function createPostElement(post) {
-    // Sử dụng template có sẵn nếu có
-    const template = document.getElementById('post-template');
-    let postElement;
+    const postElement = document.createElement('div');
+    postElement.className = 'post';
+    postElement.id = `post-${post.postId}`;
     
-    if (template) {
-        postElement = template.content.cloneNode(true).querySelector('.post');
-    } else {
-        // Nếu không có template, tạo mới element
-        postElement = document.createElement('div');
-        postElement.className = 'post';
-        // Thêm HTML structure cho post
-        postElement.innerHTML = `
-            <div class="post-header">
-                <div class="post-author-info">
-                    <div class="user-avatar">
-                        <i class="fa fa-user-circle"></i>
-                    </div>
-                    <div class="author-details">
-                        <span class="post-author">${post.username}</span>
-                        <span class="post-date">${formatDate(post.createdAt)}</span>
-                    </div>
+    // Format the post date
+    const postDate = new Date(post.createdAt);
+    const formattedDate = postDate.toLocaleDateString() + ' at ' + postDate.toLocaleTimeString();
+    
+    // Determine if the current user is the post author or admin
+    const currentUserId = sessionStorage.getItem('userId');
+    const isAuthor = currentUserId && parseInt(currentUserId) === post.userId;
+    const isAdmin = sessionStorage.getItem('role') === 'Admin' || sessionStorage.getItem('role') === 'admin';
+    const canModify = isAuthor || isAdmin;
+    
+    // Clean post content to remove unnecessary paragraph tags
+    const cleanedContent = cleanHtmlContent(post.content);
+    
+    postElement.innerHTML = `
+        <div class="post-header">
+            <div class="user-info">
+                <div class="user-avatar">
+                    <i class="fa fa-user-circle"></i>
                 </div>
-                <div class="post-actions">
-                    <button class="action-button edit-post hide">
-                        <i class="fa fa-edit"></i> Edit
-                    </button>
-                    <button class="action-button delete-post hide">
-                        <i class="fa fa-trash"></i> Delete
-                    </button>
+                <div class="user-meta">
+                    <div class="username">${post.username || 'Unknown User'}</div>
+                    <div class="post-time">${formattedDate}</div>
                 </div>
             </div>
-            <div class="post-content">${post.content}</div>
-            <div class="post-footer">
-                <div class="post-interactions">
-                    <button class="action-button like-button" onclick="toggleLike(this)">
-                        <i class="fa fa-heart-o"></i> <span class="like-count">0</span>
-                    </button>
-                    <button class="action-button comment-button" onclick="toggleCommentForm(this)">
-                        <i class="fa fa-comment"></i> <span class="comment-count">0</span>
-                    </button>
-                    <button class="action-button report-button" onclick="showReportForm(this)">
-                        <i class="fa fa-flag"></i> Report
-                    </button>
-                </div>
+            <div class="post-actions ${canModify ? '' : 'hide'}">
+                <button class="edit-button" onclick="editPost(${post.postId})"><i class="fa fa-pencil"></i></button>
+                <button class="delete-button" onclick="deletePost(${post.postId})"><i class="fa fa-trash"></i></button>
             </div>
-            <div class="comment-form hide">
-                <div class="form-content">
-                    <textarea placeholder="Write a comment..."></textarea>
-                    <button class="button" onclick="submitComment(this)">Add Comment</button>
-                </div>
+        </div>
+        <div class="post-content">${cleanedContent}</div>
+        <div class="post-footer">
+            <div class="post-stats">
+                <span class="post-likes" id="likes-count-${post.postId}">${post.likes || 0} likes</span>
+                <button class="like-button" id="like-button-${post.postId}" onclick="toggleLike(this)" data-post-id="${post.postId}">
+                    <i class="fa fa-heart-o"></i> Like
+                </button>
+                <button class="report-button" onclick="showReportForm(this, 'post')" data-post-id="${post.postId}">
+                    <i class="fa fa-flag"></i> Report
+                </button>
             </div>
-            <div class="comments-container">
-                <!-- Comments will be loaded here -->
+            <button class="reply-button" onclick="toggleReplyForm(this)">
+                <i class="fa fa-reply"></i> Reply
+            </button>
+            <div class="reply-form">
+                <textarea placeholder="Write your reply..."></textarea>
+                <button onclick="submitReply(this, ${post.postId})">Post Reply</button>
             </div>
-        `;
+        </div>
+        <div class="post-comments" id="comments-${post.postId}"></div>
+    `;
+    
+    // Initialize the like status for this post
+    if (sessionStorage.getItem('token')) {
+        initializeLikeStatus(post.postId, postElement.querySelector(`#like-button-${post.postId}`));
     }
     
-    // Thêm data attributes để dễ dàng truy cập sau này
-    postElement.setAttribute('data-post-id', post.postId);
-    postElement.setAttribute('data-user-id', post.userId);
-    
-    // Cập nhật nội dung post
-    const authorElement = postElement.querySelector('.post-author');
-    const dateElement = postElement.querySelector('.post-date');
-    const contentElement = postElement.querySelector('.post-content');
-    
-    if (authorElement) authorElement.textContent = post.username;
-    if (dateElement) {
-        const formattedDate = formatDate(post.createdAt);
-        dateElement.textContent = formattedDate;
-        // Thêm tooltip cho ngày đầy đủ
-        dateElement.setAttribute('data-tooltip', new Date(post.createdAt).toLocaleString());
-    }
-    if (contentElement) contentElement.innerHTML = post.content;
-    
-    // Kiểm tra xem post có mới không (24h)
-    const createdDate = new Date(post.createdAt);
-    const now = new Date();
-    const diffTime = Math.abs(now - createdDate);
-    const diffHours = diffTime / (1000 * 60 * 60);
-    
-    if (diffHours < 24) {
-        postElement.classList.add('new-post');
-    }
+    // Load comments for this post
+    loadComments(post.postId, postElement.querySelector(`#comments-${post.postId}`));
     
     return postElement;
 }
@@ -1960,7 +1958,10 @@ async function submitReply(button, parentPostId) {
     }
     
     const form = button.parentElement;
-    const content = form.querySelector('textarea').value.trim();
+    let content = form.querySelector('textarea').value.trim();
+    
+    // Clean the content by removing unnecessary paragraph tags
+    content = cleanHtmlContent(content);
     
     if (!content) {
         return;
@@ -1998,20 +1999,17 @@ async function submitReply(button, parentPostId) {
 // Initialize thread detail page with animations
 function initThreadDetailPage() {
     const threadId = getCurrentThreadId();
-    if (!threadId) {
-        Swal.fire({
-            title: 'Error',
-            text: 'Invalid thread ID',
-            icon: 'error',
-            confirmButtonText: 'OK'
-        }).then(() => {
-            window.location.href = 'forums.html';
-        });
-        return;
+    if (threadId) {
+        loadThreadDetails(threadId);
+        loadPosts(threadId);
+        incrementThreadViews(threadId);
+        loadRelatedThreads(threadId);
+        
+        // Initialize CKEditor for post input
+        if (document.getElementById('post-input') && !CKEDITOR.instances['post-input']) {
+            CKEDITOR.replace('post-input');
+        }
     }
-
-    // Load thread details and posts
-    loadThreadDetails(threadId);
 }
 
 // Check if we're on the thread detail page and initialize
@@ -2167,11 +2165,14 @@ async function loadThreadDetail(threadId) {
         // Cập nhật tiêu đề trang
         document.title = `${thread.title} - Forum`;
         
+        // Clean the thread content before displaying
+        const cleanedContent = cleanHtmlContent(thread.content);
+        
         // Cập nhật nội dung thread
         document.getElementById('thread-title').textContent = thread.title;
         document.getElementById('thread-author').textContent = thread.username;
         document.getElementById('thread-date').textContent = formatDate(thread.createdAt);
-        document.getElementById('thread-content').innerHTML = thread.content;
+        document.getElementById('thread-content').innerHTML = cleanedContent;
         
         // Lấy và hiển thị tổng số lượt like
         const threadWithLikes = await getThreadTotalLikes(threadId, thread);
@@ -2197,13 +2198,19 @@ async function loadThreadDetail(threadId) {
 
 // Create a new post
 async function submitPost() {
+    // Check if user is logged in
     if (!sessionStorage.getItem("token")) {
         alert("Please log in to create a post.");
         return;
     }
 
-    const content = document.getElementById("post-input").value.trim();
-    if (!content) {
+    // Get content from CKEditor
+    let content = CKEDITOR.instances["post-input"].getData();
+    
+    // Clean the content by removing unnecessary paragraph tags
+    content = cleanHtmlContent(content);
+    
+    if (!content.trim()) {
         alert("Please write something in your post.");
         return;
     }
@@ -2230,7 +2237,7 @@ async function submitPost() {
         }
 
         // Clear input and reload posts
-        document.getElementById("post-input").value = "";
+        CKEDITOR.instances["post-input"].setData("");
         loadPosts(threadId);
     } catch (error) {
         console.error("Error creating post:", error);
@@ -2274,33 +2281,24 @@ async function loadPosts(threadId) {
 // Display posts in the UI
 function displayPosts(posts) {
     const postsContainer = document.getElementById('posts-container');
+    if (!postsContainer) return;
     
-    // Xóa shimmer loading
     postsContainer.innerHTML = '';
     
     if (posts.length === 0) {
-        postsContainer.innerHTML = '<div class="no-posts">No posts in this thread yet. Be the first to post!</div>';
+        postsContainer.innerHTML = `
+            <div class="no-posts">
+                <i class="fa fa-comment-o"></i>
+                <p>No posts yet. Be the first to post!</p>
+            </div>
+        `;
         return;
     }
     
-    // Sắp xếp posts theo thời gian tạo (mới nhất lên trên)
-    posts.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
-    
-    // Tạo element cho mỗi post và thêm vào container
     posts.forEach(post => {
         const postElement = createPostElement(post);
         postsContainer.appendChild(postElement);
-        
-        // Tải comments cho post này
-        loadComments(post.postId, postElement.querySelector('.comments-container'));
-        
-        // Khởi tạo trạng thái like cho mỗi post
-        const likeButton = postElement.querySelector('.like-button');
-        initializeLikeStatus(post.postId, likeButton);
     });
-    
-    // Thêm sự kiện click cho các nút action
-    setupPostActionButtons();
 }
 
 // Create a post element
@@ -2318,7 +2316,10 @@ function createPostElement(post) {
     if (dateElement) dateElement.textContent = formatDate(post.createdAt);
     
     const contentElement = postElement.querySelector(".post-content");
-    if (contentElement) contentElement.textContent = post.content;
+    if (contentElement) {
+        // Clean the content and use innerHTML to preserve formatting
+        contentElement.innerHTML = cleanHtmlContent(post.content);
+    }
     
     // Tìm và thiết lập các buttons cho post actions
     const likeButton = postElement.querySelector('.like-button');
@@ -3677,4 +3678,46 @@ async function deleteThread() {
             confirmButtonText: 'OK'
         });
     }
+}
+
+// Function to hide CKEditor security notification
+function hideCKEditorSecurityNotification() {
+    // Wait for CKEditor instances to initialize
+    setTimeout(() => {
+        // Find all CKEditor notification elements
+        const notifications = document.querySelectorAll('.cke_notification_warning');
+        notifications.forEach(notification => {
+            if (notification.textContent.includes('This CKEditor') && 
+                notification.textContent.includes('is not secure')) {
+                notification.style.display = 'none';
+            }
+        });
+    }, 1000);
+}
+
+// Add event listener to hide notifications when instances are created
+if (typeof CKEDITOR !== 'undefined') {
+    CKEDITOR.on('instanceReady', function(evt) {
+        hideCKEditorSecurityNotification();
+    });
+    
+    // Call it directly for any existing instances
+    hideCKEditorSecurityNotification();
+}
+
+// Function to clean HTML content by removing unnecessary paragraph tags
+function cleanHtmlContent(html) {
+    if (!html) return '';
+    
+    // Check if content is just a single paragraph
+    if (html.startsWith('<p>') && html.endsWith('</p>')) {
+        // Count number of <p> tags - if only one set, remove them
+        const pTagsCount = (html.match(/<p>/g) || []).length;
+        if (pTagsCount === 1) {
+            // Strip outer paragraph tags
+            return html.substring(3, html.length - 4);
+        }
+    }
+    
+    return html;
 }

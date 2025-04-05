@@ -8,7 +8,11 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css">
     <link rel="preconnect" href="https://fonts.gstatic.com">
     <link href="https://fonts.googleapis.com/css2?family=Titillium+Web:ital@1&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="ckeditor-custom.css">
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <!-- CKEditor CDN -->
+    <script src="https://cdn.ckeditor.com/4.16.2/standard-all/ckeditor.js"></script>
+    <script src="ckeditor-config.js"></script>
     <script src="main.js" defer></script>
 </head>
 <body>
@@ -66,7 +70,9 @@
                         <i class="fa fa-user-circle"></i>
                     </div>
                     <div class="form-content">
-                        <textarea id="post-input" placeholder="Create a new post..."></textarea>
+                        <div class="editor-container">
+                            <textarea id="post-input" placeholder="Create a new post..."></textarea>
+                        </div>
                         <button class="button" onclick="submitPost()">Create Post</button>
                     </div>
                 </div>
