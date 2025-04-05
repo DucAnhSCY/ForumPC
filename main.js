@@ -3432,11 +3432,27 @@ async function viewReportDetails(reportId) {
         
         const post = await postResponse.json();
         
+        // Fetch thread details to get thread ID for linking
+        const threadResponse = await fetch(`${api_key}Thread/${post.threadId}`);
+        if (!threadResponse.ok) {
+            throw new Error('Failed to fetch thread details');
+        }
+        
+        const thread = await threadResponse.json();
+        
         // Update modal with report and post details
         document.getElementById('reported-post-content').innerHTML = post.content;
         document.getElementById('report-author').textContent = report.username;
         document.getElementById('report-reason-display').textContent = report.reason;
         document.getElementById('report-date').textContent = formatDate(report.createdAt);
+        
+        // Set up the direct link to the thread - simplified to only use thread ID
+        const threadLink = document.getElementById('report-thread-link');
+        if (threadLink) {
+            threadLink.href = `thread-detail.html?id=${thread.threadId}`;
+            threadLink.textContent = `View reported content in thread: "${thread.title}"`;
+            threadLink.target = "_blank";
+        }
         
         // Show or hide action buttons based on report status
         const resolveBtn = document.querySelector('.resolve-btn');
