@@ -12,7 +12,11 @@ ForumPC/
 │   ├── *.css           # CSS files
 │   ├── *.js            # JavaScript files
 │   └── *.otf           # Font files
-└── package.json        # Project metadata
+├── functions/          # Cloudflare Pages Functions
+│   └── api/            # API endpoints
+│       └── upload-cloudflare.js  # Image upload handler
+├── package.json        # Project metadata
+└── wrangler.toml       # Cloudflare Workers configuration
 ```
 
 ## Deploying to Cloudflare Pages
@@ -27,6 +31,20 @@ ForumPC/
    - Build output directory: `public`
 6. Click "Save and Deploy"
 
+## Cloudflare Images Configuration
+
+This project uses Cloudflare Images for image uploads in CKEditor. To set it up:
+
+1. Enable Cloudflare Images in your Cloudflare account
+2. Create an API token with the "Cloudflare Images" permission
+3. In your Cloudflare Pages project settings:
+   - Go to "Settings" > "Environment variables"
+   - Add a new variable named `CF_API_TOKEN` with your API token as the value
+   - Set the variable to be encrypted
+   - Deploy the changes
+
+The Zone ID is already configured in the code: `4173baa8fe5b12f5f8214903e1adcf4a`
+
 ## Redirects Configuration
 
 The `_redirects` file in the public directory configures URL routing for the site:
@@ -38,6 +56,11 @@ The `_redirects` file in the public directory configures URL routing for the sit
 ## Local Development
 
 To test the site locally, simply open any HTML file in a web browser.
+
+For testing Cloudflare Functions locally:
+1. Install Wrangler: `npm install -g wrangler`
+2. Copy `.env.example` to `.env` and add your Cloudflare API token
+3. Run `wrangler pages dev public` to start a local development server
 
 ## License
 
