@@ -1,0 +1,223 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Thread Detail - Forum</title>
+    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css">
+    <link rel="preconnect" href="https://fonts.gstatic.com">
+    <link href="https://fonts.googleapis.com/css2?family=Titillium+Web:ital@1&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="ckeditor-custom.css">
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <!-- CKEditor CDN -->
+    <script src="https://cdn.ckeditor.com/4.16.2/standard-all/ckeditor.js"></script>
+    <script src="ckeditor-config.js"></script>
+    <script src="main.js" defer></script>
+</head>
+<body>
+    <header>
+        <div class="navbar">
+            <nav class="navigation hide" id="navigation">
+                <span class="close-icon" id="close-icon" onclick="showIconBar()">
+                    <i class="fa fa-close"></i>
+                </span>
+                <ul class="nav-list">
+                    <li class="nav-item"><a href="forums.html">Forums</a></li>
+                    <li class="nav-item"><a href="categories.html">Categories</a></li>
+                    <li class="nav-item"><a href="community.html">Community</a></li>
+                    <li class="nav-item hide"><a href="Modctrl.html">Mod Control</a></li>
+                    <li class="nav-item"><a href="login.html">Login</a></li>
+                    <li class="nav-item logout-link hide"><a href="#" onclick="logout()">Logout</a></li>
+                </ul>
+            </nav>
+            <a class="bar-icon" id="iconBar" onclick="hideIconBar()"><i class="fa fa-bars"></i></a>
+            <div class="brand">My Forum</div>
+            <div id="top-right-username" class="top-right-username hide"></div>
+        </div>
+    </header>
+
+    <div class="container">
+        <div class="thread-detail">
+            <!-- Main Content -->
+            <div class="main-content">
+                <!-- Thread Header -->
+                <div class="thread-header">
+                    <h1 id="thread-title" class="thread-title"></h1>
+                    <div class="thread-meta">
+                        <div class="thread-author">
+                            <i class="fa fa-user"></i>
+                            <span id="thread-author"></span>
+                        </div>
+                        <div class="thread-time">
+                            <i class="fa fa-clock-o"></i>
+                            <span id="thread-date"></span>
+                        </div>
+                    </div>
+                    <div class="thread-actions">
+                        <button id="delete-thread-btn" class="action-button delete-thread hide" onclick="deleteThread()">
+                            <i class="fa fa-trash"></i> Delete Thread
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Thread Content -->
+                <div id="thread-content" class="thread-content"></div>
+
+                <!-- New Post Form -->
+                <div class="post-form">
+                    <div class="user-avatar">
+                        <i class="fa fa-user-circle"></i>
+                    </div>
+                    <div class="form-content">
+                        <div class="editor-container">
+                            <textarea id="post-input" placeholder="Create a new post..."></textarea>
+                        </div>
+                        <button class="button" onclick="submitPost()">Create Post</button>
+                    </div>
+                </div>
+
+                <!-- Posts Container -->
+                <div id="posts-container" class="posts-container">
+                    <!-- Posts will be loaded here -->
+                </div>
+            </div>
+
+            <!-- Sidebar -->
+            <div class="sidebar">
+                <!-- Thread Info -->
+                <div class="sidebar-section">
+                    <h3 class="sidebar-title">Thread Information</h3>
+                    <div class="thread-info">
+                        <div class="thread-info-item">
+                            <span>Category</span>
+                            <span id="thread-category">Loading...</span>
+                        </div>
+                        <div class="thread-info-item">
+                            <span>Created</span>
+                            <span id="thread-posted-date">Loading...</span>
+                        </div>
+                        <div class="thread-info-item">
+                            <span>Likes</span>
+                            <span id="thread-likes">0</span>
+                        </div>
+                        <div class="thread-info-item">
+                            <span>Views</span>
+                            <span id="thread-views">0</span>
+                        </div>
+                        <div class="thread-info-item">
+                            <span>Posts</span>
+                            <span id="post-count">0</span>
+                        </div>
+                        <div class="thread-info-item">
+                            <span>Status</span>
+                            <span id="thread-status" class="thread-status">Active</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Related Threads -->
+                <div class="sidebar-section">
+                    <h3 class="sidebar-title">Related Threads</h3>
+                    <ul class="related-threads" id="related-threads">
+                        <!-- Related threads will be loaded here -->
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Post Template (Hidden) -->
+    <template id="post-template">
+        <div class="post">
+            <div class="post-header">
+                <div class="post-author-info">
+                    <div class="user-avatar">
+                        <i class="fa fa-user-circle"></i>
+                    </div>
+                    <div class="author-details">
+                        <span class="post-author"></span>
+                        <span class="post-date"></span>
+                    </div>
+                </div>
+                <div class="post-actions">
+                    <button class="action-button edit-post hide">
+                        <i class="fa fa-edit"></i> Edit
+                    </button>
+                    <button class="action-button delete-post hide">
+                        <i class="fa fa-trash"></i> Delete
+                    </button>
+                </div>
+            </div>
+            <div class="post-content"></div>
+            <div class="post-footer">
+                <div class="post-interactions">
+                    <button class="action-button like-button" onclick="toggleLike(this)">
+                        <i class="fa fa-heart-o"></i> <span class="like-count">0</span>
+                    </button>
+                    <button class="action-button comment-button" onclick="toggleCommentForm(this)">
+                        <i class="fa fa-comment"></i> <span class="comment-count">0</span>
+                    </button>
+                    <button class="action-button report-button" onclick="showReportForm(this)">
+                        <i class="fa fa-flag"></i> Report
+                    </button>
+                </div>
+            </div>
+            <div class="comment-form hide">
+                <div class="form-content">
+                    <textarea placeholder="Write a comment..."></textarea>
+                    <button class="button" onclick="submitComment(this)">Add Comment</button>
+                </div>
+            </div>
+            <div class="comments-container">
+                <!-- Comments will be loaded here -->
+            </div>
+        </div>
+    </template>
+
+    <!-- Comment Template (Hidden) -->
+    <template id="comment-template">
+        <div class="comment">
+            <div class="comment-header">
+                <div class="comment-author-info">
+                    <div class="user-avatar">
+                        <i class="fa fa-user-circle"></i>
+                    </div>
+                    <div class="author-details">
+                        <span class="comment-author"></span>
+                        <span class="comment-date"></span>
+                    </div>
+                </div>
+                <div class="comment-actions">
+                    <button class="action-button edit-comment hide">
+                        <i class="fa fa-edit"></i>
+                    </button>
+                    <button class="action-button delete-comment hide">
+                        <i class="fa fa-trash"></i>
+                    </button>
+                    <button class="action-button report-comment" onclick="showReportForm(this, 'comment')">
+                        <i class="fa fa-flag"></i>
+                    </button>
+                </div>
+            </div>
+            <div class="comment-content"></div>
+        </div>
+    </template>
+
+    <!-- Report Modal -->
+    <div id="report-modal" class="modal hide">
+        <div class="modal-content">
+            <h3>Report Content</h3>
+            <textarea id="report-reason" placeholder="Please describe why you are reporting this content..."></textarea>
+            <div class="modal-buttons">
+                <button onclick="submitReport()">Submit Report</button>
+                <button onclick="closeReportModal()">Cancel</button>
+            </div>
+        </div>
+    </div>
+
+    <footer>
+        <span>&copy; 2025 My Forum | All Rights Reserved</span>
+    </footer>
+</body>
+</html> 
