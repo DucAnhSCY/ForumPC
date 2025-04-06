@@ -22,10 +22,6 @@ CKEDITOR.plugins.registered['notification'] = {
     }
 };
 
-// Cloudflare Zone API details
-const CF_ZONE_ID = '4173baa8fe5b12f5f8214903e1adcf4a';
-const CF_API_ENDPOINT = `https://api.cloudflare.com/client/v4/zones/${CF_ZONE_ID}/images/v1`;
-
 // Global CKEditor configuration
 CKEDITOR.editorConfig = function(config) {
     // Enable upload image and media features
@@ -43,16 +39,13 @@ CKEDITOR.editorConfig = function(config) {
     // Set height
     config.height = 300;
     
-    // Upload URL for images - using Cloudflare Images API
-    config.filebrowserUploadUrl = '/api/upload-cloudflare';
-    config.filebrowserImageUploadUrl = '/api/upload-cloudflare';
-    config.uploadUrl = '/api/upload-cloudflare';
+    // Upload URL for images
+    config.filebrowserUploadUrl = 'http://localhost:5083/api/Upload/Image';
+    config.filebrowserImageUploadUrl = 'http://localhost:5083/api/Upload/Image';
+    config.uploadUrl = 'http://localhost:5083/api/Upload/Image';
     
     // Image upload configuration
-    config.imageUploadUrl = '/api/upload-cloudflare';
-    
-    // Custom function for image uploads
-    config.cloudflareZoneId = CF_ZONE_ID;
+    config.imageUploadUrl = 'http://localhost:5083/api/Upload/Image';
     
     // Disable the security notification message
     config.disableNativeSpellChecker = false;
