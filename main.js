@@ -3059,43 +3059,169 @@ async function editPost(postId) {
     }
 
     const contentElement = postElement.querySelector('.post-content');
-    const currentContent = contentElement.textContent;
+    const currentContent = contentElement.innerHTML;
     
-    const newContent = prompt('Chỉnh sửa bài viết:', currentContent);
-    if (!newContent || newContent === currentContent) {
-        return;
+    // Create modal for editing
+    const editModal = document.createElement('div');
+    editModal.className = 'edit-post-modal';
+    editModal.innerHTML = `
+        <div class="edit-post-content">
+            <div class="edit-post-header">
+                <h3>Edit Post</h3>
+                <button class="close-edit-modal">&times;</button>
+            </div>
+            <div class="edit-post-body">
+                <textarea id="edit-post-input">${currentContent}</textarea>
+            </div>
+            <div class="edit-post-footer">
+                <button class="cancel-edit-btn">Cancel</button>
+                <button class="save-edit-btn">Save Changes</button>
+            </div>
+        </div>
+    `;
+    
+    document.body.appendChild(editModal);
+    
+    // Add modal styles if not already present
+    if (!document.getElementById('edit-post-styles')) {
+        const styles = document.createElement('style');
+        styles.id = 'edit-post-styles';
+        styles.textContent = `
+            .edit-post-modal {
+                position: fixed;
+                top: 0;
+                left: 0;
+                right: 0;
+                bottom: 0;
+                background-color: rgba(0, 0, 0, 0.7);
+                display: flex;
+                justify-content: center;
+                align-items: center;
+                z-index: 1000;
+            }
+            .edit-post-content {
+                background-color: #fff;
+                border-radius: 5px;
+                width: 80%;
+                max-width: 800px;
+                max-height: 90vh;
+                display: flex;
+                flex-direction: column;
+            }
+            .edit-post-header {
+                display: flex;
+                justify-content: space-between;
+                align-items: center;
+                padding: 10px 15px;
+                border-bottom: 1px solid #ddd;
+            }
+            .edit-post-header h3 {
+                margin: 0;
+                color: #333;
+            }
+            .close-edit-modal {
+                background: none;
+                border: none;
+                font-size: 20px;
+                cursor: pointer;
+                color: #666;
+            }
+            .edit-post-body {
+                padding: 15px;
+                overflow-y: auto;
+                flex-grow: 1;
+            }
+            .edit-post-footer {
+                padding: 10px 15px;
+                border-top: 1px solid #ddd;
+                display: flex;
+                justify-content: flex-end;
+                gap: 10px;
+            }
+            .cancel-edit-btn, .save-edit-btn {
+                padding: 8px 15px;
+                border-radius: 4px;
+                border: none;
+                cursor: pointer;
+            }
+            .cancel-edit-btn {
+                background-color: #ddd;
+                color: #333;
+            }
+            .save-edit-btn {
+                background-color: #52057b;
+                color: white;
+            }
+        `;
+        document.head.appendChild(styles);
     }
-
-    try {
-        const response = await fetch(`${api_key}Post/Update/${postId}`, {
-            method: 'PUT',
-            headers: {
-                'Content-Type': 'application/json',
-                'Authorization': `Bearer ${sessionStorage.getItem('token')}`
-            },
-            body: JSON.stringify({
-                content: newContent
-            })
-        });
-
-        if (!response.ok) {
-            throw new Error('Không thể cập nhật bài viết');
+    
+    // Initialize CKEditor for the edit textarea
+    if (CKEDITOR.instances['edit-post-input']) {
+        CKEDITOR.instances['edit-post-input'].destroy();
+    }
+    
+    CKEDITOR.replace('edit-post-input', {
+        height: 300,
+        filebrowserUploadUrl: 'http://localhost:5083/api/Upload/Image',
+        filebrowserImageUploadUrl: 'http://localhost:5083/api/Upload/Image',
+        uploadUrl: 'http://localhost:5083/api/Upload/Image',
+        imageUploadUrl: 'http://localhost:5083/api/Upload/Image'
+    });
+    
+    // Handle close modal
+    const closeModal = () => {
+        if (CKEDITOR.instances['edit-post-input']) {
+            CKEDITOR.instances['edit-post-input'].destroy();
         }
-
-        contentElement.textContent = newContent;
+        document.body.removeChild(editModal);
+    };
+    
+    // Add event listeners
+    editModal.querySelector('.close-edit-modal').addEventListener('click', closeModal);
+    editModal.querySelector('.cancel-edit-btn').addEventListener('click', closeModal);
+    
+    // Save changes
+    editModal.querySelector('.save-edit-btn').addEventListener('click', async () => {
+        const newContent = CKEDITOR.instances['edit-post-input'].getData();
         
-        // Hiệu ứng thành công
-        postElement.classList.add('post-updated');
-        setTimeout(() => {
-            postElement.classList.remove('post-updated');
-        }, 1500);
-
-        console.log('Bài viết đã được cập nhật thành công');
-
-    } catch (error) {
-        console.error('Lỗi khi cập nhật bài viết:', error);
-        alert('Không thể cập nhật bài viết. Vui lòng thử lại.');
-    }
+        if (!newContent || newContent === currentContent) {
+            closeModal();
+            return;
+        }
+        
+        try {
+            const response = await fetch(`${api_key}Post/Update/${postId}`, {
+                method: 'PUT',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${sessionStorage.getItem('token')}`
+                },
+                body: JSON.stringify({
+                    content: newContent
+                })
+            });
+            
+            if (!response.ok) {
+                throw new Error('Không thể cập nhật bài viết');
+            }
+            
+            contentElement.innerHTML = newContent;
+            
+            // Hiệu ứng thành công
+            postElement.classList.add('post-updated');
+            setTimeout(() => {
+                postElement.classList.remove('post-updated');
+            }, 1500);
+            
+            console.log('Bài viết đã được cập nhật thành công');
+            closeModal();
+            
+        } catch (error) {
+            console.error('Lỗi khi cập nhật bài viết:', error);
+            alert('Không thể cập nhật bài viết. Vui lòng thử lại.');
+        }
+    });
 }
 
 // Thêm hàm deletePost
@@ -3725,15 +3851,29 @@ if (typeof CKEDITOR !== 'undefined') {
 function cleanHtmlContent(html) {
     if (!html) return '';
     
-    // Check if content is just a single paragraph
-    if (html.startsWith('<p>') && html.endsWith('</p>')) {
-        // Count number of <p> tags - if only one set, remove them
-        const pTagsCount = (html.match(/<p>/g) || []).length;
-        if (pTagsCount === 1) {
-            // Strip outer paragraph tags
-            return html.substring(3, html.length - 4);
+    // Create a safe way to parse the HTML
+    const parser = new DOMParser();
+    const doc = parser.parseFromString(html, 'text/html');
+    
+    // Check for potentially harmful tags and attributes
+    const sanitizedHtml = html
+        // Allow img tags but ensure they have proper attributes
+        .replace(/<img([^>]*)>/gi, (match, attributes) => {
+            // If there's a src attribute, keep it
+            if (attributes.includes('src=')) {
+                return match;
+            }
+            return '';
+        });
+    
+    // Check if content is just a single paragraph with no other elements
+    if (sanitizedHtml.startsWith('<p>') && sanitizedHtml.endsWith('</p>')) {
+        const innerContent = sanitizedHtml.substring(3, sanitizedHtml.length - 4);
+        // Only strip paragraph tags if there are no other HTML elements inside
+        if (!/<[a-z][\s\S]*>/i.test(innerContent)) {
+            return innerContent;
         }
     }
     
-    return html;
+    return sanitizedHtml;
 }

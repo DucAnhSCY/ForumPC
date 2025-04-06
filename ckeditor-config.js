@@ -39,8 +39,13 @@ CKEDITOR.editorConfig = function(config) {
     // Set height
     config.height = 300;
     
-    // Upload URL for images - this will be set from main.js
+    // Upload URL for images
     config.filebrowserUploadUrl = 'http://localhost:5083/api/Upload/Image';
+    config.filebrowserImageUploadUrl = 'http://localhost:5083/api/Upload/Image';
+    config.uploadUrl = 'http://localhost:5083/api/Upload/Image';
+    
+    // Image upload configuration
+    config.imageUploadUrl = 'http://localhost:5083/api/Upload/Image';
     
     // Disable the security notification message
     config.disableNativeSpellChecker = false;
