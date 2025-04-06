@@ -1,0 +1,21 @@
+# Cấu hình cho Cloudflare Pages Functions (Workers)
+name = "forumpc-api"
+compatibility_date = "2023-05-18"
+
+# Cấu hình tự động tìm và chạy functions
+[build]
+command = ""
+
+# Cấu hình thư mục chứa các functions
+[site]
+bucket = "./public"
+[functions]
+directory = "./functions"
+
+# Biến môi trường, có thể thay đổi trong bảng điều khiển Cloudflare
+[vars]
+# Biến môi trường công khai
+
+# Bí mật, được cấu hình trong bảng điều khiển Cloudflare
+[env.production.vars]
+# CF_API_TOKEN cần được thiết lập trong bảng điều khiển Cloudflare 
