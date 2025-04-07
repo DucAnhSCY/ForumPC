@@ -7090,3 +7090,19 @@ footer {
     background: #43A047;
     transform: scale(1.1);
 }
+
+.deleted-content {
+    background-color: rgba(231, 76, 60, 0.1);
+    color: #e74c3c;
+    padding: 15px;
+    border-radius: 5px;
+    text-align: center;
+    font-size: 14px;
+    margin: 10px 0;
+    border: 1px dashed rgba(231, 76, 60, 0.3);
+}
+
+.deleted-content i {
+    margin-right: 8px;
+    font-size: 16px;
+}

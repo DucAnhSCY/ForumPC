@@ -3923,37 +3923,90 @@ function filterReports(status) {
 }
 
 // Update report status (resolve or reject)
-async function updateReportStatus(reportId, status) {
+async function updateReportStatus(reportId, status, note = '') {
     try {
         const token = sessionStorage.getItem('token');
         if (!token) {
-            alert('You must be logged in as admin or moderator to perform this action.');
+            showError('You must be logged in to perform this action.');
             return;
         }
         
+        // Get username for logging
+        const username = sessionStorage.getItem('username') || 'Unknown User';
+        
+        // Create the action note if not provided
+        if (!note) {
+            note = `Report marked as ${status} by ${username}`;
+        }
+        
+        // Show loading state
+        Swal.fire({
+            title: 'Updating report...',
+            allowOutsideClick: false,
+            didOpen: () => {
+                Swal.showLoading();
+            }
+        });
+        
+        // Prepare update data
+        const updateData = {
+            status: status,
+            actionNote: note,
+            actionBy: username,
+            actionDate: new Date().toISOString()
+        };
+        
+        // Send update request
         const response = await fetch(`${api_key}Report/UpdateStatus/${reportId}`, {
             method: 'PUT',
             headers: {
                 'Content-Type': 'application/json',
                 'Authorization': `Bearer ${token}`
             },
-            body: JSON.stringify({ status })
+            body: JSON.stringify(updateData)
         });
         
         if (!response.ok) {
             throw new Error('Failed to update report status');
         }
         
-        await refreshReports();
+        // Close loading state
+        Swal.close();
         
-        // If the report details modal is open, close it
-        closeReportDetailsModal();
+        // Update the UI to reflect changes
+        const reportRow = document.querySelector(`tr[data-report-id="${reportId}"]`);
+        if (reportRow) {
+            const statusCell = reportRow.querySelector('.status-cell');
+            if (statusCell) {
+                statusCell.textContent = capitalizeFirstLetter(status);
+                statusCell.className = `status-cell status-${status}`;
+                reportRow.classList.add('status-changed');
+                
+                setTimeout(() => {
+                    reportRow.classList.remove('status-changed');
+                }, 2000);
+            }
+        }
         
         // Show success message
-        alert(`Report ${status === 'resolved' ? 'resolved' : 'rejected'} successfully.`);
+        Swal.fire({
+            icon: 'success',
+            title: 'Status Updated',
+            text: `Report has been marked as ${status}`,
+            timer: 1500,
+            showConfirmButton: false
+        });
+        
+        // Refresh the pending reports count
+        fetchPendingReportsCount();
+        
     } catch (error) {
         console.error('Error updating report status:', error);
-        showError('Failed to update report status. Please try again.');
+        Swal.fire({
+            icon: 'error',
+            title: 'Error',
+            text: 'Failed to update report status. Please try again.'
+        });
     }
 }
 
@@ -4014,12 +4067,6 @@ async function viewReportDetails(reportId) {
             return;
         }
         
-        // Get the current report from the DOM
-        const reportRow = document.querySelector(`tr[data-report-id="${reportId}"]`);
-        if (!reportRow) {
-            return;
-        }
-        
         // Show loading state
         Swal.fire({
             title: 'Loading report details...',
@@ -4047,36 +4094,108 @@ async function viewReportDetails(reportId) {
         const contentId = report.contentId || report.postId;
         
         let contentResponse;
-        if (contentType === 'post') {
-            contentResponse = await fetch(`${api_key}Post/${contentId}`);
-        } else if (contentType === 'comment') {
-            contentResponse = await fetch(`${api_key}Comment/${contentId}`);
+        try {
+            if (contentType === 'post') {
+                contentResponse = await fetch(`${api_key}Post/${contentId}`);
+            } else if (contentType === 'comment') {
+                contentResponse = await fetch(`${api_key}Comment/${contentId}`);
+            }
+        } catch (error) {
+            console.warn('Could not fetch reported content, it may have been deleted');
         }
-        
-        if (!contentResponse || !contentResponse.ok) {
-            throw new Error('Failed to fetch reported content');
-        }
-        
-        const contentData = await contentResponse.json();
         
         // Close loading state
         Swal.close();
+        
+        // Get the modal element
+        const reportDetailsModal = document.getElementById('report-details-modal');
+        
+        // Set report ID in the title
+        const reportIdSpan = reportDetailsModal.querySelector('.report-id');
+        if (reportIdSpan) {
+            reportIdSpan.textContent = `#${reportId}`;
+        }
         
         // Set data in modal
         document.getElementById('report-author').textContent = report.reportedBy || 'Anonymous';
         document.getElementById('report-reason-display').textContent = report.reason || 'No reason provided';
         document.getElementById('report-date').textContent = formatDate(report.createdAt);
         
+        // Set the status badge
+        const statusBadge = document.getElementById('report-status');
+        if (statusBadge) {
+            statusBadge.textContent = report.status || 'pending';
+            statusBadge.className = 'report-status-badge ' + (report.status || 'pending');
+        }
+        
+        // Set the modal's data-status attribute for conditional display of buttons
+        reportDetailsModal.dataset.status = report.status || 'pending';
+        
         // Set the reported content
         const reportedContentEl = document.getElementById('reported-post-content');
-        reportedContentEl.innerHTML = contentData.content || 'Content not available';
+        if (contentResponse && contentResponse.ok) {
+            const contentData = await contentResponse.json();
+            reportedContentEl.innerHTML = contentData.content || 'Content not available';
+        } else {
+            reportedContentEl.innerHTML = '<div class="deleted-content"><i class="fa fa-exclamation-triangle"></i> The reported content has been deleted or is no longer accessible.</div>';
+        }
         
         // Set the thread link
         const threadLink = document.getElementById('report-thread-link');
-        threadLink.href = `thread-detail.html?id=${report.threadId}`;
+        if (report.threadId) {
+            threadLink.href = `thread-detail.html?id=${report.threadId}`;
+            threadLink.textContent = 'View content in thread';
+        } else {
+            threadLink.href = '#';
+            threadLink.textContent = 'Thread unavailable';
+        }
         
-        // Store the current report ID for action buttons
+        // Populate action history if available
+        const historyList = document.getElementById('report-history-list');
+        if (historyList) {
+            // Clear previous history
+            historyList.innerHTML = '';
+            
+            if (report.history && report.history.length > 0) {
+                report.history.forEach(item => {
+                    const historyItem = document.createElement('div');
+                    historyItem.className = 'report-history-item';
+                    historyItem.innerHTML = `
+                        <span class="history-action">${item.action}</span>
+                        <span class="history-user">by ${item.username || 'System'}</span>
+                        <span class="history-date">${formatDate(item.date)}</span>
+                    `;
+                    historyList.appendChild(historyItem);
+                });
+            } else {
+                historyList.innerHTML = '<div class="no-history">No previous actions recorded</div>';
+            }
+        }
+        
+        // Store the current report ID and data for action buttons
         reportDetailsModal.dataset.reportId = reportId;
+        reportDetailsModal.dataset.contentId = contentId;
+        reportDetailsModal.dataset.contentType = contentType;
+        
+        // Update button visibility based on report status
+        const actionsContainer = document.querySelector('.report-modal-actions');
+        if (actionsContainer) {
+            const resolveBtn = actionsContainer.querySelector('.resolve-btn');
+            const rejectBtn = actionsContainer.querySelector('.reject-btn');
+            const deleteBtn = actionsContainer.querySelector('.delete-btn');
+            
+            if (report.status === 'pending') {
+                // Show all action buttons for pending reports
+                if (resolveBtn) resolveBtn.classList.remove('hide');
+                if (rejectBtn) rejectBtn.classList.remove('hide');
+                if (deleteBtn) deleteBtn.classList.remove('hide');
+            } else {
+                // Hide action buttons for resolved/rejected reports
+                if (resolveBtn) resolveBtn.classList.add('hide');
+                if (rejectBtn) rejectBtn.classList.add('hide');
+                if (deleteBtn) deleteBtn.classList.add('hide');
+            }
+        }
         
         // Open the modal
         reportDetailsModal.classList.remove('hide');
@@ -4087,6 +4206,94 @@ async function viewReportDetails(reportId) {
             icon: 'error',
             title: 'Error',
             text: 'Failed to load report details. Please try again.'
+        });
+    }
+}
+
+// Function to delete reported content
+async function deleteReportedContent() {
+    try {
+        const modal = document.getElementById('report-details-modal');
+        const reportId = modal.dataset.reportId;
+        const contentId = modal.dataset.contentId;
+        const contentType = modal.dataset.contentType;
+        
+        if (!reportId || !contentId || !contentType) {
+            throw new Error('Missing required data for content deletion');
+        }
+        
+        // Ask for confirmation
+        const result = await Swal.fire({
+            title: 'Delete Reported Content',
+            text: `Are you sure you want to delete this ${contentType}? This action cannot be undone.`,
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonText: 'Yes, delete it',
+            cancelButtonText: 'Cancel',
+            confirmButtonColor: '#d33',
+            cancelButtonColor: '#3085d6'
+        });
+        
+        if (!result.isConfirmed) {
+            return;
+        }
+        
+        // Show loading
+        Swal.fire({
+            title: 'Deleting content...',
+            text: 'Please wait',
+            allowOutsideClick: false,
+            didOpen: () => {
+                Swal.showLoading();
+            }
+        });
+        
+        const token = sessionStorage.getItem('token');
+        let endpoint;
+        
+        // Choose the appropriate endpoint based on content type
+        if (contentType === 'post') {
+            endpoint = `${api_key}Post/Delete/${contentId}`;
+        } else if (contentType === 'comment') {
+            endpoint = `${api_key}Comment/Delete/${contentId}`;
+        } else {
+            throw new Error('Unsupported content type');
+        }
+        
+        // Delete the content
+        const deleteResponse = await fetch(endpoint, {
+            method: 'DELETE',
+            headers: {
+                'Authorization': `Bearer ${token}`
+            }
+        });
+        
+        if (!deleteResponse.ok) {
+            throw new Error(`Failed to delete ${contentType}`);
+        }
+        
+        // Mark report as resolved after content deletion
+        await updateReportStatus(reportId, 'resolved', 'Content deleted by moderator');
+        
+        // Show success message
+        Swal.fire({
+            icon: 'success',
+            title: 'Content Deleted',
+            text: `The ${contentType} has been deleted and the report marked as resolved.`,
+            timer: 2000,
+            showConfirmButton: false
+        });
+        
+        // Update the report UI
+        closeReportDetailsModal();
+        refreshReports();
+        
+    } catch (error) {
+        console.error('Error deleting reported content:', error);
+        Swal.fire({
+            icon: 'error',
+            title: 'Error',
+            text: `Failed to delete content: ${error.message}`
         });
     }
 }
