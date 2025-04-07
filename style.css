@@ -6365,3 +6365,46 @@ footer {
 .thread-item .thread-category {
     margin-bottom: 8px;
 }
+
+.thread-views.updated, .thread-likes.updated {
+    animation: highlight 2s ease-in-out;
+    background-color: rgba(106, 17, 203, 0.1);
+    border-radius: 4px;
+}
+
+@keyframes highlight {
+    0% { background-color: rgba(106, 17, 203, 0.5); }
+    100% { background-color: rgba(106, 17, 203, 0); }
+}
+
+/* Style for thread views and likes counters */
+.thread-stats span {
+    display: inline-flex;
+    align-items: center;
+    margin-right: 15px;
+    font-size: 14px;
+    color: #aaa;
+    transition: color 0.3s;
+}
+
+.thread-stats span i {
+    margin-right: 5px;
+    font-size: 16px;
+}
+
+.thread-stats span:hover {
+    color: #fff;
+}
+
+.thread-views i {
+    color: #3498db;
+}
+
+.thread-likes i {
+    color: #e74c3c;
+}
+
+/* Style for thread category badge */
+.thread-item .thread-category {
+    margin-bottom: 8px;
+}

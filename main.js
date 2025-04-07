@@ -826,14 +826,23 @@ async function fetchAndDisplayThreads() {
         
         const threads = await threadsResponse.json();
         
-        // Cho mỗi thread, lấy thêm thông tin về lượt like
+        // Cho mỗi thread, lấy thêm thông tin về lượt like và xem mới nhất
         for (let thread of threads) {
             try {
+                // Fetch each thread individually to get latest view count
+                const threadDetailResponse = await fetch(`${api_key}Thread/${thread.threadId}`);
+                if (threadDetailResponse.ok) {
+                    const threadDetail = await threadDetailResponse.json();
+                    // Update the view count with latest data
+                    thread.views = threadDetail.views || 0;
+                }
+                
                 // Lấy tổng số like cho mỗi thread (tổng hợp từ các bài post trong thread)
                 thread = await getThreadTotalLikes(thread.threadId, thread);
             } catch (error) {
-                console.error(`Error getting likes for thread ${thread.threadId}:`, error);
+                console.error(`Error getting data for thread ${thread.threadId}:`, error);
                 thread.total_likes = 0;
+                thread.views = thread.views || 0;
             }
         }
         displayThreads(threads);
@@ -914,7 +923,7 @@ function displayThreads(threads) {
             <div class="thread-footer">
                 <div class="thread-stats">
                     <span class="thread-views"><i class="fa fa-eye"></i> ${thread.views || 0} views</span>
-                    <span class="thread-likes"><i class="fa fa-heart"></i> ${thread.likes || 0} likes</span>
+                    <span class="thread-likes"><i class="fa fa-heart"></i> ${thread.total_likes || 0} likes</span>
                 </div>
                 <a href="thread-detail.html?id=${thread.threadId}" class="thread-read-more">Read More</a>
             </div>
@@ -1041,14 +1050,29 @@ async function incrementThreadViews(threadId) {
             return;
         }
         
-        // Update views in the UI
-        const viewsElement = document.getElementById('thread-views');
-        if (viewsElement) {
-            const currentViews = parseInt(viewsElement.textContent) || 0;
-            viewsElement.textContent = (currentViews + 1).toString();
+        // Get updated thread data to ensure we have the correct view count
+        const threadResponse = await fetch(`${api_key}Thread/${threadId}`);
+        if (threadResponse.ok) {
+            const threadData = await threadResponse.json();
             
-            // Cập nhật badge trạng thái dựa trên số lượt xem
-            updateEngagementStatus();
+            // Update views in the UI
+            const viewsElement = document.getElementById('thread-views');
+            if (viewsElement) {
+                viewsElement.textContent = threadData.views.toString();
+                viewsElement.classList.add('updated');
+                
+                // Remove the highlight effect after animation
+                setTimeout(() => {
+                    viewsElement.classList.remove('updated');
+                }, 2000);
+                
+                // Update badges and status based on current views and likes
+                const likesElement = document.getElementById('thread-likes');
+                const likes = likesElement ? parseInt(likesElement.textContent) || 0 : 0;
+                
+                updateEngagementStatus(threadData.views, likes);
+                updateRuleBadges(threadData.views, likes);
+            }
         }
         
         console.log('View count incremented for thread', threadId);
@@ -2221,6 +2245,12 @@ async function loadThreadDetail(threadId) {
         // Cập nhật tiêu đề trang
         document.title = `${thread.title} - Forum`;
         
+        // Update category badge
+        const categoryBadgeElement = document.getElementById('thread-category-badge');
+        if (categoryBadgeElement) {
+            categoryBadgeElement.textContent = thread.categoryName || 'Uncategorized';
+        }
+        
         // Clean the thread content before displaying
         const cleanedContent = cleanHtmlContent(thread.content);
         
@@ -2232,15 +2262,46 @@ async function loadThreadDetail(threadId) {
         
         // Lấy và hiển thị tổng số lượt like
         const threadWithLikes = await getThreadTotalLikes(threadId, thread);
-        document.getElementById('thread-likes').textContent = threadWithLikes.total_likes || '0';
+        const likesElement = document.getElementById('thread-likes');
+        
+        if (likesElement) {
+            // Check if likes count has changed
+            const oldLikes = parseInt(likesElement.textContent) || 0;
+            const newLikes = threadWithLikes.total_likes || 0;
+            
+            likesElement.textContent = newLikes;
+            
+            // Add highlight animation if likes have changed
+            if (oldLikes !== newLikes && oldLikes > 0) {
+                likesElement.classList.add('updated');
+                setTimeout(() => {
+                    likesElement.classList.remove('updated');
+                }, 2000);
+            }
+        }
+        
+        // Get and display view count
+        const viewsElement = document.getElementById('thread-views');
+        if (viewsElement) {
+            const oldViews = parseInt(viewsElement.textContent) || 0;
+            viewsElement.textContent = thread.views || '0';
+            
+            // Add highlight animation if views have changed and this isn't the first load
+            if (oldViews > 0 && oldViews !== thread.views) {
+                viewsElement.classList.add('updated');
+                setTimeout(() => {
+                    viewsElement.classList.remove('updated');
+                }, 2000);
+            }
+        }
         
         // Cập nhật sidebar
         updateSidebarInfo(thread);
         
         // Cập nhật badge engagement
         updateEngagementStatus(
-            parseInt(document.getElementById('thread-views').textContent) || 0,
-            parseInt(document.getElementById('thread-likes').textContent) || 0
+            thread.views || 0,
+            threadWithLikes.total_likes || 0
         );
         
         return thread;
@@ -4204,8 +4265,12 @@ function initializeThreadDetailPage() {
     // Load posts for this thread
     loadPosts(threadId);
     
-    // Increment view count
-    incrementThreadViews(threadId);
+    // Increment view count - only if this is a new page visit
+    if (!sessionStorage.getItem(`viewed_thread_${threadId}`)) {
+        incrementThreadViews(threadId);
+        // Mark this thread as viewed in this session
+        sessionStorage.setItem(`viewed_thread_${threadId}`, 'true');
+    }
     
     // Load related threads in sidebar
     loadRelatedThreads(threadId);
