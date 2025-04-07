@@ -71,7 +71,7 @@ CKEDITOR.editorConfig = function(config) {
 };
 
 // Global API key for the application
-const api_key = 'https://178.128.121.241:443/api/';
+const api_key = 'https://api.ducanhweb.me/api/';
 
 // Default CKEditor configuration for the thread and post editor
 function getDefaultConfig() {

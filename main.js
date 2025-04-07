@@ -491,19 +491,41 @@ function createCategory() {
     });
 }
 
-function fetchCategories() {
-    fetch(`${api_key}Category`)
-        .then(response => response.json())
-        .then(categories => {
-            // Update the dropdown
-            updateCategoryDropdown(categories);
-
-            // Update the category list (if applicable)
-            updateCategoryList(categories);
-        })
-        .catch(error => {
-            console.error("Error fetching categories:", error);
+async function fetchCategories() {
+    try {
+        const response = await fetch(`${api_key}Category`, {
+            method: 'GET',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            credentials: 'include' // Include cookies if they're used for auth
         });
+        
+        if (!response.ok) {
+            throw new Error(`Error ${response.status}: ${response.statusText}`);
+        }
+        
+        const categories = await response.json();
+        updateCategoryDropdown(categories);
+        updateCategoryList(categories);
+        return categories;
+    } catch (error) {
+        console.error("Error fetching categories:", error);
+        
+        // Show a more user-friendly error in the UI
+        const categoryElements = document.querySelectorAll('.category-list, #category-dropdown');
+        categoryElements.forEach(el => {
+            if (el) {
+                el.innerHTML = `
+                <div class="error-message">
+                    <i class="fa fa-exclamation-triangle"></i>
+                    <p>Unable to load categories. Please try again later.</p>
+                </div>`;
+            }
+        });
+        
+        throw error;
+    }
 }
 
 function updateCategoryDropdown(categories) {
@@ -1111,20 +1133,41 @@ function initThreadDetailPage() {
     loadRelatedThreads(threadId);
 }
 
-function fetchUsers() {
-    fetch(`${api_key}User/GetAll`)
-        .then(response => {
-            if (!response.ok) {
-                throw new Error('Failed to fetch users');
-            }
-            return response.json();
-        })
-        .then(users => {
-            // Store users in a global variable for filtering
-            window.allUsers = users;
-            displayUsers(users);
-        })
-        .catch(error => console.error("Error fetching users:", error));
+async function fetchUsers() {
+    try {
+        const response = await fetch(`${api_key}User/GetAll`, {
+            method: 'GET',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${sessionStorage.getItem('token')}`
+            },
+            credentials: 'include'
+        });
+        
+        if (!response.ok) {
+            throw new Error(`Error ${response.status}: ${response.statusText}`);
+        }
+        
+        const users = await response.json();
+        displayUsers(users);
+        return users;
+    } catch (error) {
+        console.error("Error fetching users:", error);
+        
+        // Show a more user-friendly error in the UI
+        const userTableBody = document.getElementById('user-table-body');
+        if (userTableBody) {
+            userTableBody.innerHTML = `
+            <tr>
+                <td colspan="7" class="error-message">
+                    <i class="fa fa-exclamation-triangle"></i>
+                    <p>Unable to load users. Please try again later.</p>
+                </td>
+            </tr>`;
+        }
+        
+        throw error;
+    }
 }
 
 function displayUsers(users) {
