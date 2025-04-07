@@ -3260,7 +3260,10 @@ async function editPost(postId) {
     }
 
     const contentElement = postElement.querySelector('.post-content');
-    const currentContent = contentElement.innerHTML;
+    const originalContent = contentElement.innerHTML;
+    
+    // Tạo một bản sao của nội dung gốc để xử lý
+    const textOnlyContent = stripImageTags(originalContent);
     
     // Create modal for editing
     const editModal = document.createElement('div');
@@ -3272,9 +3275,9 @@ async function editPost(postId) {
                 <button class="close-edit-modal">&times;</button>
             </div>
             <div class="edit-post-body">
-                <textarea id="edit-post-input">${currentContent}</textarea>
+                <textarea id="edit-post-input">${textOnlyContent}</textarea>
                 <div id="edit-image-preview" class="image-preview">
-                    ${extractImagesFromHTML(currentContent)}
+                    ${extractImagesFromHTML(originalContent)}
                 </div>
             </div>
             <div class="edit-post-footer">
@@ -3442,6 +3445,9 @@ async function editPost(postId) {
     editInput.style.borderRadius = '4px';
     editInput.style.resize = 'vertical';
     
+    // Lưu lại nội dung gốc để sử dụng khi cần
+    editModal.dataset.originalContent = originalContent;
+    
     // Handle close modal
     const closeModal = () => {
         document.body.removeChild(editModal);
@@ -3453,19 +3459,14 @@ async function editPost(postId) {
     
     // Save changes
     editModal.querySelector('.save-edit-btn').addEventListener('click', async () => {
-        const newContent = editInput.value;
+        const newTextContent = editInput.value;
         
-        if (!newContent || newContent.trim() === '') {
+        if (!newTextContent || newTextContent.trim() === '') {
             Swal.fire({
                 icon: 'warning',
                 title: 'Empty Content',
                 text: 'Post content cannot be empty'
             });
-            return;
-        }
-        
-        if (newContent === currentContent) {
-            closeModal();
             return;
         }
         
@@ -3480,6 +3481,9 @@ async function editPost(postId) {
                 }
             });
             
+            // Tạo nội dung mới từ text và ảnh đã được giữ lại
+            const updatedContent = mergeTextAndImages(newTextContent, originalContent);
+            
             const response = await fetch(`${api_key}Post/Update/${postId}`, {
                 method: 'PUT',
                 headers: {
@@ -3487,7 +3491,7 @@ async function editPost(postId) {
                     'Authorization': `Bearer ${sessionStorage.getItem('token')}`
                 },
                 body: JSON.stringify({
-                    content: newContent
+                    content: updatedContent
                 })
             });
             
@@ -3496,7 +3500,7 @@ async function editPost(postId) {
             }
             
             // Update content in the DOM
-            contentElement.innerHTML = newContent;
+            contentElement.innerHTML = updatedContent;
             
             // Close loading indicator
             Swal.close();
@@ -3527,6 +3531,54 @@ async function editPost(postId) {
             });
         }
     });
+}
+
+// Helper function to strip image tags from content while preserving other HTML
+function stripImageTags(html) {
+    const tempDiv = document.createElement('div');
+    tempDiv.innerHTML = html;
+    
+    // Remove image tags
+    const images = tempDiv.querySelectorAll('img');
+    images.forEach(img => {
+        img.parentNode.removeChild(img);
+    });
+    
+    return tempDiv.innerHTML;
+}
+
+// Helper function to merge text content with original images
+function mergeTextAndImages(newText, originalContent) {
+    const tempDivOriginal = document.createElement('div');
+    tempDivOriginal.innerHTML = originalContent;
+    
+    const tempDivNew = document.createElement('div');
+    tempDivNew.innerHTML = newText;
+    
+    // Extract all images from the original content
+    const images = tempDivOriginal.querySelectorAll('img');
+    const imageArray = Array.from(images);
+    
+    // Filter out images that were marked for deletion
+    const deletedImages = document.querySelectorAll('.edit-image-item.deleted');
+    const deletedSrcs = Array.from(deletedImages).map(item => item.dataset.src);
+    
+    const remainingImages = imageArray.filter(img => !deletedSrcs.includes(img.src));
+    
+    // Append the remaining images to the new content
+    if (remainingImages.length > 0) {
+        const imageContainer = document.createElement('div');
+        imageContainer.className = 'retained-images';
+        imageContainer.style.marginTop = '20px';
+        
+        remainingImages.forEach(img => {
+            imageContainer.appendChild(img.cloneNode(true));
+        });
+        
+        tempDivNew.appendChild(imageContainer);
+    }
+    
+    return tempDivNew.innerHTML;
 }
 
 // Helper function to extract image previews from HTML content
@@ -3565,28 +3617,50 @@ function extractImagesFromHTML(html) {
 function removeImageFromEdit(button) {
     const imageItem = button.closest('.edit-image-item');
     const imageSrc = imageItem.dataset.src;
-    const editInput = document.getElementById('edit-post-input');
     
     // Confirm before removing
     if (confirm('Bạn có chắc muốn xóa ảnh này khỏi bài viết?')) {
         // Add fade-out animation
         imageItem.style.transition = 'all 0.3s ease';
-        imageItem.style.opacity = '0';
-        imageItem.style.transform = 'scale(0.8)';
+        imageItem.style.opacity = '0.3';
+        imageItem.style.transform = 'scale(0.9)';
         
+        // Mark as deleted instead of removing from DOM
+        imageItem.classList.add('deleted');
+        
+        // Change delete button to undo button
+        const actionDiv = imageItem.querySelector('.edit-image-actions');
+        actionDiv.innerHTML = `
+            <button class="restore-image-btn" onclick="restoreImageInEdit(this)" title="Hoàn tác">
+                <i class="fa fa-undo"></i>
+            </button>
+        `;
+        
+        // Show restored options after animation completes
         setTimeout(() => {
-            // Remove from the preview
-            if (imageItem.parentNode) {
-                imageItem.parentNode.removeChild(imageItem);
-            }
-            
-            // Remove image tag from textarea content
-            let content = editInput.value;
-            const imgPattern = new RegExp(`<img[^>]*src=["']${escapeRegExp(imageSrc)}["'][^>]*>`, 'g');
-            content = content.replace(imgPattern, '');
-            editInput.value = content;
+            actionDiv.style.opacity = '1';
         }, 300);
     }
+}
+
+// Function to restore a deleted image
+function restoreImageInEdit(button) {
+    const imageItem = button.closest('.edit-image-item');
+    
+    // Restore styles
+    imageItem.style.opacity = '1';
+    imageItem.style.transform = 'scale(1)';
+    
+    // Remove deleted class
+    imageItem.classList.remove('deleted');
+    
+    // Change back to delete button
+    const actionDiv = imageItem.querySelector('.edit-image-actions');
+    actionDiv.innerHTML = `
+        <button class="delete-image-btn" onclick="removeImageFromEdit(this)" title="Xóa ảnh">
+            <i class="fa fa-trash"></i>
+        </button>
+    `;
 }
 
 // Helper function to escape special characters in regex
