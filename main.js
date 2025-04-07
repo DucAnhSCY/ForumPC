@@ -43,7 +43,7 @@ function initializePage() {
 }
 
 // API
-const api_key = "http://68.183.180.151:5000/api/";
+const api_key = "https://api.ducanhweb.me/api/";
 
 // NavBar
 function hideIconBar() {
