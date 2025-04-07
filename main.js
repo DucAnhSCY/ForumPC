@@ -3370,18 +3370,64 @@ async function editPost(postId) {
                 flex-wrap: wrap;
                 gap: 10px;
             }
+            .image-preview h4 {
+                width: 100%;
+                margin: 10px 0;
+                color: #333;
+                border-bottom: 1px solid #eee;
+                padding-bottom: 5px;
+            }
             .edit-image-item {
                 position: relative;
-                width: 100px;
-                height: 100px;
-                border-radius: 4px;
+                width: 120px;
+                height: 120px;
+                border-radius: 8px;
                 overflow: hidden;
                 box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+                transition: all 0.3s ease;
+            }
+            .edit-image-item:hover {
+                transform: translateY(-3px);
+                box-shadow: 0 5px 15px rgba(0,0,0,0.3);
             }
             .edit-image-item img {
                 width: 100%;
                 height: 100%;
                 object-fit: cover;
+            }
+            .edit-image-actions {
+                position: absolute;
+                top: 0;
+                right: 0;
+                bottom: 0;
+                left: 0;
+                background: rgba(0, 0, 0, 0.5);
+                display: flex;
+                justify-content: center;
+                align-items: center;
+                opacity: 0;
+                transition: opacity 0.3s ease;
+            }
+            .edit-image-item:hover .edit-image-actions {
+                opacity: 1;
+            }
+            .delete-image-btn {
+                background: #f44336;
+                color: white;
+                border: none;
+                border-radius: 50%;
+                width: 36px;
+                height: 36px;
+                display: flex;
+                justify-content: center;
+                align-items: center;
+                cursor: pointer;
+                transition: all 0.2s ease;
+                box-shadow: 0 2px 5px rgba(0,0,0,0.3);
+            }
+            .delete-image-btn:hover {
+                background: #d32f2f;
+                transform: scale(1.1);
             }
         `;
         document.head.appendChild(styles);
@@ -3494,19 +3540,58 @@ function extractImagesFromHTML(html) {
         return '';
     }
     
-    let previewHTML = '';
+    let previewHTML = '<h4>Ảnh trong bài viết</h4>';
     
     images.forEach((img, index) => {
         if (img.src) {
+            // Lưu src của ảnh làm data attribute thay vì hiển thị trực tiếp
             previewHTML += `
-                <div class="edit-image-item" data-index="${index}">
+                <div class="edit-image-item" data-index="${index}" data-src="${img.src}">
                     <img src="${img.src}" alt="Image ${index+1}" />
+                    <div class="edit-image-actions">
+                        <button class="delete-image-btn" onclick="removeImageFromEdit(this)" title="Xóa ảnh">
+                            <i class="fa fa-trash"></i>
+                        </button>
+                    </div>
                 </div>
             `;
         }
     });
     
     return previewHTML;
+}
+
+// Function to remove image from edit form
+function removeImageFromEdit(button) {
+    const imageItem = button.closest('.edit-image-item');
+    const imageSrc = imageItem.dataset.src;
+    const editInput = document.getElementById('edit-post-input');
+    
+    // Confirm before removing
+    if (confirm('Bạn có chắc muốn xóa ảnh này khỏi bài viết?')) {
+        // Add fade-out animation
+        imageItem.style.transition = 'all 0.3s ease';
+        imageItem.style.opacity = '0';
+        imageItem.style.transform = 'scale(0.8)';
+        
+        setTimeout(() => {
+            // Remove from the preview
+            if (imageItem.parentNode) {
+                imageItem.parentNode.removeChild(imageItem);
+            }
+            
+            // Remove image tag from textarea content
+            let content = editInput.value;
+            const imgPattern = new RegExp(`<img[^>]*src=["']${escapeRegExp(imageSrc)}["'][^>]*>`, 'g');
+            content = content.replace(imgPattern, '');
+            editInput.value = content;
+        }, 300);
+    }
+}
+
+// Helper function to escape special characters in regex
+function escapeRegExp(string) {
+    return string.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 }
 
 // Thêm hàm deletePost
@@ -3848,86 +3933,120 @@ async function fetchPendingReportsCount() {
 // View report details
 async function viewReportDetails(reportId) {
     try {
-        currentReportId = reportId;
-        
-        // Find report in the cached reports
-        const report = allReports.find(r => r.reportId === reportId);
-        if (!report) {
-            throw new Error('Report not found');
+        // Fetch report details
+        const token = sessionStorage.getItem('token');
+        if (!token) {
+            console.error('No authentication token found');
+            return;
         }
         
-        // Fetch post details
-        const postResponse = await fetch(`${api_key}Post/${report.postId}`);
-        if (!postResponse.ok) {
-            throw new Error('Failed to fetch post details');
+        // Get the current report from the DOM
+        const reportRow = document.querySelector(`tr[data-report-id="${reportId}"]`);
+        if (!reportRow) {
+            return;
         }
         
-        const post = await postResponse.json();
+        // Show loading state
+        Swal.fire({
+            title: 'Loading report details...',
+            allowOutsideClick: false,
+            didOpen: () => {
+                Swal.showLoading();
+            }
+        });
         
-        // Fetch thread details to get thread ID for linking
-        const threadResponse = await fetch(`${api_key}Thread/${post.threadId}`);
-        if (!threadResponse.ok) {
-            throw new Error('Failed to fetch thread details');
+        // Get report data from API
+        const response = await fetch(`${api_key}Report/${reportId}`, {
+            headers: {
+                'Authorization': `Bearer ${token}`
+            }
+        });
+        
+        if (!response.ok) {
+            throw new Error('Failed to fetch report details');
         }
         
-        const thread = await threadResponse.json();
+        const report = await response.json();
         
-        // Update modal with report and post details
-        document.getElementById('reported-post-content').innerHTML = post.content;
-        document.getElementById('report-author').textContent = report.username;
-        document.getElementById('report-reason-display').textContent = report.reason;
+        // Also fetch the associated post/comment to display its content
+        const contentType = report.contentType || 'post';
+        const contentId = report.contentId || report.postId;
+        
+        let contentResponse;
+        if (contentType === 'post') {
+            contentResponse = await fetch(`${api_key}Post/${contentId}`);
+        } else if (contentType === 'comment') {
+            contentResponse = await fetch(`${api_key}Comment/${contentId}`);
+        }
+        
+        if (!contentResponse || !contentResponse.ok) {
+            throw new Error('Failed to fetch reported content');
+        }
+        
+        const contentData = await contentResponse.json();
+        
+        // Close loading state
+        Swal.close();
+        
+        // Set data in modal
+        document.getElementById('report-author').textContent = report.reportedBy || 'Anonymous';
+        document.getElementById('report-reason-display').textContent = report.reason || 'No reason provided';
         document.getElementById('report-date').textContent = formatDate(report.createdAt);
         
-        // Set up the direct link to the thread - simplified to only use thread ID
+        // Set the reported content
+        const reportedContentEl = document.getElementById('reported-post-content');
+        reportedContentEl.innerHTML = contentData.content || 'Content not available';
+        
+        // Set the thread link
         const threadLink = document.getElementById('report-thread-link');
-        if (threadLink) {
-            threadLink.href = `thread-detail.html?id=${thread.threadId}`;
-            threadLink.textContent = `View reported content in thread: "${thread.title}"`;
-            threadLink.target = "_blank";
-        }
+        threadLink.href = `thread-detail.html?id=${report.threadId}`;
         
-        // Show or hide action buttons based on report status
-        const resolveBtn = document.querySelector('.resolve-btn');
-        const rejectBtn = document.querySelector('.reject-btn');
+        // Store the current report ID for action buttons
+        reportDetailsModal.dataset.reportId = reportId;
         
-        if (report.status === 'pending') {
-            resolveBtn.style.display = 'inline-block';
-            rejectBtn.style.display = 'inline-block';
-        } else {
-            resolveBtn.style.display = 'none';
-            rejectBtn.style.display = 'none';
-        }
+        // Open the modal
+        reportDetailsModal.classList.remove('hide');
         
-        // Show modal
-        const modal = document.getElementById('report-details-modal');
-        modal.classList.remove('hide');
     } catch (error) {
         console.error('Error viewing report details:', error);
-        showError('Failed to load report details. Please try again.');
+        Swal.fire({
+            icon: 'error',
+            title: 'Error',
+            text: 'Failed to load report details. Please try again.'
+        });
     }
 }
 
-// Resolve current report
+// Functions to handle report actions
 function resolveReport() {
-    if (currentReportId) {
-        updateReportStatus(currentReportId, 'resolved');
+    const reportId = document.getElementById('report-details-modal').dataset.reportId;
+    if (reportId) {
+        updateReportStatus(reportId, 'resolved');
+        closeReportDetailsModal();
     }
 }
 
-// Reject current report
 function rejectReport() {
-    if (currentReportId) {
-        updateReportStatus(currentReportId, 'rejected');
+    const reportId = document.getElementById('report-details-modal').dataset.reportId;
+    if (reportId) {
+        updateReportStatus(reportId, 'rejected');
+        closeReportDetailsModal();
     }
 }
 
-// Close report details modal
 function closeReportDetailsModal() {
     const modal = document.getElementById('report-details-modal');
-    if (modal) {
+    
+    // Add fade-out animation
+    modal.style.opacity = '0';
+    modal.style.transform = 'scale(0.9)';
+    
+    // Hide after animation completes
+    setTimeout(() => {
         modal.classList.add('hide');
-    }
-    currentReportId = null;
+        modal.style.opacity = '';
+        modal.style.transform = '';
+    }, 200);
 }
 
 // Add event listener to initialize reports on page load
