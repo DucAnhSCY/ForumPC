@@ -776,20 +776,16 @@ function clearThreadForm() {
 async function createThread() {
     const title = document.getElementById('thread-title').value;
     const content = document.getElementById('thread-content').value;
-    
-    const categorySelect = document.getElementById('thread-category');
-    const categoryId = categorySelect.value;
-    const categoryName = categorySelect.options[categorySelect.selectedIndex].text;
-    
-    // Basic validation
-    if (!title.trim() || !content.trim() || !categoryId) {
-        alert('Please fill all required fields.');
+    const categoryId = document.getElementById('thread-category').value;
+    const userId = sessionStorage.getItem('userId');
+    const username = sessionStorage.getItem('username');
+    const categoryName = document.getElementById('thread-category').options[document.getElementById('thread-category').selectedIndex].text;
+
+    if (!title || !content || !categoryId || !userId) {
+        showCustomAlert('Error', 'Please fill all required fields.', 'error');
         return;
     }
     
-    const userId = parseInt(sessionStorage.getItem('userId'));
-    const username = sessionStorage.getItem('username');
-
     try {
         const response = await fetch(`${api_key}Thread/Insert`, {
             method: 'POST',
@@ -812,7 +808,7 @@ async function createThread() {
         if (response.ok) {
             const data = await response.json();
             console.log('Thread created successfully:', data);
-            alert('Thread created successfully!');
+            showCustomAlert('Success', 'Thread created successfully!', 'success');
             cancelThreadForm(); // Thay đổi ở đây
             
             // Chuyển hướng đến thread vừa tạo
@@ -822,14 +818,14 @@ async function createThread() {
             console.error('Error response:', errorText);
             try {
                 const errorData = JSON.parse(errorText);
-                alert(`Error: ${errorData.title || 'Could not create thread'}`);
+                showCustomAlert('Error', `${errorData.title || 'Could not create thread'}`, 'error');
             } catch (e) {
-                alert(`Error: ${errorText || 'Could not create thread'}`);
+                showCustomAlert('Error', `${errorText || 'Could not create thread'}`, 'error');
             }
         }
     } catch (error) {
         console.error('Fetch error:', error);
-        alert(`Error: ${error.message}`);
+        showCustomAlert('Error', `${error.message}`, 'error');
     }
 }
 
@@ -1210,16 +1206,26 @@ function displayUsers(users) {
 const pendingChanges = new Map();
 
 async function saveChanges(userId) {
-    console.log('Full pendingChanges Map before saving:', pendingChanges); // Debugging log
-
-    const changes = pendingChanges.get(userId);
-    console.log(`Attempting to save changes for user ${userId}:`, changes); // Debugging log
-
-    if (!changes || Object.keys(changes).length === 0) { 
-        alert('No changes detected. Please modify the user before saving.');
+    const userRow = document.querySelector(`tr[data-user-id="${userId}"]`);
+    const roleSelect = userRow.querySelector('.role-select');
+    const statusSelect = userRow.querySelector('.status-select');
+    const saveButton = userRow.querySelector('.save-btn');
+    const savingIcon = saveButton.querySelector('i');
+    
+    // Track changed fields
+    const changedFields = [];
+    if (roleSelect.dataset.changed === 'true') {
+        changedFields.push('role');
+    }
+    if (statusSelect.dataset.changed === 'true') {
+        changedFields.push('status');
+    }
+    
+    if (changedFields.length === 0) {
+        showCustomAlert('Information', 'No changes detected. Please modify the user before saving.', 'info');
         return;
     }
-
+    
     try {
         const token = sessionStorage.getItem("token");
         if (!token) {
@@ -1230,27 +1236,27 @@ async function saveChanges(userId) {
         const promises = [];
 
         // Apply role changes if any
-        if (changes.role) {
+        if (changedFields.includes('role')) {
             const rolePromise = fetch(`${api_key}User/UpdateUser/${userId}`, {
             method: "PUT",
             headers: {
                 "Content-Type": "application/json",
                 "Authorization": `Bearer ${token}`
             },
-                body: JSON.stringify({ role: changes.role })
+                body: JSON.stringify({ role: roleSelect.value })
             });
             promises.push(rolePromise);
         }
 
         // Apply status changes if any
-        if (changes.status) {
+        if (changedFields.includes('status')) {
             const statusPromise = fetch(`${api_key}User/UpdateStatus/${userId}`, {
                 method: "PUT",
                 headers: {
                     "Content-Type": "application/json",
                     "Authorization": `Bearer ${token}`
                 },
-                body: JSON.stringify({ status: changes.status })
+                body: JSON.stringify({ status: statusSelect.value })
             });
             promises.push(statusPromise);
         }
@@ -1266,7 +1272,7 @@ async function saveChanges(userId) {
             }
         }
 
-        alert('Changes saved successfully!');
+        showCustomAlert('Success', 'Changes saved successfully!', 'success');
         pendingChanges.delete(userId);
         await refreshTable();
     } catch (error) {
@@ -1278,69 +1284,54 @@ async function saveChanges(userId) {
 
 
 async function saveAllChanges() {
+    const changedRows = document.querySelectorAll('tr[data-changed="true"]');
+    const saveAllBtn = document.querySelector('.save-all-btn');
+    const spinnerIcon = saveAllBtn.querySelector('i');
+    
     try {
-        const token = sessionStorage.getItem("token");
-        const promises = [];
-
-        for (const [userId, changes] of pendingChanges) {
-            // Handle role changes
-            if (changes.role) {
-                const rolePromise = fetch(`${api_key}User/UpdateRole/${userId}`, {
-                method: "PUT",
-                headers: {
-                    "Content-Type": "application/json",
-                    "Authorization": `Bearer ${token}`
-                },
-                    body: JSON.stringify({ role: changes.role })
-                });
-                promises.push(rolePromise);
-            }
-            
-            // Handle status changes
-            if (changes.status) {
-                const statusPromise = fetch(`${api_key}User/UpdateStatus/${userId}`, {
-                    method: "PUT",
-                    headers: {
-                        "Content-Type": "application/json",
-                        "Authorization": `Bearer ${token}`
-                    },
-                    body: JSON.stringify({ status: changes.status })
-                });
-                promises.push(statusPromise);
-            }
-        }
-
-        // Wait for all responses
-        const responses = await Promise.all(promises);
+        saveAllBtn.classList.add('disabled');
+        spinnerIcon.classList.add('spinning');
         
-        // Check if any request failed
-        for (const response of responses) {
-            if (!response.ok) {
-                const errorText = await response.text();
-                throw new Error(errorText || 'Failed to update one or more users');
-            }
-        }
+        // For each changed row, get the user ID and call saveChanges
+        const savePromises = [];
+        changedRows.forEach(row => {
+            const userId = row.dataset.userId;
+            savePromises.push(saveChanges(userId));
+        });
         
-        alert('All changes saved successfully!');
-        pendingChanges.clear();
-        await refreshTable();
+        // Wait for all save operations to complete
+        await Promise.all(savePromises);
+        
+        spinnerIcon.classList.remove('spinning');
+        saveAllBtn.classList.remove('disabled');
+        showCustomAlert('Success', 'All changes saved successfully!', 'success');
     } catch (error) {
-        alert('Error saving changes: ' + error.message);
+        console.error('Error saving changes:', error);
+        showCustomAlert('Error', 'Error saving changes: ' + error.message, 'error');
+        spinnerIcon.classList.remove('spinning');
+        saveAllBtn.classList.remove('disabled');
     }
 }
 
 async function refreshTable() {
-    const refreshBtn = document.querySelector('.refresh-btn i');
-    refreshBtn.classList.add('spinning');
+    const refreshBtn = document.querySelector('.refresh-btn');
+    const spinnerIcon = refreshBtn.querySelector('i');
     
     try {
+        refreshBtn.classList.add('disabled');
+        spinnerIcon.classList.add('spinning');
+        
+        // Re-fetch the users
         await fetchUsers();
-        setTimeout(() => {
-            refreshBtn.classList.remove('spinning');
-        }, 1000);
+        
+        // Remove spinning class and disabled state
+        spinnerIcon.classList.remove('spinning');
+        refreshBtn.classList.remove('disabled');
     } catch (error) {
-        alert('Error refreshing table: ' + error.message);
-        refreshBtn.classList.remove('spinning');
+        console.error('Error refreshing table:', error);
+        showCustomAlert('Error', 'Error refreshing table: ' + error.message, 'error');
+        spinnerIcon.classList.remove('spinning');
+        refreshBtn.classList.remove('disabled');
     }
 }
 
@@ -1362,25 +1353,27 @@ function filterUsers(role) {
 }
 
 function assignRole(userId) {
-    const newRole = prompt("Enter new role for the user (e.g., Admin, Moderator, User):");
-    if (!newRole) {
-        alert("Role cannot be empty.");
+    const roleSelect = document.getElementById(`role-${userId}`);
+    const role = roleSelect.value;
+    
+    if (!role) {
+        showCustomAlert('Error', 'Role cannot be empty.', 'error');
         return;
     }
-
-    const token = sessionStorage.getItem("token");
+    
+    const token = sessionStorage.getItem('token');
     if (!token) {
-        alert("You must be logged in to assign roles.");
+        showCustomAlert('Authentication Error', 'You must be logged in to assign roles.', 'warning');
         return;
     }
-
+    
     fetch(`${api_key}User/UpdateRole/${userId}`, {
         method: "PUT",
         headers: {
             "Content-Type": "application/json",
             "Authorization": `Bearer ${token}`
         },
-        body: JSON.stringify({ role: newRole })
+        body: JSON.stringify({ role: role })
     })
     .then(response => {
         if (!response.ok) {
@@ -1389,11 +1382,11 @@ function assignRole(userId) {
         return response.json();
     })
     .then(() => {
-        alert("Role assigned successfully!");
+        showCustomAlert('Success', 'Role assigned successfully!', 'success');
         fetchUsers(); // Refresh the user list
     })
     .catch(error => {
-        alert("Error: " + error.message);
+        showCustomAlert('Error', 'Error: ' + error.message, 'error');
     });
 }
 
@@ -1492,7 +1485,7 @@ if (registerForm) {
         const confirmPassword = document.getElementById('confirmPassword').value;
 
         if (password !== confirmPassword) {
-            alert('Passwords do not match');
+            showCustomAlert('Error', 'Passwords do not match', 'error');
             return;
         }
 
@@ -1509,11 +1502,13 @@ if (registerForm) {
                 return response.json().then(err => { throw new Error(err.message); });
             }
             
-            alert('Registration successful! You can now log in.');
-            window.location.href = 'login.html';
+            showCustomAlert('Success', 'Registration successful! You can now log in.', 'success');
+            setTimeout(() => {
+                window.location.href = 'login.html';
+            }, 1500);
         } catch (error) {
             console.error('Registration error:', error);
-            alert('An error occurred during registration: ' + error.message);
+            showCustomAlert('Error', 'An error occurred during registration: ' + error.message, 'error');
         }
     });
 }
@@ -1629,42 +1624,54 @@ async function checkUserExists(userId) {
 
 // Thêm hàm xóa user
 async function deleteUser(userId) {
-    try {
-        // Kiểm tra xem có phải đang xóa chính mình không
-        const currentUserId = sessionStorage.getItem("userId");
-        if (userId === parseInt(currentUserId)) {
-            alert("Bạn không thể xóa tài khoản của chính mình!");
-            return;
-        }
-
-        // Xác nhận xóa
-        if (!confirm("Bạn có chắc chắn muốn xóa người dùng này?")) {
-            return;
-        }
-
-        const token = sessionStorage.getItem("token");
-        if (!token) {
-            throw new Error('Bạn cần đăng nhập để thực hiện thao tác này');
-        }
-
-        const response = await fetch(`${api_key}User/Delete/${userId}`, {
-            method: "DELETE",
-            headers: {
-                "Authorization": `Bearer ${token}`
-            }
-        });
-
-        if (!response.ok) {
-            const errorText = await response.text();
-            throw new Error(errorText || 'Không thể xóa người dùng');
-        }
-
-        alert('Xóa người dùng thành công!');
-        await refreshTable();
-    } catch (error) {
-        console.error('Lỗi khi xóa user:', error);
-        alert(`Lỗi: ${error.message}`);
+    const currentUserId = sessionStorage.getItem('userId');
+    
+    if (userId === currentUserId) {
+        showCustomAlert('Warning', 'Bạn không thể xóa tài khoản của chính mình!', 'warning');
+        return;
     }
+    
+    Swal.fire({
+        title: 'Xác nhận xóa',
+        text: "Bạn có chắc chắn muốn xóa người dùng này không?",
+        icon: 'warning',
+        showCancelButton: true,
+        confirmButtonColor: '#3085d6',
+        cancelButtonColor: '#d33',
+        confirmButtonText: 'Xác nhận xóa',
+        cancelButtonText: 'Hủy'
+    }).then(async (result) => {
+        if (result.isConfirmed) {
+            try {
+                const token = sessionStorage.getItem("token");
+                if (!token) {
+                    throw new Error('Bạn cần đăng nhập để thực hiện thao tác này');
+                }
+
+                const response = await fetch(`${api_key}User/Delete/${userId}`, {
+                    method: "DELETE",
+                    headers: {
+                        "Authorization": `Bearer ${token}`
+                    }
+                });
+
+                if (!response.ok) {
+                    const errorText = await response.text();
+                    throw new Error(errorText || 'Không thể xóa người dùng');
+                }
+
+                showCustomAlert('Success', 'Xóa người dùng thành công!', 'success');
+                
+                // Xóa hàng khỏi bảng
+                const userRow = document.querySelector(`tr[data-user-id="${userId}"]`);
+                if (userRow) {
+                    userRow.remove();
+                }
+            } catch (error) {
+                showCustomAlert('Error', `Lỗi: ${error.message}`, 'error');
+            }
+        }
+    });
 }
 
 // ===== THREAD DETAIL FUNCTIONS =====
@@ -1943,9 +1950,9 @@ async function initializeLikeStatus(postId, likeButton) {
 
 // Toggle reply form visibility
 function toggleReplyForm(button) {
-    // Check if user is logged in
-    if (!sessionStorage.getItem("token")) {
-        alert("Please log in to reply to posts.");
+    const token = sessionStorage.getItem('token');
+    if (!token) {
+        showCustomAlert('Authentication Required', 'Please log in to reply to posts.', 'warning');
         return;
     }
     
@@ -2047,9 +2054,9 @@ async function submitPost() {
 
 // Submit a reply to a post
 async function submitReply(button, parentPostId) {
-    // Check if user is logged in
-    if (!sessionStorage.getItem("token")) {
-        alert("Please log in to reply to posts.");
+    const token = sessionStorage.getItem('token');
+    if (!token) {
+        showCustomAlert('Authentication Required', 'Please log in to reply to posts.', 'warning');
         return;
     }
     
@@ -2094,7 +2101,7 @@ async function submitReply(button, parentPostId) {
         
     } catch (error) {
         console.error('Error submitting reply:', error);
-        alert('Failed to submit reply. Please try again later.');
+        showCustomAlert('Error', 'Failed to submit reply. Please try again later.', 'error');
     }
 }
 
@@ -2540,8 +2547,9 @@ function createPostElement(post) {
 
 // Toggle comment form visibility
 function toggleCommentForm(button) {
-    if (!sessionStorage.getItem("token")) {
-        alert("Please log in to comment.");
+    const token = sessionStorage.getItem('token');
+    if (!token) {
+        showCustomAlert('Authentication Required', 'Please log in to comment.', 'warning');
         return;
     }
     
@@ -2555,33 +2563,18 @@ function toggleCommentForm(button) {
 
 // Submit a comment
 async function submitComment(button) {
-    if (!sessionStorage.getItem('token')) {
-        alert('Please log in to comment.');
+    const token = sessionStorage.getItem('token');
+    if (!token) {
+        showCustomAlert('Authentication Required', 'Please log in to comment.', 'warning');
         return;
     }
-
-    // Đảm bảo button là phần tử DOM
-    if (!(button instanceof Element)) {
-        console.error('Invalid button parameter:', button);
+    
+    const commentContent = document.getElementById('comment-text').value.trim();
+    if (!commentContent) {
+        showCustomAlert('Error', 'Please write something in your comment.', 'error');
         return;
     }
-
-    const post = button.closest('.post');
-    if (!post) {
-        console.error('Post element not found');
-        return;
-    }
-
-    const postId = parseInt(post.getAttribute('data-post-id'));
-    const commentForm = post.querySelector('.comment-form');
-    const textarea = commentForm.querySelector('textarea');
-    const content = textarea.value.trim();
-
-    if (!content) {
-        alert('Please write something in your comment.');
-        return;
-    }
-
+    
     try {
         const response = await fetch(`${api_key}Comment/Insert`, {
             method: 'POST',
@@ -2590,8 +2583,8 @@ async function submitComment(button) {
                 'Authorization': `Bearer ${sessionStorage.getItem('token')}`
             },
             body: JSON.stringify({
-                content: content,
-                postId: postId,
+                content: commentContent,
+                postId: parseInt(post.getAttribute('data-post-id')),
                 userId: parseInt(sessionStorage.getItem('userId'))
             })
         });
@@ -2602,8 +2595,8 @@ async function submitComment(button) {
         }
 
         // Clear form and reload comments
-        textarea.value = '';
-        commentForm.classList.add('hide');
+        form.querySelector('textarea').value = '';
+        form.classList.add('hide');
         
         // Reload comments
         const commentsContainer = post.querySelector('.comments-container');
@@ -2611,7 +2604,7 @@ async function submitComment(button) {
 
     } catch (error) {
         console.error('Error submitting comment:', error);
-        alert('Failed to submit comment. Please try again.');
+        showCustomAlert('Error', 'Failed to submit comment. Please try again.', 'error');
     }
 }
 
@@ -2716,12 +2709,12 @@ function createCommentElement(comment) {
 
 // Cập nhật hàm editComment để kết nối với CommentController
 async function editComment(commentId) {
-    // Kiểm tra đăng nhập
-    if (!sessionStorage.getItem('token')) {
-        alert('Vui lòng đăng nhập để chỉnh sửa bình luận.');
+    const token = sessionStorage.getItem('token');
+    if (!token) {
+        showCustomAlert('Authentication Required', 'Vui lòng đăng nhập để chỉnh sửa bình luận.', 'warning');
         return;
     }
-
+    
     const commentElement = document.querySelector(`[data-comment-id="${commentId}"]`);
     if (!commentElement) {
         console.error('Không tìm thấy bình luận để chỉnh sửa');
@@ -2764,8 +2757,8 @@ async function editComment(commentId) {
         console.log('Bình luận đã được cập nhật thành công');
 
     } catch (error) {
-        console.error('Lỗi khi cập nhật bình luận:', error);
-        alert('Không thể cập nhật bình luận. Vui lòng thử lại.');
+        console.error('Error updating comment:', error);
+        showCustomAlert('Error', 'Không thể cập nhật bình luận. Vui lòng thử lại.', 'error');
     }
 }
 
@@ -3247,9 +3240,9 @@ async function debugLikeStatus() {
 
 // Thêm hàm editPost
 async function editPost(postId) {
-    // Kiểm tra đăng nhập
-    if (!sessionStorage.getItem('token')) {
-        alert('Vui lòng đăng nhập để chỉnh sửa bài viết.');
+    const token = sessionStorage.getItem('token');
+    if (!token) {
+        showCustomAlert('Authentication Required', 'Vui lòng đăng nhập để chỉnh sửa bài viết.', 'warning');
         return;
     }
 
