@@ -774,111 +774,63 @@ function clearThreadForm() {
 
 // Sửa lại hàm createThread để sử dụng cancelThreadForm thay vì clearThreadForm
 async function createThread() {
-    const categorySelect = document.getElementById('thread-category');
-    const titleInput = document.getElementById('thread-title');
-    const contentInput = document.getElementById('thread-content');
+    const title = document.getElementById('thread-title').value;
+    const content = document.getElementById('thread-content').value;
     
-    if (!categorySelect || !titleInput || !contentInput) {
-        showError('Missing form elements');
+    const categorySelect = document.getElementById('thread-category');
+    const categoryId = categorySelect.value;
+    const categoryName = categorySelect.options[categorySelect.selectedIndex].text;
+    
+    // Basic validation
+    if (!title.trim() || !content.trim() || !categoryId) {
+        alert('Please fill all required fields.');
         return;
     }
-
-    const category = categorySelect.value;
-    const title = titleInput.value.trim();
-    const content = contentInput.value.trim();
-
-    if (!category || !title || !content) {
-        Swal.fire({
-            icon: 'error',
-            title: 'Lỗi',
-            text: 'Vui lòng điền đầy đủ thông tin',
-            confirmButtonColor: '#6a11cb'
-        });
-        return;
-    }
-
-    const userId = getUserId();
-    if (!userId) {
-        Swal.fire({
-            icon: 'warning',
-            title: 'Chưa đăng nhập',
-            text: 'Bạn cần đăng nhập để tạo bài viết mới',
-            confirmButtonColor: '#6a11cb'
-        });
-        return;
-    }
-
-    // Show loading
-    Swal.fire({
-        title: 'Đang xử lý...',
-        html: 'Đang tạo bài viết mới',
-        allowOutsideClick: false,
-        didOpen: () => {
-            Swal.showLoading();
-        }
-    });
+    
+    const userId = parseInt(sessionStorage.getItem('userId'));
+    const username = sessionStorage.getItem('username');
 
     try {
-        const threadData = {
-            id: generateUniqueId(), // Assume this function exists or create it
-            category: category,
-            title: title,
-            content: content,
-            userId: userId,
-            createdAt: new Date().toISOString(),
-            likes: 0,
-            views: 0
-        };
-
-        // Get existing threads or initialize empty array
-        let threads = JSON.parse(localStorage.getItem('threads')) || [];
+        const response = await fetch(`${api_key}Thread/Insert`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${sessionStorage.getItem('token')}`
+            },
+            body: JSON.stringify({ 
+                title: title, 
+                content: content, 
+                categoryId: parseInt(categoryId, 10),
+                userId: userId,
+                categoryName: categoryName,
+                username: username,
+                threadId: 0,
+                createdAt: new Date().toISOString()
+            })
+        });
         
-        // Add new thread
-        threads.push(threadData);
-        
-        // Save back to localStorage
-        localStorage.setItem('threads', JSON.stringify(threads));
-
-        // Reset form and hide it
-        categorySelect.value = '';
-        titleInput.value = '';
-        contentInput.value = '';
-        
-        const createThreadSection = document.getElementById('create-thread-section');
-        if (createThreadSection) {
-            createThreadSection.classList.remove('show');
-            createThreadSection.classList.add('hide');
+        if (response.ok) {
+            const data = await response.json();
+            console.log('Thread created successfully:', data);
+            alert('Thread created successfully!');
+            cancelThreadForm(); // Thay đổi ở đây
+            
+            // Chuyển hướng đến thread vừa tạo
+            window.location.href = `thread-detail.html?id=${data.threadId}`;
+        } else {
+            const errorText = await response.text();
+            console.error('Error response:', errorText);
+            try {
+                const errorData = JSON.parse(errorText);
+                alert(`Error: ${errorData.title || 'Could not create thread'}`);
+            } catch (e) {
+                alert(`Error: ${errorText || 'Could not create thread'}`);
+            }
         }
-
-        // Refresh threads display
-        displayThreads();
-        
-        // Show success message
-        Swal.fire({
-            icon: 'success',
-            title: 'Thành công!',
-            text: 'Bài viết của bạn đã được tạo thành công',
-            timer: 2000,
-            timerProgressBar: true,
-            showConfirmButton: false,
-            background: '#1e1e28',
-            color: '#fff',
-            iconColor: '#2575fc'
-        });
     } catch (error) {
-        console.error("Error creating thread:", error);
-        Swal.fire({
-            icon: 'error',
-            title: 'Có lỗi xảy ra',
-            text: 'Không thể tạo bài viết. Vui lòng thử lại sau',
-            confirmButtonColor: '#6a11cb'
-        });
+        console.error('Fetch error:', error);
+        alert(`Error: ${error.message}`);
     }
-}
-
-// Helper function to generate unique ID if it doesn't exist
-function generateUniqueId() {
-    return Date.now().toString(36) + Math.random().toString(36).substr(2, 5);
 }
 
 async function fetchAndDisplayThreads() {
@@ -2764,219 +2716,1492 @@ function createCommentElement(comment) {
 
 // Cập nhật hàm editComment để kết nối với CommentController
 async function editComment(commentId) {
+    // Kiểm tra đăng nhập
+    if (!sessionStorage.getItem('token')) {
+        alert('Vui lòng đăng nhập để chỉnh sửa bình luận.');
+        return;
+    }
+
+    const commentElement = document.querySelector(`[data-comment-id="${commentId}"]`);
+    if (!commentElement) {
+        console.error('Không tìm thấy bình luận để chỉnh sửa');
+        return;
+    }
+
+    const contentElement = commentElement.querySelector('.comment-content');
+    const currentContent = contentElement.textContent;
+    
+    const newContent = prompt('Chỉnh sửa bình luận:', currentContent);
+    if (!newContent || newContent === currentContent) {
+        return;
+    }
+
     try {
-        // Fetch the comment to edit
-        const response = await fetch(`${api_key}Comment/GetById?id=${commentId}`, {
+        const response = await fetch(`${api_key}Comment/Update/${commentId}`, {
+            method: 'PUT',
             headers: {
+                'Content-Type': 'application/json',
                 'Authorization': `Bearer ${sessionStorage.getItem('token')}`
-            }
+            },
+            body: JSON.stringify({
+                content: newContent
+            })
         });
 
         if (!response.ok) {
-            throw new Error('Failed to fetch comment');
+            const errorText = await response.text();
+            throw new Error(errorText || 'Không thể cập nhật bình luận');
         }
 
-        const comment = await response.json();
+        contentElement.textContent = newContent;
         
-        // Get the comment element and content area
-        const commentElement = document.querySelector(`.comment[data-comment-id="${commentId}"]`);
-        const contentArea = commentElement.querySelector('.comment-content');
-        const originalContent = contentArea.innerHTML;
-        
-        // Check if comment is already in edit mode
-        if (commentElement.classList.contains('editing')) {
-            return;
-        }
-        
-        // Mark comment as being edited
-        commentElement.classList.add('editing');
-        
-        // Parse content to separate text and images
-        const parser = new DOMParser();
-        const contentDoc = parser.parseFromString(originalContent, 'text/html');
-        
-        // Extract images
-        const images = Array.from(contentDoc.querySelectorAll('img')).map(img => {
-            return {
-                src: img.src,
-                fileName: img.getAttribute('data-filename') || 'image-' + Date.now() + '.jpg'
-            };
-        });
-        
-        // Get text content (remove images for editing)
-        let textContent = originalContent;
-        contentDoc.querySelectorAll('img').forEach(img => {
-            img.remove();
-        });
-        textContent = contentDoc.body.innerHTML;
-        
-        // Create edit form
-        const editForm = document.createElement('div');
-        editForm.className = 'edit-form';
-        
-        // Add textarea for text content
-        const textarea = document.createElement('textarea');
-        textarea.className = 'edit-textarea';
-        textarea.value = cleanHtmlContent(textContent);
-        editForm.appendChild(textarea);
-        
-        // Add image preview section if there are images
-        if (images.length > 0) {
-            const imageSection = document.createElement('div');
-            imageSection.className = 'edit-image-preview-container';
-            
-            const imageLabel = document.createElement('p');
-            imageLabel.className = 'image-label';
-            imageLabel.innerHTML = '<i class="fa fa-picture-o"></i> Hình ảnh đính kèm:';
-            imageSection.appendChild(imageLabel);
-            
-            images.forEach(image => {
-                const imagePreview = document.createElement('div');
-                imagePreview.className = 'edit-image-preview-item';
-                imagePreview.dataset.filename = image.fileName;
-                
-                const img = document.createElement('img');
-                img.src = image.src;
-                imagePreview.appendChild(img);
-                
-                const removeBtn = document.createElement('button');
-                removeBtn.className = 'remove-image';
-                removeBtn.innerHTML = '<i class="fa fa-times"></i>';
-                removeBtn.onclick = function() {
-                    imagePreview.remove();
-                };
-                
-                imagePreview.appendChild(removeBtn);
-                imageSection.appendChild(imagePreview);
-            });
-            
-            editForm.appendChild(imageSection);
-        }
-        
-        // Add buttons
-        const actionButtons = document.createElement('div');
-        actionButtons.className = 'edit-action-buttons';
-        
-        const saveButton = document.createElement('button');
-        saveButton.className = 'edit-save-btn';
-        saveButton.innerHTML = '<i class="fa fa-check"></i> Lưu';
-        
-        const cancelButton = document.createElement('button');
-        cancelButton.className = 'edit-cancel-btn';
-        cancelButton.innerHTML = '<i class="fa fa-times"></i> Hủy';
-        
-        actionButtons.appendChild(saveButton);
-        actionButtons.appendChild(cancelButton);
-        editForm.appendChild(actionButtons);
-        
-        // Replace content with edit form
-        contentArea.innerHTML = '';
-        contentArea.appendChild(editForm);
-        
-        // Focus the textarea
-        textarea.focus();
-        
-        // Handle cancel button
-        cancelButton.addEventListener('click', () => {
-            contentArea.innerHTML = originalContent;
-            commentElement.classList.remove('editing');
-        });
-        
-        // Handle save button
-        saveButton.addEventListener('click', async () => {
-            // Show loading state
-            saveButton.innerHTML = '<i class="fa fa-spinner fa-spin"></i> Đang lưu...';
-            saveButton.disabled = true;
-            
-            try {
-                // Collect remaining images
-                const remainingImages = Array.from(editForm.querySelectorAll('.edit-image-preview-item')).map(item => {
-                    return {
-                        src: item.querySelector('img').src,
-                        fileName: item.dataset.filename
-                    };
-                });
-                
-                // Combine text and images
-                let newContent = textarea.value;
-                
-                // Add images at the end of content
-                if (remainingImages.length > 0) {
-                    remainingImages.forEach(image => {
-                        newContent += `<img src="${image.src}" data-filename="${image.fileName}" alt="Hình ảnh người dùng tải lên">`;
-                    });
-                }
-                
-                // Send update request
-                const updateResponse = await fetch(`${api_key}Comment/Update`, {
-                    method: 'PUT',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'Authorization': `Bearer ${sessionStorage.getItem('token')}`
-                    },
-                    body: JSON.stringify({
-                        commentId: commentId,
-                        content: newContent,
-                        userId: parseInt(sessionStorage.getItem('userId'))
-                    })
-                });
-                
-                if (!updateResponse.ok) {
-                    throw new Error('Failed to update comment');
-                }
-                
-                // Update comment content
-                contentArea.innerHTML = newContent;
-                commentElement.classList.remove('editing');
-                
-                // Show success message
-                Swal.fire({
-                    icon: 'success',
-                    title: 'Thành công!',
-                    text: 'Bình luận đã được cập nhật',
-                    timer: 2000,
-                    timerProgressBar: true,
-                    showConfirmButton: false,
-                    background: '#1e1e28',
-                    color: '#fff',
-                    iconColor: '#2575fc'
-                });
-                
-                // Mark comment as updated
-                commentElement.classList.add('comment-updated');
-                setTimeout(() => {
-                    commentElement.classList.remove('comment-updated');
-                }, 3000);
-                
-            } catch (error) {
-                console.error('Error updating comment:', error);
-                Swal.fire({
-                    icon: 'error',
-                    title: 'Lỗi',
-                    text: 'Không thể cập nhật bình luận. Vui lòng thử lại sau.',
-                    confirmButtonColor: '#6a11cb'
-                });
-                
-                // Restore buttons
-                saveButton.innerHTML = '<i class="fa fa-check"></i> Lưu';
-                saveButton.disabled = false;
-            }
-        });
-        
+        // Hiệu ứng thành công
+        commentElement.classList.add('comment-updated');
+        setTimeout(() => {
+            commentElement.classList.remove('comment-updated');
+        }, 1500);
+
+        console.log('Bình luận đã được cập nhật thành công');
+
     } catch (error) {
-        console.error('Error editing comment:', error);
-        showError('Không thể chỉnh sửa bình luận. Vui lòng thử lại.');
+        console.error('Lỗi khi cập nhật bình luận:', error);
+        alert('Không thể cập nhật bình luận. Vui lòng thử lại.');
     }
 }
 
 // Cập nhật hàm deleteComment để kết nối với CommentController
+async function deleteComment(commentId) {
+    try {
+        // Confirm deletion
+        const result = await Swal.fire({
+            title: 'Delete Comment',
+            text: 'Are you sure you want to delete this comment? This action cannot be undone.',
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonText: 'Delete',
+            cancelButtonText: 'Cancel',
+            confirmButtonColor: '#d33',
+            cancelButtonColor: '#3085d6'
+        });
+        
+        if (!result.isConfirmed) {
+            return;
+        }
+        
+        const token = sessionStorage.getItem('token');
+        if (!token) {
+            throw new Error('You must be logged in to delete a comment');
+        }
+        
+        // Find the comment's parent post to update UI after deletion
+        const commentElement = document.querySelector(`[data-comment-id="${commentId}"]`);
+        const postId = commentElement ? getPostIdFromComment(commentElement) : null;
+        
+        const response = await fetch(`${api_key}Comments/Delete/${commentId}`, {
+            method: 'DELETE',
+            headers: {
+                'Authorization': `Bearer ${token}`
+            }
+        });
+        
+        if (!response.ok) {
+            const errorData = await response.json().catch(() => ({}));
+            throw new Error(errorData.message || 'Failed to delete comment');
+        }
+        
+        // Remove the comment element from the DOM with animation
+        if (commentElement) {
+            commentElement.classList.add('deleting');
+            setTimeout(() => {
+                commentElement.remove();
+                
+                // Update comment count for the parent post
+                if (postId) {
+                    const commentsContainer = document.querySelector(`[data-post-id="${postId}"] .comments-container`);
+                    if (commentsContainer) {
+                        const commentCount = commentsContainer.querySelectorAll('.comment').length;
+                        updateCommentCount(postId, commentCount);
+                    }
+                }
+            }, 500);
+        }
+        
+        Swal.fire({
+            title: 'Success',
+            text: 'Comment deleted successfully',
+            icon: 'success',
+            confirmButtonText: 'OK'
+        });
+    } catch (error) {
+        console.error('Error deleting comment:', error);
+        Swal.fire({
+            title: 'Error',
+            text: error.message || 'Failed to delete comment',
+            icon: 'error',
+            confirmButtonText: 'OK'
+        });
+    }
+}
+
+// Helper functions
+function updatePostCount(count) {
+    const postCountElement = document.getElementById('post-count');
+    if (postCountElement) {
+        postCountElement.textContent = count;
+    }
+}
+
+function updateCommentCount(postId, count) {
+    const post = document.querySelector(`[data-post-id="${postId}"]`);
+    if (post) {
+        post.querySelector(".comment-count").textContent = `${count || 0} comments`;
+    }
+}
+
+function getPostIdFromComment(commentElement) {
+    const post = commentElement.closest(".post");
+    return parseInt(post.getAttribute("data-post-id"));
+}
+
+// Thêm chức năng toggleLike để kết nối với LikeController
+async function toggleLike(button) {
+    // Check if user is logged in
+    if (!sessionStorage.getItem('token')) {
+        Swal.fire({
+            title: 'Authentication Required',
+            text: 'Please log in to like posts',
+            icon: 'warning',
+            confirmButtonText: 'OK',
+            confirmButtonColor: '#6a11cb'
+        });
+        return;
+    }
+
+    const postElement = button.closest('.post');
+    if (!postElement) {
+        console.error('Post element not found');
+        return;
+    }
+
+    const postId = parseInt(postElement.getAttribute('data-post-id'));
+    const userId = parseInt(sessionStorage.getItem('userId'));
+    
+    if (isNaN(postId) || isNaN(userId)) {
+        console.error(`Invalid postId (${postId}) or userId (${userId})`);
+        Swal.fire({
+            title: 'Error',
+            text: 'Invalid data. Please reload the page.',
+            icon: 'error',
+            confirmButtonText: 'OK',
+            confirmButtonColor: '#6a11cb'
+        });
+        return;
+    }
+    
+    const likeIcon = button.querySelector('i');
+    const likeCount = button.querySelector('.like-count');
+    const isCurrentlyLiked = likeIcon.classList.contains('fa-heart');
+
+    // Add immediate visual feedback
+    if (!isCurrentlyLiked) {
+        // If not already liked, show animation and change icon
+        likeIcon.className = 'fa fa-heart';
+        button.classList.add('liked');
+        
+        // Temporarily increment like count for immediate feedback
+        if (likeCount) {
+            const currentLikes = parseInt(likeCount.textContent) || 0;
+            likeCount.textContent = currentLikes + 1;
+        }
+    } else {
+        // If already liked, remove heart
+        likeIcon.className = 'fa fa-heart-o';
+        button.classList.remove('liked');
+        
+        // Temporarily decrement like count
+        if (likeCount) {
+            const currentLikes = parseInt(likeCount.textContent) || 0;
+            if (currentLikes > 0) {
+                likeCount.textContent = currentLikes - 1;
+            }
+        }
+    }
+    
+    try {
+        console.log(`Toggling like for post ${postId} and user ${userId}`);
+        
+        // Send toggle like request to API
+        const toggleResponse = await fetch(`${api_key}Likes/Toggle`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${sessionStorage.getItem('token')}`
+            },
+            body: JSON.stringify({
+                postId,
+                userId
+            })
+        });
+
+        if (!toggleResponse.ok) {
+            const errorText = await toggleResponse.text();
+            throw new Error(`Failed to toggle like: ${errorText}`);
+        }
+        
+        // After successful toggle, update the like status and count from the server
+        await initializeLikeStatus(postId, button);
+
+    } catch (error) {
+        console.error('Error toggling like:', error);
+        
+        // Revert visual changes if there was an error
+        if (!isCurrentlyLiked) {
+            likeIcon.className = 'fa fa-heart-o';
+            button.classList.remove('liked');
+        } else {
+            likeIcon.className = 'fa fa-heart';
+            button.classList.add('liked');
+        }
+        
+        // Revert the like count
+        await initializeLikeStatus(postId, button);
+        
+        Swal.fire({
+            title: 'Error',
+            text: 'Failed to update like status. Please try again.',
+            icon: 'error',
+            confirmButtonText: 'OK',
+            confirmButtonColor: '#6a11cb'
+        });
+    }
+}
+
+// Thêm hàm kiểm tra trạng thái like của người dùng
+async function checkUserLike(postId) {
+    const userId = sessionStorage.getItem('userId');
+    if (!userId || !postId) {
+        console.log(`Skip checking like for post ${postId} - user not logged in`);
+        return false;
+    }
+
+    try {
+        console.log(`Checking if user ${userId} liked post ${postId}`);
+        const response = await fetch(`${api_key}Likes/ByPost/${postId}`);
+        
+        if (!response.ok) {
+            console.error(`Error response from Likes/ByPost: ${response.status}`);
+            return false;
+        }
+        
+        const likes = await response.json();
+        const userLiked = likes.some(like => like.userId === parseInt(userId));
+        console.log(`Like check result for post ${postId}: ${userLiked ? 'liked' : 'not liked'}`);
+        return userLiked;
+    } catch (error) {
+        console.error('Error checking like status:', error);
+        return false;
+    }
+}
+
+// Cập nhật hàm getLikesCount để sử dụng API endpoint chính xác
+async function getLikesCount(postId) {
+    if (!postId) return 0;
+    
+    try {
+        const response = await fetch(`${api_key}Likes/ByPost/${postId}`);
+        if (!response.ok) {
+            console.error(`Error fetching likes for post ${postId}: ${response.status}`);
+            return 0;
+        }
+        
+        const likesData = await response.json();
+        return likesData.likeCount;
+    } catch (error) {
+        console.error('Error fetching likes count:', error);
+        return 0;
+    }
+}
+
+// Thêm hàm closeReportModal
+function closeReportModal() {
+    const reportModal = document.getElementById('report-modal');
+    if (reportModal) {
+        reportModal.classList.add('hide');
+    }
+    
+    // Xóa dữ liệu trong form
+    const reportReason = document.getElementById('report-reason');
+    if (reportReason) {
+        reportReason.value = '';
+    }
+}
+
+// Thêm hàm showReportForm
+function showReportForm(button, type = 'post') {
+    // Kiểm tra đăng nhập
+    if (!sessionStorage.getItem('token')) {
+        Swal.fire({
+            title: 'Authentication Required',
+            text: 'Please log in to report content.',
+            icon: 'warning',
+            confirmButtonText: 'OK'
+        });
+        return;
+    }
+    
+    // Get the modal element first
+    const reportModal = document.getElementById('report-modal');
+    
+    // Xác định ID của bài viết hoặc bình luận
+    let contentId, contentType;
+    if (type === 'comment') {
+        const comment = button.closest('.comment');
+        const commentId = comment ? comment.getAttribute('data-comment-id') : null;
+        contentType = 'comment';
+        
+        if (!commentId) {
+            Swal.fire({
+                title: 'Error',
+                text: 'Could not determine comment ID to report',
+                icon: 'error',
+                confirmButtonText: 'OK'
+            });
+            return;
+        }
+        
+        // Tìm postId từ comment (từ phần tử cha .post)
+        const post = comment.closest('.post');
+        if (post) {
+            const postId = post.getAttribute('data-post-id');
+            if (postId) {
+                // Lưu cả commentId và postId
+                contentId = postId; // Sử dụng postId cho API
+                // Lưu commentId vào thuộc tính khác để tham khảo nếu cần
+                reportModal.setAttribute('data-related-comment-id', commentId);
+            } else {
+                Swal.fire({
+                    title: 'Error',
+                    text: 'Could not determine the parent post for this comment',
+                    icon: 'error',
+                    confirmButtonText: 'OK'
+                });
+                return;
+            }
+        } else {
+            Swal.fire({
+                title: 'Error',
+                text: 'Could not determine the parent post for this comment',
+                icon: 'error',
+                confirmButtonText: 'OK'
+            });
+            return;
+        }
+    } else {
+        const post = button.closest('.post');
+        contentId = post ? post.getAttribute('data-post-id') : null;
+        contentType = 'post';
+    }
+    
+    if (!contentId) {
+        Swal.fire({
+            title: 'Error',
+            text: 'Could not determine content ID to report',
+            icon: 'error',
+            confirmButtonText: 'OK'
+        });
+        return;
+    }
+    
+    // Lưu thông tin vào modal để sử dụng khi gửi báo cáo
+    reportModal.setAttribute('data-content-id', contentId);
+    reportModal.setAttribute('data-content-type', contentType);
+    
+    // Hiển thị modal
+    reportModal.classList.remove('hide');
+    
+    // Focus vào textarea
+    document.getElementById('report-reason').focus();
+}
+
+// Thêm hàm submitReport
+function submitReport() {
+    // Kiểm tra đăng nhập
+    if (!sessionStorage.getItem('token')) {
+        Swal.fire({
+            title: 'Authentication Required',
+            text: 'Please log in to report content.',
+            icon: 'warning',
+            confirmButtonText: 'OK'
+        });
+        closeReportModal();
+        return;
+    }
+    
+    const reportModal = document.getElementById('report-modal');
+    const contentId = reportModal.getAttribute('data-content-id');
+    const contentType = reportModal.getAttribute('data-content-type');
+    const reason = document.getElementById('report-reason').value.trim();
+    
+    if (!reason) {
+        Swal.fire({
+            title: 'Input Required',
+            text: 'Please enter a reason for the report.',
+            icon: 'warning',
+            confirmButtonText: 'OK'
+        });
+        return;
+    }
+    
+    // Gửi báo cáo đến server
+    console.log('Submitting report:', {
+        contentId,
+        contentType,
+        userId: sessionStorage.getItem('userId'),
+        reason
+    });
+    
+    // Determine if we're reporting a post or comment
+    const apiEndpoint = `${api_key}Report/Insert`;
+    const requestBody = {
+        postId: parseInt(contentId),
+        userId: parseInt(sessionStorage.getItem('userId')),
+        reason: reason
+    };
+    
+    // For debugging only
+    console.log('Sending request to:', apiEndpoint);
+    console.log('Request body:', requestBody);
+    
+    fetch(apiEndpoint, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${sessionStorage.getItem('token')}`
+        },
+        body: JSON.stringify(requestBody)
+    })
+    .then(response => {
+        console.log('Response status:', response.status);
+        if (!response.ok) {
+            return response.json().then(errorData => {
+                console.error('Report submission error:', errorData);
+                throw new Error(errorData.message || 'Could not send report');
+            });
+        }
+        return response.json();
+    })
+    .then(data => {
+        Swal.fire({
+            title: 'Report Submitted',
+            text: 'Your report has been submitted. Thank you for helping to keep our community safe.',
+            icon: 'success',
+            confirmButtonText: 'OK'
+        });
+        closeReportModal();
+    })
+    .catch(error => {
+        console.error('Error sending report:', error);
+        Swal.fire({
+            title: 'Error',
+            text: 'An error occurred while submitting your report. Please try again later.',
+            icon: 'error',
+            confirmButtonText: 'OK'
+        });
+    });
+}
+
+async function debugLikeStatus() {
+    if (!sessionStorage.getItem('userId')) {
+        console.log('Không thể debug: Người dùng chưa đăng nhập');
+        return;
+    }
+    
+    const posts = document.querySelectorAll('.post');
+    console.log(`Kiểm tra ${posts.length} bài viết`);
+    
+    posts.forEach(post => {
+        const postId = post.getAttribute('data-post-id');
+        const likeButton = post.querySelector('.like-button');
+        const isLiked = likeButton.classList.contains('liked');
+        
+        console.log(`Bài viết ID ${postId}: UI hiển thị ${isLiked ? 'đã like' : 'chưa like'}`);
+        
+        // Kiểm tra trạng thái like thực tế từ server
+        const userId = sessionStorage.getItem('userId');
+        fetch(`${api_key}Likes/Check/${postId}/${userId}`)
+            .then(response => response.json())
+            .then(data => {
+                console.log(`Bài viết ID ${postId}: Server trả về ${data.liked ? 'đã like' : 'chưa like'}`);
+                
+                // Kiểm tra nếu có sự khác biệt
+                if (isLiked !== data.liked) {
+                    console.error(`Không đồng bộ! Bài viết ${postId}: UI hiển thị ${isLiked ? 'đã like' : 'chưa like'} nhưng server trả về ${data.liked ? 'đã like' : 'chưa like'}`);
+                }
+            })
+            .catch(error => {
+                console.error(`Lỗi khi kiểm tra bài viết ${postId}:`, error);
+                console.error(`Lỗi khi kiểm tra bài viết ${postId}:`, error.message);
+            });
+    });
+}
+
+// Thêm hàm editPost
+async function editPost(postId) {
+    // Kiểm tra đăng nhập
+    if (!sessionStorage.getItem('token')) {
+        alert('Vui lòng đăng nhập để chỉnh sửa bài viết.');
+        return;
+    }
+
+    const postElement = document.querySelector(`[data-post-id="${postId}"]`);
+    if (!postElement) {
+        console.error('Không tìm thấy bài viết để chỉnh sửa');
+        return;
+    }
+
+    const contentElement = postElement.querySelector('.post-content');
+    const currentContent = contentElement.innerHTML;
+    
+    // Create modal for editing
+    const editModal = document.createElement('div');
+    editModal.className = 'edit-post-modal';
+    editModal.innerHTML = `
+        <div class="edit-post-content">
+            <div class="edit-post-header">
+                <h3>Edit Post</h3>
+                <button class="close-edit-modal">&times;</button>
+            </div>
+            <div class="edit-post-body">
+                <textarea id="edit-post-input">${currentContent}</textarea>
+            </div>
+            <div class="edit-post-footer">
+                <button class="cancel-edit-btn">Cancel</button>
+                <button class="save-edit-btn">Save Changes</button>
+            </div>
+        </div>
+    `;
+    
+    document.body.appendChild(editModal);
+    
+    // Add modal styles if not already present
+    if (!document.getElementById('edit-post-styles')) {
+        const styles = document.createElement('style');
+        styles.id = 'edit-post-styles';
+        styles.textContent = `
+            .edit-post-modal {
+                position: fixed;
+                top: 0;
+                left: 0;
+                right: 0;
+                bottom: 0;
+                background-color: rgba(0, 0, 0, 0.7);
+                display: flex;
+                justify-content: center;
+                align-items: center;
+                z-index: 1000;
+            }
+            .edit-post-content {
+                background-color: #fff;
+                border-radius: 5px;
+                width: 80%;
+                max-width: 800px;
+                max-height: 90vh;
+                display: flex;
+                flex-direction: column;
+            }
+            .edit-post-header {
+                display: flex;
+                justify-content: space-between;
+                align-items: center;
+                padding: 10px 15px;
+                border-bottom: 1px solid #ddd;
+            }
+            .edit-post-header h3 {
+                margin: 0;
+                color: #333;
+            }
+            .close-edit-modal {
+                background: none;
+                border: none;
+                font-size: 20px;
+                cursor: pointer;
+                color: #666;
+            }
+            .edit-post-body {
+                padding: 15px;
+                overflow-y: auto;
+                flex-grow: 1;
+            }
+            .edit-post-footer {
+                padding: 10px 15px;
+                border-top: 1px solid #ddd;
+                display: flex;
+                justify-content: flex-end;
+                gap: 10px;
+            }
+            .cancel-edit-btn, .save-edit-btn {
+                padding: 8px 15px;
+                border-radius: 4px;
+                border: none;
+                cursor: pointer;
+            }
+            .cancel-edit-btn {
+                background-color: #ddd;
+                color: #333;
+            }
+            .save-edit-btn {
+                background-color: #52057b;
+                color: white;
+            }
+        `;
+        document.head.appendChild(styles);
+    }
+    
+    // Initialize CKEditor for the edit textarea
+    if (CKEDITOR.instances['edit-post-input']) {
+        CKEDITOR.instances['edit-post-input'].destroy();
+    }
+    
+    CKEDITOR.replace('edit-post-input', {
+        height: 300,
+        filebrowserUploadUrl: 'https://api.ducanhweb.me/api/Upload/Image',
+        filebrowserImageUploadUrl: 'https://api.ducanhweb.me/api/Upload/Image',
+        uploadUrl: 'https://api.ducanhweb.me/api/Upload/Image',
+        imageUploadUrl: 'https://api.ducanhweb.me/api/Upload/Image'
+    });
+    
+    // Handle close modal
+    const closeModal = () => {
+        if (CKEDITOR.instances['edit-post-input']) {
+            CKEDITOR.instances['edit-post-input'].destroy();
+        }
+        document.body.removeChild(editModal);
+    };
+    
+    // Add event listeners
+    editModal.querySelector('.close-edit-modal').addEventListener('click', closeModal);
+    editModal.querySelector('.cancel-edit-btn').addEventListener('click', closeModal);
+    
+    // Save changes
+    editModal.querySelector('.save-edit-btn').addEventListener('click', async () => {
+        const newContent = CKEDITOR.instances['edit-post-input'].getData();
+        
+        if (!newContent || newContent === currentContent) {
+            closeModal();
+            return;
+        }
+        
+        try {
+            const response = await fetch(`${api_key}Post/Update/${postId}`, {
+                method: 'PUT',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${sessionStorage.getItem('token')}`
+                },
+                body: JSON.stringify({
+                    content: newContent
+                })
+            });
+            
+            if (!response.ok) {
+                throw new Error('Không thể cập nhật bài viết');
+            }
+            
+            contentElement.innerHTML = newContent;
+            
+            // Hiệu ứng thành công
+            postElement.classList.add('post-updated');
+            setTimeout(() => {
+                postElement.classList.remove('post-updated');
+            }, 1500);
+            
+            console.log('Bài viết đã được cập nhật thành công');
+            closeModal();
+            
+        } catch (error) {
+            console.error('Lỗi khi cập nhật bài viết:', error);
+            alert('Không thể cập nhật bài viết. Vui lòng thử lại.');
+        }
+    });
+}
+
+// Thêm hàm deletePost
+async function deletePost(postId) {
+    try {
+        // Confirm deletion
+        const result = await Swal.fire({
+            title: 'Delete Post',
+            text: 'Are you sure you want to delete this post? This action cannot be undone.',
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonText: 'Delete',
+            cancelButtonText: 'Cancel',
+            confirmButtonColor: '#d33',
+            cancelButtonColor: '#3085d6'
+        });
+        
+        if (!result.isConfirmed) {
+            return;
+        }
+        
+        const token = sessionStorage.getItem('token');
+        if (!token) {
+            throw new Error('You must be logged in to delete a post');
+        }
+        
+        const response = await fetch(`${api_key}Post/Delete/${postId}`, {
+            method: 'DELETE',
+            headers: {
+                'Authorization': `Bearer ${token}`
+            }
+        });
+        
+        if (!response.ok) {
+            const errorData = await response.json().catch(() => ({}));
+            throw new Error(errorData.message || 'Failed to delete post');
+        }
+        
+        // Remove the post element from the DOM
+        const postElement = document.querySelector(`[data-post-id="${postId}"]`);
+        if (postElement) {
+            // Hiệu ứng xóa
+            postElement.style.animation = 'fadeOut 0.5s';
+            setTimeout(() => {
+                postElement.remove();
+                // Cập nhật số lượng bài viết
+                const postsContainer = document.getElementById('posts-container');
+                const remainingPosts = postsContainer.querySelectorAll('.post').length;
+                updatePostCount(remainingPosts);
+            }, 500);
+        }
+        
+        Swal.fire({
+            title: 'Success',
+            text: 'Post deleted successfully',
+            icon: 'success',
+            confirmButtonText: 'OK'
+        });
+    } catch (error) {
+        console.error('Error deleting post:', error);
+        Swal.fire({
+            title: 'Error',
+            text: error.message || 'Failed to delete post',
+            icon: 'error',
+            confirmButtonText: 'OK'
+        });
+    }
+}
+
+// Helper function to show error messages in a popup
+function showError(message) {
+    // Create or get error popup
+    let errorPopup = document.querySelector('.error-popup');
+    if (!errorPopup) {
+        errorPopup = document.createElement('div');
+        errorPopup.className = 'error-popup';
+        document.body.appendChild(errorPopup);
+    }
+    
+    // Set error message
+    errorPopup.textContent = message;
+    
+    // Show the popup
+    errorPopup.style.display = 'block';
+    
+    // Hide after 3 seconds
+    setTimeout(() => {
+        errorPopup.style.display = 'none';
+    }, 3000);
+    
+    // Also log the error to console
+    console.error(message);
+}
+
+// Add styles for thread-content
+document.addEventListener('DOMContentLoaded', function() {
+    const style = document.createElement('style');
+    style.textContent = `
+        .thread-content {
+            margin: 20px 0;
+            padding: 15px;
+            background-color: var(--light-bg);
+            border-radius: 8px;
+            box-shadow: var(--box-shadow);
+            line-height: 1.6;
+            color: var(--text-color);
+            white-space: pre-line;
+        }
+    `;
+    document.head.appendChild(style);
+});
+
+// Variables for report management
+let currentReportId = null;
+let allReports = [];
+
+// Hàm để chuyển đổi tab trong Modctrl
+function showTab(tabId) {
+    const role = sessionStorage.getItem('role');
+    
+    // If user is a moderator and trying to access user-management, redirect to reports
+    if ((role === 'Moderator' || role === 'moderator') && tabId === 'user-management') {
+        tabId = 'reports-management';
+    }
+    
+    // Hide all tab contents
+    document.querySelectorAll('.tab-content').forEach(tab => {
+        tab.style.display = 'none';
+    });
+    
+    // Show the selected tab
+    const selectedTab = document.getElementById(tabId);
+    if (selectedTab) {
+        selectedTab.style.display = 'block';
+    }
+    
+    // Update active state for tab buttons
+    document.querySelectorAll('.tab-button').forEach(btn => {
+        btn.classList.remove('active');
+    });
+    
+    // Find and activate the correct button
+    const buttons = document.querySelectorAll('.tab-button');
+    for (let btn of buttons) {
+        if (btn.getAttribute('onclick').includes(tabId)) {
+            btn.classList.add('active');
+            break;
+        }
+    }
+    
+    // If reports tab is selected, fetch reports data
+    if (tabId === 'reports-management') {
+        fetchReports();
+        fetchPendingReportsCount();
+    }
+}
+
+// Fetch all reports
+async function fetchReports() {
+    try {
+        const response = await fetch(`${api_key}Report`);
+        if (!response.ok) {
+            throw new Error('Failed to fetch reports');
+        }
+        
+        const reports = await response.json();
+        allReports = reports;
+        
+        // Display all reports by default
+        displayReports(reports);
+        
+        return reports;
+    } catch (error) {
+        console.error('Error fetching reports:', error);
+        showError('Failed to load reports. Please try again later.');
+    }
+}
+
+// Display reports in table
+function displayReports(reports) {
+    const reportTableBody = document.getElementById('report-table-body');
+    if (!reportTableBody) return;
+    
+    reportTableBody.innerHTML = '';
+    
+    if (reports.length === 0) {
+        const emptyRow = document.createElement('tr');
+        emptyRow.innerHTML = `<td colspan="7" style="text-align: center;">No reports found</td>`;
+        reportTableBody.appendChild(emptyRow);
+        return;
+    }
+    
+    reports.forEach(report => {
+        const row = document.createElement('tr');
+        const statusClass = `status-${report.status.toLowerCase()}`;
+        
+        // Format date
+        const formattedDate = formatDate(report.createdAt);
+        
+        row.innerHTML = `
+            <td>${report.reportId}</td>
+            <td>${report.username}</td>
+            <td>${report.postId}</td>
+            <td class="reason-cell">${truncateString(report.reason, 50)}</td>
+            <td>${formattedDate}</td>
+            <td class="${statusClass}">${capitalizeFirstLetter(report.status)}</td>
+            <td class="report-actions">
+                <button onclick="viewReportDetails(${report.reportId})" class="action-btn view-btn">
+                    <i class="fa fa-eye"></i> View
+                </button>
+                ${report.status === 'pending' ? `
+                <button onclick="updateReportStatus(${report.reportId}, 'resolved')" class="action-btn resolve-btn">
+                    <i class="fa fa-check"></i> Resolve
+                </button>
+                <button onclick="updateReportStatus(${report.reportId}, 'rejected')" class="action-btn reject-btn">
+                    <i class="fa fa-times"></i> Reject
+                </button>
+                ` : ''}
+            </td>
+        `;
+        reportTableBody.appendChild(row);
+    });
+}
+
+// Helper function to truncate strings
+function truncateString(str, length) {
+    if (str.length <= length) return str;
+    return str.substring(0, length) + '...';
+}
+
+// Helper function to capitalize the first letter
+function capitalizeFirstLetter(string) {
+    return string.charAt(0).toUpperCase() + string.slice(1);
+}
+
+// Filter reports by status
+function filterReports(status) {
+    if (!allReports) return;
+    
+    // Update active button
+    document.querySelectorAll('#reports-management .filter-btn').forEach(btn => {
+        btn.classList.remove('active');
+    });
+    event.target.classList.add('active');
+    
+    // Filter reports
+    let filteredReports;
+    if (status === 'all') {
+        filteredReports = allReports;
+    } else {
+        filteredReports = allReports.filter(report => report.status.toLowerCase() === status.toLowerCase());
+    }
+    
+    displayReports(filteredReports);
+}
+
+// Update report status (resolve or reject)
+async function updateReportStatus(reportId, status) {
+    try {
+        const token = sessionStorage.getItem('token');
+        if (!token) {
+            alert('You must be logged in as admin or moderator to perform this action.');
+            return;
+        }
+        
+        const response = await fetch(`${api_key}Report/UpdateStatus/${reportId}`, {
+            method: 'PUT',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${token}`
+            },
+            body: JSON.stringify({ status })
+        });
+        
+        if (!response.ok) {
+            throw new Error('Failed to update report status');
+        }
+        
+        await refreshReports();
+        
+        // If the report details modal is open, close it
+        closeReportDetailsModal();
+        
+        // Show success message
+        alert(`Report ${status === 'resolved' ? 'resolved' : 'rejected'} successfully.`);
+    } catch (error) {
+        console.error('Error updating report status:', error);
+        showError('Failed to update report status. Please try again.');
+    }
+}
+
+// Refresh reports table
+async function refreshReports() {
+    const refreshBtn = document.querySelector('#reports-management .refresh-btn i');
+    refreshBtn.classList.add('spinning');
+    
+    try {
+        await fetchReports();
+        await fetchPendingReportsCount();
+        
+        setTimeout(() => {
+            refreshBtn.classList.remove('spinning');
+        }, 1000);
+    } catch (error) {
+        console.error('Error refreshing reports:', error);
+        refreshBtn.classList.remove('spinning');
+    }
+}
+
+// Fetch pending reports count
+async function fetchPendingReportsCount() {
+    try {
+        const response = await fetch(`${api_key}Report/PendingCount`);
+        if (!response.ok) {
+            throw new Error('Failed to fetch pending reports count');
+        }
+        
+        const count = await response.json();
+        
+        // Update badge
+        const pendingBadge = document.getElementById('pending-reports-count');
+        const pendingCount = document.querySelector('.pending-count');
+        
+        if (pendingBadge) {
+            pendingBadge.textContent = count;
+            pendingBadge.style.display = count > 0 ? 'inline-flex' : 'none';
+        }
+        
+        if (pendingCount) {
+            pendingCount.textContent = `(${count})`;
+        }
+        
+        return count;
+    } catch (error) {
+        console.error('Error fetching pending reports count:', error);
+    }
+}
+
+// View report details
+async function viewReportDetails(reportId) {
+    try {
+        currentReportId = reportId;
+        
+        // Find report in the cached reports
+        const report = allReports.find(r => r.reportId === reportId);
+        if (!report) {
+            throw new Error('Report not found');
+        }
+        
+        // Fetch post details
+        const postResponse = await fetch(`${api_key}Post/${report.postId}`);
+        if (!postResponse.ok) {
+            throw new Error('Failed to fetch post details');
+        }
+        
+        const post = await postResponse.json();
+        
+        // Fetch thread details to get thread ID for linking
+        const threadResponse = await fetch(`${api_key}Thread/${post.threadId}`);
+        if (!threadResponse.ok) {
+            throw new Error('Failed to fetch thread details');
+        }
+        
+        const thread = await threadResponse.json();
+        
+        // Update modal with report and post details
+        document.getElementById('reported-post-content').innerHTML = post.content;
+        document.getElementById('report-author').textContent = report.username;
+        document.getElementById('report-reason-display').textContent = report.reason;
+        document.getElementById('report-date').textContent = formatDate(report.createdAt);
+        
+        // Set up the direct link to the thread - simplified to only use thread ID
+        const threadLink = document.getElementById('report-thread-link');
+        if (threadLink) {
+            threadLink.href = `thread-detail.html?id=${thread.threadId}`;
+            threadLink.textContent = `View reported content in thread: "${thread.title}"`;
+            threadLink.target = "_blank";
+        }
+        
+        // Show or hide action buttons based on report status
+        const resolveBtn = document.querySelector('.resolve-btn');
+        const rejectBtn = document.querySelector('.reject-btn');
+        
+        if (report.status === 'pending') {
+            resolveBtn.style.display = 'inline-block';
+            rejectBtn.style.display = 'inline-block';
+        } else {
+            resolveBtn.style.display = 'none';
+            rejectBtn.style.display = 'none';
+        }
+        
+        // Show modal
+        const modal = document.getElementById('report-details-modal');
+        modal.classList.remove('hide');
+    } catch (error) {
+        console.error('Error viewing report details:', error);
+        showError('Failed to load report details. Please try again.');
+    }
+}
+
+// Resolve current report
+function resolveReport() {
+    if (currentReportId) {
+        updateReportStatus(currentReportId, 'resolved');
+    }
+}
+
+// Reject current report
+function rejectReport() {
+    if (currentReportId) {
+        updateReportStatus(currentReportId, 'rejected');
+    }
+}
+
+// Close report details modal
+function closeReportDetailsModal() {
+    const modal = document.getElementById('report-details-modal');
+    if (modal) {
+        modal.classList.add('hide');
+    }
+    currentReportId = null;
+}
+
+// Add event listener to initialize reports on page load
+document.addEventListener('DOMContentLoaded', function() {
+    // Initialize ModCtrl page if we're on that page
+    const modCtrlPage = document.getElementById('reports-management');
+    if (modCtrlPage) {
+        fetchPendingReportsCount();
+    }
+    
+    // Add event listeners for Escape key to close modals
+    document.addEventListener('keydown', function(event) {
+        if (event.key === 'Escape') {
+            closeReportDetailsModal();
+        }
+    });
+});
+
+// Function to increment thread views
+async function incrementThreadViews(threadId) {
+    try {
+        // Check if this thread has been viewed in this session
+        const viewedThreads = JSON.parse(sessionStorage.getItem('viewedThreads') || '{}');
+        
+        // If already viewed in this session, don't increment
+        if (viewedThreads[threadId]) {
+            return;
+        }
+        
+        // Mark as viewed in this session
+        viewedThreads[threadId] = true;
+        sessionStorage.setItem('viewedThreads', JSON.stringify(viewedThreads));
+        
+        // Send request to increment views
+        const response = await fetch(`${api_key}Thread/IncrementViews/${threadId}`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            }
+        });
+        
+        if (!response.ok) {
+            console.warn('Failed to increment view count:', response.status);
+            return;
+        }
+        
+        // Update views in the UI
+        const viewsElement = document.getElementById('thread-views');
+        if (viewsElement) {
+            const currentViews = parseInt(viewsElement.textContent) || 0;
+            viewsElement.textContent = (currentViews + 1).toString();
+        }
+        
+        console.log('View count incremented for thread', threadId);
+    } catch (error) {
+        console.error('Error incrementing view count:', error);
+    }
+}
+
+function setupPostActionButtons() {
+    // Thiết lập các nút edit và delete cho người dùng là tác giả
+    const userId = sessionStorage.getItem('userId');
+    const userRole = sessionStorage.getItem('role');
+    
+    // Nếu người dùng đã đăng nhập
+    if (userId) {
+        document.querySelectorAll('.post').forEach(post => {
+            const postUserId = post.getAttribute('data-user-id');
+            const editBtn = post.querySelector('.edit-post');
+            const deleteBtn = post.querySelector('.delete-post');
+            
+            // Hiện nút chỉnh sửa và xóa nếu là người viết hoặc là admin/mod
+            if (postUserId === userId || userRole === 'Admin' || userRole === 'Moderator') {
+                if (editBtn) editBtn.classList.remove('hide');
+                if (deleteBtn) deleteBtn.classList.remove('hide');
+                
+                // Thêm sự kiện cho nút edit
+                if (editBtn) {
+                    editBtn.addEventListener('click', function() {
+                        const postId = post.getAttribute('data-post-id');
+                        editPost(postId);
+                    });
+                }
+                
+                // Thêm sự kiện cho nút delete
+                if (deleteBtn) {
+                    deleteBtn.addEventListener('click', function() {
+                        const postId = post.getAttribute('data-post-id');
+                        deletePost(postId);
+                    });
+                }
+            }
+        });
+    }
+}
+
+// Thêm event listener cho sự kiện DOMContentLoaded
+document.addEventListener('DOMContentLoaded', function() {
+    // Kiểm tra xem đang ở trang thread-detail.html không
+    if (window.location.pathname.includes('thread-detail.html')) {
+        initThreadDetailPage();
+    }
+});
+
+function updateRuleBadges(views, likes) {
+    // Reset tất cả badge
+    document.querySelectorAll('.rule-badge').forEach(badge => {
+        badge.classList.remove('active');
+    });
+    
+    // Kích hoạt badge phù hợp dựa trên views và likes
+    if (views > 500 && likes > 100) {
+        document.getElementById('badge-platinum').classList.add('active');
+    } else if (views > 200 && likes > 50) {
+        document.getElementById('badge-gold').classList.add('active');
+    } else if (views > 50 && likes > 10) {
+        document.getElementById('badge-silver').classList.add('active');
+    } else {
+        document.getElementById('badge-bronze').classList.add('active');
+    }
+    
+    // Thêm hiệu ứng chuyển động cho badge đang active
+    const activeBadge = document.querySelector('.rule-badge.active');
+    if (activeBadge) {
+        activeBadge.classList.add('animate-pulse');
+        setTimeout(() => {
+            activeBadge.classList.remove('animate-pulse');
+        }, 2000);
+    }
+}
+
+// Delete thread function
+async function deleteThread() {
+    const deleteThreadBtn = document.getElementById('delete-thread-btn');
+    const threadId = deleteThreadBtn.getAttribute('data-thread-id');
+    
+    if (!threadId) {
+        Swal.fire({
+            title: 'Error',
+            text: 'Thread ID not found',
+            icon: 'error',
+            confirmButtonText: 'OK'
+        });
+        return;
+    }
+    
+    // Confirm deletion
+    const result = await Swal.fire({
+        title: 'Delete Thread',
+        text: 'Are you sure you want to delete this thread? This action cannot be undone.',
+        icon: 'warning',
+        showCancelButton: true,
+        confirmButtonText: 'Delete',
+        cancelButtonText: 'Cancel',
+        confirmButtonColor: '#d33',
+        cancelButtonColor: '#3085d6'
+    });
+    
+    if (!result.isConfirmed) {
+        return;
+    }
+    
+    try {
+        const token = sessionStorage.getItem('token');
+        if (!token) {
+            throw new Error('You must be logged in to delete a thread');
+        }
+        
+        const response = await fetch(`${api_key}Thread/Delete/${threadId}`, {
+            method: 'DELETE',
+            headers: {
+                'Authorization': `Bearer ${token}`
+            }
+        });
+        
+        if (!response.ok) {
+            const errorData = await response.json().catch(() => ({}));
+            throw new Error(errorData.message || 'Failed to delete thread');
+        }
+        
+        Swal.fire({
+            title: 'Success',
+            text: 'Thread deleted successfully',
+            icon: 'success',
+            confirmButtonText: 'OK'
+        }).then(() => {
+            // Redirect to community page after successful deletion
+            window.location.href = 'community.html';
+        });
+    } catch (error) {
+        console.error('Error deleting thread:', error);
+        Swal.fire({
+            title: 'Error',
+            text: error.message || 'Failed to delete thread',
+            icon: 'error',
+            confirmButtonText: 'OK'
+        });
+    }
+}
+
+// Function to hide CKEditor security notification
+function hideCKEditorSecurityNotification() {
+    // Wait for CKEditor instances to initialize
+    setTimeout(() => {
+        // Find all CKEditor notification elements
+        const notifications = document.querySelectorAll('.cke_notification_warning');
+        notifications.forEach(notification => {
+            if (notification.textContent.includes('This CKEditor') && 
+                notification.textContent.includes('is not secure')) {
+                notification.style.display = 'none';
+            }
+        });
+    }, 1000);
+}
+
+// Add event listener to hide notifications when instances are created
+if (typeof CKEDITOR !== 'undefined') {
+    CKEDITOR.on('instanceReady', function(evt) {
+        hideCKEditorSecurityNotification();
+    });
+    
+    // Call it directly for any existing instances
+    hideCKEditorSecurityNotification();
+}
+
+// Function to clean HTML content by removing unnecessary paragraph tags
+function cleanHtmlContent(html) {
+    if (!html) return '';
+    
+    // Create a safe way to parse the HTML
+    const parser = new DOMParser();
+    const doc = parser.parseFromString(html, 'text/html');
+    
+    // Check for potentially harmful tags and attributes
+    const sanitizedHtml = html
+        // Allow img tags but ensure they have proper attributes
+        .replace(/<img([^>]*)>/gi, (match, attributes) => {
+            // If there's a src attribute, keep it
+            if (attributes.includes('src=')) {
+                return match;
+            }
+            return '';
+        });
+    
+    // Check if content is just a single paragraph with no other elements
+    if (sanitizedHtml.startsWith('<p>') && sanitizedHtml.endsWith('</p>')) {
+        const innerContent = sanitizedHtml.substring(3, sanitizedHtml.length - 4);
+        // Only strip paragraph tags if there are no other HTML elements inside
+        if (!/<[a-z][\s\S]*>/i.test(innerContent)) {
+            return innerContent;
+        }
+    }
+    
+    return sanitizedHtml;
+}
+
+// Global variables for image upload
+let uploadedImages = [];
+const apiBaseUrl = 'https://api.ducanhweb.me/api/';
+
+// Function to initialize image upload handler
+function initImageUpload() {
+    const imageUploadInput = document.getElementById('image-upload');
+    if (imageUploadInput) {
+        imageUploadInput.addEventListener('change', handleImageUpload);
+    }
+}
+
+// Function to handle image upload
+async function handleImageUpload(event) {
+    const file = event.target.files[0];
+    if (!file) return;
+    
+    // Check file type
+    const validTypes = ['image/jpeg', 'image/png', 'image/gif', 'image/jpg'];
+    if (!validTypes.includes(file.type)) {
+        Swal.fire({
+            icon: 'error',
+            title: 'Invalid file type',
+            text: 'Please select an image file (JPEG, PNG, or GIF)'
+        });
+        return;
+    }
+    
+    // Check file size (max 5MB)
+    if (file.size > 5 * 1024 * 1024) {
+        Swal.fire({
+            icon: 'error',
+            title: 'File too large',
+            text: 'Please select an image smaller than 5MB'
+        });
+        return;
+    }
+    
+    try {
+        // Show loading indicator
+        Swal.fire({
+            title: 'Uploading...',
+            text: 'Please wait while we upload your image',
+            allowOutsideClick: false,
+            didOpen: () => {
+                Swal.showLoading();
+            }
+        });
+        
+        // Create form data
+        const formData = new FormData();
+        formData.append('file', file);
+        
+        // Upload to server
+        const response = await fetch(`${api_key}Image/upload`, {
+            method: 'POST',
+            body: formData
+        });
+        
+        // Close loading indicator
+        Swal.close();
+        
+        if (!response.ok) {
+            throw new Error(`Upload failed: ${response.statusText}`);
+        }
+        
+        const data = await response.json();
+        
+        if (data.uploaded !== 1) {
+            throw new Error(data.error?.message || 'Upload failed');
+        }
+        
+        // Add to uploaded images array
+        uploadedImages.push({
+            url: data.url,
+            fileName: data.fileName
+        });
+        
+        // Display preview
+        addImagePreview(data.url, data.fileName);
+        
+        // Reset file input
+        event.target.value = '';
+        
+        // Show success message
+        Swal.fire({
+            icon: 'success',
+            title: 'Upload Successful',
+            text: 'Your image has been uploaded successfully',
+            timer: 1500,
+            showConfirmButton: false
+        });
+        
+    } catch (error) {
         console.error('Error uploading image:', error);
         Swal.fire({
             icon: 'error',
             title: 'Upload Failed',
             text: error.message || 'Failed to upload image'
         });
-
+    }
+}
 
 // Function to add image preview
 function addImagePreview(imageUrl, fileName) {
@@ -3111,417 +4336,3 @@ document.addEventListener('DOMContentLoaded', function() {
         initializeThreadDetailPage();
     }
 });
-
-// Edit post function
-async function editPost(postId) {
-    try {
-        // Fetch the post to edit
-        const response = await fetch(`${api_key}Post/GetById?id=${postId}`, {
-            headers: {
-                'Authorization': `Bearer ${sessionStorage.getItem('token')}`
-            }
-        });
-
-        if (!response.ok) {
-            throw new Error('Failed to fetch post');
-        }
-
-        const post = await response.json();
-        
-        // Get the post element and content area
-        const postElement = document.querySelector(`.post[data-post-id="${postId}"]`);
-        const contentArea = postElement.querySelector('.post-content');
-        const originalContent = contentArea.innerHTML;
-        
-        // Check if post is already in edit mode
-        if (postElement.classList.contains('editing')) {
-            return;
-        }
-        
-        // Mark post as being edited
-        postElement.classList.add('editing');
-        
-        // Parse content to separate text and images
-        const parser = new DOMParser();
-        const contentDoc = parser.parseFromString(originalContent, 'text/html');
-        
-        // Extract images
-        const images = Array.from(contentDoc.querySelectorAll('img')).map(img => {
-            return {
-                src: img.src,
-                fileName: img.getAttribute('data-filename') || 'image-' + Date.now() + '.jpg'
-            };
-        });
-        
-        // Get text content (remove images for editing)
-        let textContent = originalContent;
-        contentDoc.querySelectorAll('img').forEach(img => {
-            img.remove();
-        });
-        textContent = contentDoc.body.innerHTML;
-        
-        // Create edit form
-        const editForm = document.createElement('div');
-        editForm.className = 'edit-form';
-        
-        // Add textarea for text content
-        const textarea = document.createElement('textarea');
-        textarea.className = 'edit-textarea';
-        textarea.value = cleanHtmlContent(textContent);
-        editForm.appendChild(textarea);
-        
-        // Add image preview section if there are images
-        if (images.length > 0) {
-            const imageSection = document.createElement('div');
-            imageSection.className = 'edit-image-preview-container';
-            
-            const imageLabel = document.createElement('p');
-            imageLabel.className = 'image-label';
-            imageLabel.innerHTML = '<i class="fa fa-picture-o"></i> Hình ảnh đính kèm:';
-            imageSection.appendChild(imageLabel);
-            
-            images.forEach(image => {
-                const imagePreview = document.createElement('div');
-                imagePreview.className = 'edit-image-preview-item';
-                imagePreview.dataset.filename = image.fileName;
-                
-                const img = document.createElement('img');
-                img.src = image.src;
-                imagePreview.appendChild(img);
-                
-                const removeBtn = document.createElement('button');
-                removeBtn.className = 'remove-image';
-                removeBtn.innerHTML = '<i class="fa fa-times"></i>';
-                removeBtn.onclick = function() {
-                    imagePreview.remove();
-                };
-                
-                imagePreview.appendChild(removeBtn);
-                imageSection.appendChild(imagePreview);
-            });
-            
-            editForm.appendChild(imageSection);
-        }
-        
-        // Add buttons
-        const actionButtons = document.createElement('div');
-        actionButtons.className = 'edit-action-buttons';
-        
-        const saveButton = document.createElement('button');
-        saveButton.className = 'edit-save-btn';
-        saveButton.innerHTML = '<i class="fa fa-check"></i> Lưu thay đổi';
-        
-        const cancelButton = document.createElement('button');
-        cancelButton.className = 'edit-cancel-btn';
-        cancelButton.innerHTML = '<i class="fa fa-times"></i> Hủy';
-        
-        actionButtons.appendChild(saveButton);
-        actionButtons.appendChild(cancelButton);
-        editForm.appendChild(actionButtons);
-        
-        // Replace content with edit form
-        contentArea.innerHTML = '';
-        contentArea.appendChild(editForm);
-        
-        // Focus the textarea
-        textarea.focus();
-        
-        // Handle cancel button
-        cancelButton.addEventListener('click', () => {
-            contentArea.innerHTML = originalContent;
-            postElement.classList.remove('editing');
-        });
-        
-        // Handle save button
-        saveButton.addEventListener('click', async () => {
-            // Show loading state
-            saveButton.innerHTML = '<i class="fa fa-spinner fa-spin"></i> Đang lưu...';
-            saveButton.disabled = true;
-            
-            try {
-                // Collect remaining images
-                const remainingImages = Array.from(editForm.querySelectorAll('.edit-image-preview-item')).map(item => {
-                    return {
-                        src: item.querySelector('img').src,
-                        fileName: item.dataset.filename
-                    };
-                });
-                
-                // Combine text and images
-                let newContent = textarea.value;
-                
-                // Add images at the end of content
-                if (remainingImages.length > 0) {
-                    remainingImages.forEach(image => {
-                        newContent += `<img src="${image.src}" data-filename="${image.fileName}" alt="Hình ảnh người dùng tải lên">`;
-                    });
-                }
-                
-                // Send update request
-                const updateResponse = await fetch(`${api_key}Post/Update`, {
-                    method: 'PUT',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'Authorization': `Bearer ${sessionStorage.getItem('token')}`
-                    },
-                    body: JSON.stringify({
-                        postId: postId,
-                        content: newContent,
-                        userId: parseInt(sessionStorage.getItem('userId'))
-                    })
-                });
-                
-                if (!updateResponse.ok) {
-                    throw new Error('Failed to update post');
-                }
-                
-                // Update post content
-                contentArea.innerHTML = newContent;
-                postElement.classList.remove('editing');
-                
-                // Show success message
-                Swal.fire({
-                    icon: 'success',
-                    title: 'Thành công!',
-                    text: 'Bài viết đã được cập nhật',
-                    timer: 2000,
-                    timerProgressBar: true,
-                    showConfirmButton: false,
-                    background: '#1e1e28',
-                    color: '#fff',
-                    iconColor: '#2575fc'
-                });
-                
-                // Mark post as updated
-                postElement.classList.add('post-updated');
-                setTimeout(() => {
-                    postElement.classList.remove('post-updated');
-                }, 3000);
-                
-            } catch (error) {
-                console.error('Error updating post:', error);
-                Swal.fire({
-                    icon: 'error',
-                    title: 'Lỗi',
-                    text: 'Không thể cập nhật bài viết. Vui lòng thử lại sau.',
-                    confirmButtonColor: '#6a11cb'
-                });
-                
-                // Restore buttons
-                saveButton.innerHTML = '<i class="fa fa-check"></i> Lưu thay đổi';
-                saveButton.disabled = false;
-            }
-        });
-        
-    } catch (error) {
-        console.error('Error editing post:', error);
-        showError('Không thể chỉnh sửa bài viết. Vui lòng thử lại.');
-    }
-}
-
-// Edit comment function
-async function editComment(commentId) {
-    try {
-        // Fetch the comment to edit
-        const response = await fetch(`${api_key}Comment/GetById?id=${commentId}`, {
-            headers: {
-                'Authorization': `Bearer ${sessionStorage.getItem('token')}`
-            }
-        });
-
-        if (!response.ok) {
-            throw new Error('Failed to fetch comment');
-        }
-
-        const comment = await response.json();
-        
-        // Get the comment element and content area
-        const commentElement = document.querySelector(`.comment[data-comment-id="${commentId}"]`);
-        const contentArea = commentElement.querySelector('.comment-content');
-        const originalContent = contentArea.innerHTML;
-        
-        // Check if comment is already in edit mode
-        if (commentElement.classList.contains('editing')) {
-            return;
-        }
-        
-        // Mark comment as being edited
-        commentElement.classList.add('editing');
-        
-        // Parse content to separate text and images
-        const parser = new DOMParser();
-        const contentDoc = parser.parseFromString(originalContent, 'text/html');
-        
-        // Extract images
-        const images = Array.from(contentDoc.querySelectorAll('img')).map(img => {
-            return {
-                src: img.src,
-                fileName: img.getAttribute('data-filename') || 'image-' + Date.now() + '.jpg'
-            };
-        });
-        
-        // Get text content (remove images for editing)
-        let textContent = originalContent;
-        contentDoc.querySelectorAll('img').forEach(img => {
-            img.remove();
-        });
-        textContent = contentDoc.body.innerHTML;
-        
-        // Create edit form
-        const editForm = document.createElement('div');
-        editForm.className = 'edit-form';
-        
-        // Add textarea for text content
-        const textarea = document.createElement('textarea');
-        textarea.className = 'edit-textarea';
-        textarea.value = cleanHtmlContent(textContent);
-        editForm.appendChild(textarea);
-        
-        // Add image preview section if there are images
-        if (images.length > 0) {
-            const imageSection = document.createElement('div');
-            imageSection.className = 'edit-image-preview-container';
-            
-            const imageLabel = document.createElement('p');
-            imageLabel.className = 'image-label';
-            imageLabel.innerHTML = '<i class="fa fa-picture-o"></i> Hình ảnh đính kèm:';
-            imageSection.appendChild(imageLabel);
-            
-            images.forEach(image => {
-                const imagePreview = document.createElement('div');
-                imagePreview.className = 'edit-image-preview-item';
-                imagePreview.dataset.filename = image.fileName;
-                
-                const img = document.createElement('img');
-                img.src = image.src;
-                imagePreview.appendChild(img);
-                
-                const removeBtn = document.createElement('button');
-                removeBtn.className = 'remove-image';
-                removeBtn.innerHTML = '<i class="fa fa-times"></i>';
-                removeBtn.onclick = function() {
-                    imagePreview.remove();
-                };
-                
-                imagePreview.appendChild(removeBtn);
-                imageSection.appendChild(imagePreview);
-            });
-            
-            editForm.appendChild(imageSection);
-        }
-        
-        // Add buttons
-        const actionButtons = document.createElement('div');
-        actionButtons.className = 'edit-action-buttons';
-        
-        const saveButton = document.createElement('button');
-        saveButton.className = 'edit-save-btn';
-        saveButton.innerHTML = '<i class="fa fa-check"></i> Lưu';
-        
-        const cancelButton = document.createElement('button');
-        cancelButton.className = 'edit-cancel-btn';
-        cancelButton.innerHTML = '<i class="fa fa-times"></i> Hủy';
-        
-        actionButtons.appendChild(saveButton);
-        actionButtons.appendChild(cancelButton);
-        editForm.appendChild(actionButtons);
-        
-        // Replace content with edit form
-        contentArea.innerHTML = '';
-        contentArea.appendChild(editForm);
-        
-        // Focus the textarea
-        textarea.focus();
-        
-        // Handle cancel button
-        cancelButton.addEventListener('click', () => {
-            contentArea.innerHTML = originalContent;
-            commentElement.classList.remove('editing');
-        });
-        
-        // Handle save button
-        saveButton.addEventListener('click', async () => {
-            // Show loading state
-            saveButton.innerHTML = '<i class="fa fa-spinner fa-spin"></i> Đang lưu...';
-            saveButton.disabled = true;
-            
-            try {
-                // Collect remaining images
-                const remainingImages = Array.from(editForm.querySelectorAll('.edit-image-preview-item')).map(item => {
-                    return {
-                        src: item.querySelector('img').src,
-                        fileName: item.dataset.filename
-                    };
-                });
-                
-                // Combine text and images
-                let newContent = textarea.value;
-                
-                // Add images at the end of content
-                if (remainingImages.length > 0) {
-                    remainingImages.forEach(image => {
-                        newContent += `<img src="${image.src}" data-filename="${image.fileName}" alt="Hình ảnh người dùng tải lên">`;
-                    });
-                }
-                
-                // Send update request
-                const updateResponse = await fetch(`${api_key}Comment/Update`, {
-                    method: 'PUT',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'Authorization': `Bearer ${sessionStorage.getItem('token')}`
-                    },
-                    body: JSON.stringify({
-                        commentId: commentId,
-                        content: newContent,
-                        userId: parseInt(sessionStorage.getItem('userId'))
-                    })
-                });
-                
-                if (!updateResponse.ok) {
-                    throw new Error('Failed to update comment');
-                }
-                
-                // Update comment content
-                contentArea.innerHTML = newContent;
-                commentElement.classList.remove('editing');
-                
-                // Show success message
-                Swal.fire({
-                    icon: 'success',
-                    title: 'Thành công!',
-                    text: 'Bình luận đã được cập nhật',
-                    timer: 2000,
-                    timerProgressBar: true,
-                    showConfirmButton: false,
-                    background: '#1e1e28',
-                    color: '#fff',
-                    iconColor: '#2575fc'
-                });
-                
-                // Mark comment as updated
-                commentElement.classList.add('comment-updated');
-                setTimeout(() => {
-                    commentElement.classList.remove('comment-updated');
-                }, 3000);
-                
-            } catch (error) {
-                console.error('Error updating comment:', error);
-                Swal.fire({
-                    icon: 'error',
-                    title: 'Lỗi',
-                    text: 'Không thể cập nhật bình luận. Vui lòng thử lại sau.',
-                    confirmButtonColor: '#6a11cb'
-                });
-                
-                // Restore buttons
-                saveButton.innerHTML = '<i class="fa fa-check"></i> Lưu';
-                saveButton.disabled = false;
-            }
-        });
-        
-    } catch (error) {
-        console.error('Error editing comment:', error);
-        showError('Không thể chỉnh sửa bình luận. Vui lòng thử lại.');
-    }
-}
