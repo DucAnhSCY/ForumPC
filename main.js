@@ -713,11 +713,21 @@ function deleteCategory(categoryId) {
 
 // Đổi tên hàm clearThreadForm thành cancelThreadForm
 function cancelThreadForm() {
-    // Clear the form
-    clearThreadForm();
-    
-    // Hide the form
-    hideNewThreadForm();
+    const createThreadSection = document.getElementById('create-thread-section');
+    if (createThreadSection) {
+        // Reset form fields
+        const categorySelect = document.getElementById('thread-category');
+        const titleInput = document.getElementById('thread-title');
+        const contentInput = document.getElementById('thread-content');
+        
+        if (categorySelect) categorySelect.value = '';
+        if (titleInput) titleInput.value = '';
+        if (contentInput) contentInput.value = '';
+        
+        // Hide the form
+        createThreadSection.classList.remove('show');
+        createThreadSection.classList.add('hide');
+    }
 }
 
 // Thêm hàm showNewThreadForm nếu cần thiết
@@ -730,16 +740,11 @@ function showNewThreadForm() {
         // Reset the form
         const categorySelect = document.getElementById('thread-category');
         const titleInput = document.getElementById('thread-title');
+        const contentInput = document.getElementById('thread-content');
         
         if (categorySelect) categorySelect.value = '';
         if (titleInput) titleInput.value = '';
-        
-        // Initialize CKEditor if not already initialized
-        if (document.getElementById('thread-content') && !CKEDITOR.instances['thread-content']) {
-            CKEDITOR.replace('thread-content');
-        } else if (CKEDITOR.instances['thread-content']) {
-            CKEDITOR.instances['thread-content'].setData('');
-        }
+        if (contentInput) contentInput.value = '';
         
         // Fetch categories for the dropdown
         fetchCategories();
