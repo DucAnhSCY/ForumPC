@@ -568,6 +568,125 @@ function updateCategoryList(categories) {
     }
 }
 
+// Add function to toggle thread dropdown for categories
+function toggleCategoryThreads(categoryId, element) {
+    const dropdown = element.querySelector('.category-threads-dropdown');
+    
+    if (dropdown) {
+        // If dropdown already exists, toggle its visibility
+        if (dropdown.classList.contains('show')) {
+            dropdown.classList.remove('show');
+            dropdown.classList.add('hide');
+            // Change the toggle icon
+            const toggleIcon = element.querySelector('.toggle-threads-icon');
+            if (toggleIcon) {
+                toggleIcon.classList.remove('fa-chevron-up');
+                toggleIcon.classList.add('fa-chevron-down');
+            }
+        } else {
+            dropdown.classList.remove('hide');
+            dropdown.classList.add('show');
+            // Change the toggle icon
+            const toggleIcon = element.querySelector('.toggle-threads-icon');
+            if (toggleIcon) {
+                toggleIcon.classList.remove('fa-chevron-down');
+                toggleIcon.classList.add('fa-chevron-up');
+            }
+        }
+    } else {
+        // If dropdown doesn't exist yet, create it and fetch threads
+        fetchCategoryThreads(categoryId, element);
+    }
+}
+
+// Fetch threads for a specific category
+async function fetchCategoryThreads(categoryId, categoryElement) {
+    try {
+        // Create loading indicator
+        const loadingDropdown = document.createElement('div');
+        loadingDropdown.className = 'category-threads-dropdown show';
+        loadingDropdown.innerHTML = '<div class="loading-threads">Loading threads...</div>';
+        categoryElement.appendChild(loadingDropdown);
+        
+        // Add toggle icon if it doesn't exist
+        if (!categoryElement.querySelector('.toggle-threads-icon')) {
+            const toggleIcon = document.createElement('i');
+            toggleIcon.className = 'fa fa-chevron-up toggle-threads-icon';
+            categoryElement.querySelector('.category-content').appendChild(toggleIcon);
+        } else {
+            // Update existing icon
+            const toggleIcon = categoryElement.querySelector('.toggle-threads-icon');
+            toggleIcon.classList.remove('fa-chevron-down');
+            toggleIcon.classList.add('fa-chevron-up');
+        }
+        
+        // Fetch threads for this category
+        const response = await fetch(`${api_key}Thread/ByCategory/${categoryId}`);
+        if (!response.ok) {
+            throw new Error('Failed to fetch category threads');
+        }
+        
+        const threads = await response.json();
+        
+        // Create dropdown for threads
+        const dropdown = document.createElement('div');
+        dropdown.className = 'category-threads-dropdown show';
+        
+        if (threads.length === 0) {
+            dropdown.innerHTML = '<div class="empty-threads">No threads in this category</div>';
+        } else {
+            const threadsList = document.createElement('ul');
+            threadsList.className = 'threads-list';
+            
+            threads.forEach(thread => {
+                const threadItem = document.createElement('li');
+                threadItem.className = 'thread-dropdown-item';
+                
+                // Format date for display
+                const createdDate = new Date(thread.createdAt);
+                const formattedDate = `${createdDate.toLocaleDateString()}`;
+                
+                threadItem.innerHTML = `
+                    <a href="thread-detail.html?id=${thread.threadId}" class="thread-link">
+                        <div class="thread-title-preview">${thread.title}</div>
+                        <div class="thread-meta-preview">
+                            <span class="thread-author-preview">${thread.username || 'Unknown'}</span>
+                            <span class="thread-date-preview">${formattedDate}</span>
+                            <span class="thread-stats-preview">
+                                <i class="fa fa-eye"></i> ${thread.views || 0}
+                            </span>
+                        </div>
+                    </a>
+                `;
+                
+                threadsList.appendChild(threadItem);
+            });
+            
+            dropdown.appendChild(threadsList);
+        }
+        
+        // Replace loading indicator with actual content
+        categoryElement.removeChild(loadingDropdown);
+        categoryElement.appendChild(dropdown);
+        
+    } catch (error) {
+        console.error('Error fetching category threads:', error);
+        
+        // Replace loading with error message
+        const errorDropdown = document.createElement('div');
+        errorDropdown.className = 'category-threads-dropdown show';
+        errorDropdown.innerHTML = '<div class="error-message">Failed to load threads</div>';
+        
+        const loadingElement = categoryElement.querySelector('.category-threads-dropdown');
+        if (loadingElement) {
+            categoryElement.removeChild(loadingElement);
+        }
+        
+        categoryElement.appendChild(errorDropdown);
+    }
+}
+
+// Update addCategoryItems function to include dropdown functionality
 function addCategoryItems(categories, container) {
     if (categories.length === 0) {
         // Show empty state with message
@@ -589,6 +708,7 @@ function addCategoryItems(categories, container) {
         const categoryItem = document.createElement('div');
         categoryItem.className = 'category-item';
         categoryItem.style.animationDelay = `${delay}s`;
+        categoryItem.setAttribute('data-category-id', category.categoryId);
         
         // If this is the newly created category, add the highlight class
         if (newCategoryId && category.categoryId.toString() === newCategoryId) {
@@ -610,12 +730,18 @@ function addCategoryItems(categories, container) {
         const categoryName = document.createElement('span');
         categoryName.textContent = category.name;
         
+        // Add toggle icon for dropdown
+        const toggleIcon = document.createElement('i');
+        toggleIcon.className = 'fa fa-chevron-down toggle-threads-icon';
+        
         categoryContent.appendChild(folderIcon);
         categoryContent.appendChild(categoryName);
+        categoryContent.appendChild(toggleIcon);
         
-        // Make clicking on the category go to its threads
-        categoryItem.addEventListener('click', () => {
-            window.location.href = `forums.html?category=${category.categoryId}`;
+        // Make clicking on the category toggle the thread list
+        categoryContent.addEventListener('click', (e) => {
+            e.stopPropagation();
+            toggleCategoryThreads(category.categoryId, categoryItem);
         });
         
         categoryItem.appendChild(categoryContent);
