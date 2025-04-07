@@ -3273,6 +3273,9 @@ async function editPost(postId) {
             </div>
             <div class="edit-post-body">
                 <textarea id="edit-post-input">${currentContent}</textarea>
+                <div id="edit-image-preview" class="image-preview">
+                    ${extractImagesFromHTML(currentContent)}
+                </div>
             </div>
             <div class="edit-post-footer">
                 <button class="cancel-edit-btn">Cancel</button>
@@ -3344,37 +3347,57 @@ async function editPost(postId) {
                 border-radius: 4px;
                 border: none;
                 cursor: pointer;
+                transition: all 0.2s ease;
             }
             .cancel-edit-btn {
                 background-color: #ddd;
                 color: #333;
             }
+            .cancel-edit-btn:hover {
+                background-color: #ccc;
+            }
             .save-edit-btn {
                 background-color: #52057b;
                 color: white;
+            }
+            .save-edit-btn:hover {
+                background-color: #6a1b9a;
+                box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+            }
+            .image-preview {
+                margin-top: 15px;
+                display: flex;
+                flex-wrap: wrap;
+                gap: 10px;
+            }
+            .edit-image-item {
+                position: relative;
+                width: 100px;
+                height: 100px;
+                border-radius: 4px;
+                overflow: hidden;
+                box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+            }
+            .edit-image-item img {
+                width: 100%;
+                height: 100%;
+                object-fit: cover;
             }
         `;
         document.head.appendChild(styles);
     }
     
-    // Initialize CKEditor for the edit textarea
-    if (CKEDITOR.instances['edit-post-input']) {
-        CKEDITOR.instances['edit-post-input'].destroy();
-    }
-    
-    CKEDITOR.replace('edit-post-input', {
-        height: 300,
-        filebrowserUploadUrl: 'https://api.ducanhweb.me/api/Upload/Image',
-        filebrowserImageUploadUrl: 'https://api.ducanhweb.me/api/Upload/Image',
-        uploadUrl: 'https://api.ducanhweb.me/api/Upload/Image',
-        imageUploadUrl: 'https://api.ducanhweb.me/api/Upload/Image'
-    });
+    // Simple editor for text edit
+    const editInput = document.getElementById('edit-post-input');
+    editInput.style.width = '100%';
+    editInput.style.minHeight = '200px';
+    editInput.style.padding = '10px';
+    editInput.style.border = '1px solid #ddd';
+    editInput.style.borderRadius = '4px';
+    editInput.style.resize = 'vertical';
     
     // Handle close modal
     const closeModal = () => {
-        if (CKEDITOR.instances['edit-post-input']) {
-            CKEDITOR.instances['edit-post-input'].destroy();
-        }
         document.body.removeChild(editModal);
     };
     
@@ -3384,14 +3407,33 @@ async function editPost(postId) {
     
     // Save changes
     editModal.querySelector('.save-edit-btn').addEventListener('click', async () => {
-        const newContent = CKEDITOR.instances['edit-post-input'].getData();
+        const newContent = editInput.value;
         
-        if (!newContent || newContent === currentContent) {
+        if (!newContent || newContent.trim() === '') {
+            Swal.fire({
+                icon: 'warning',
+                title: 'Empty Content',
+                text: 'Post content cannot be empty'
+            });
+            return;
+        }
+        
+        if (newContent === currentContent) {
             closeModal();
             return;
         }
         
         try {
+            // Show loading indicator
+            Swal.fire({
+                title: 'Saving changes...',
+                text: 'Please wait while we update your post',
+                allowOutsideClick: false,
+                didOpen: () => {
+                    Swal.showLoading();
+                }
+            });
+            
             const response = await fetch(`${api_key}Post/Update/${postId}`, {
                 method: 'PUT',
                 headers: {
@@ -3407,7 +3449,11 @@ async function editPost(postId) {
                 throw new Error('Không thể cập nhật bài viết');
             }
             
+            // Update content in the DOM
             contentElement.innerHTML = newContent;
+            
+            // Close loading indicator
+            Swal.close();
             
             // Hiệu ứng thành công
             postElement.classList.add('post-updated');
@@ -3415,14 +3461,52 @@ async function editPost(postId) {
                 postElement.classList.remove('post-updated');
             }, 1500);
             
-            console.log('Bài viết đã được cập nhật thành công');
+            // Show success message
+            Swal.fire({
+                icon: 'success',
+                title: 'Post Updated',
+                text: 'Your post has been updated successfully',
+                timer: 1500,
+                showConfirmButton: false
+            });
+            
             closeModal();
             
         } catch (error) {
             console.error('Lỗi khi cập nhật bài viết:', error);
-            alert('Không thể cập nhật bài viết. Vui lòng thử lại.');
+            Swal.fire({
+                icon: 'error',
+                title: 'Update Failed',
+                text: 'Could not update your post. Please try again.'
+            });
         }
     });
+}
+
+// Helper function to extract image previews from HTML content
+function extractImagesFromHTML(html) {
+    const tempDiv = document.createElement('div');
+    tempDiv.innerHTML = html;
+    
+    const images = tempDiv.querySelectorAll('img');
+    
+    if (images.length === 0) {
+        return '';
+    }
+    
+    let previewHTML = '';
+    
+    images.forEach((img, index) => {
+        if (img.src) {
+            previewHTML += `
+                <div class="edit-image-item" data-index="${index}">
+                    <img src="${img.src}" alt="Image ${index+1}" />
+                </div>
+            `;
+        }
+    });
+    
+    return previewHTML;
 }
 
 // Thêm hàm deletePost
