@@ -723,13 +723,30 @@ function cancelThreadForm() {
 // Thêm hàm showNewThreadForm nếu cần thiết
 function showNewThreadForm() {
     const createThreadSection = document.getElementById('create-thread-section');
-    createThreadSection.classList.remove('hide');
-    createThreadSection.classList.add('show');
-    
-    // Scroll to the form with smooth animation
-    setTimeout(() => {
-        createThreadSection.scrollIntoView({ behavior: 'smooth' });
-    }, 100);
+    if (createThreadSection) {
+        createThreadSection.classList.remove('hide');
+        createThreadSection.classList.add('show');
+        
+        // Reset the form
+        const categorySelect = document.getElementById('thread-category');
+        const titleInput = document.getElementById('thread-title');
+        
+        if (categorySelect) categorySelect.value = '';
+        if (titleInput) titleInput.value = '';
+        
+        // Initialize CKEditor if not already initialized
+        if (document.getElementById('thread-content') && !CKEDITOR.instances['thread-content']) {
+            CKEDITOR.replace('thread-content');
+        } else if (CKEDITOR.instances['thread-content']) {
+            CKEDITOR.instances['thread-content'].setData('');
+        }
+        
+        // Fetch categories for the dropdown
+        fetchCategories();
+        
+        // Scroll to form
+        createThreadSection.scrollIntoView({behavior: 'smooth'});
+    }
 }
 
 function hideNewThreadForm() {
