@@ -1,0 +1,11 @@
+/* Custom styles to override CKEditor */
+
+/* Hide security notifications */
+.cke_notification_warning {
+    display: none !important;
+}
+
+/* Only if you want to selectively hide specific notifications */
+.cke_notification_warning[data-cke-notificationtype="warning"] {
+    display: none !important;
+} 
