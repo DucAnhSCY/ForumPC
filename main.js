@@ -3973,7 +3973,7 @@ function cleanHtmlContent(html) {
 
 // Global variables for image upload
 let uploadedImages = [];
-const apiBaseUrl = 'https://api.ducanhweb.me/api';
+const apiBaseUrl = 'https://api.ducanhweb.me/api/';
 
 // Function to initialize image upload handler
 function initImageUpload() {
@@ -4025,7 +4025,7 @@ async function handleImageUpload(event) {
         formData.append('file', file);
         
         // Upload to server
-        const response = await fetch(`${apiBaseUrl}/Image/upload`, {
+        const response = await fetch(`${api_key}Image/upload`, {
             method: 'POST',
             body: formData
         });
