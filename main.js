@@ -43,7 +43,7 @@ function initializePage() {
 }
 
 // API
-const api_key = "http://localhost:5083/api/";
+const api_key = "http://68.183.180.151:5000/api/";
 
 // NavBar
 function hideIconBar() {
