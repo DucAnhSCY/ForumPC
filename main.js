@@ -491,41 +491,19 @@ function createCategory() {
     });
 }
 
-async function fetchCategories() {
-    try {
-        const response = await fetch(`${api_key}Category`, {
-            method: 'GET',
-            headers: {
-                'Content-Type': 'application/json'
-            },
-            credentials: 'include' // Include cookies if they're used for auth
+function fetchCategories() {
+    fetch(`${api_key}Category`)
+        .then(response => response.json())
+        .then(categories => {
+            // Update the dropdown
+            updateCategoryDropdown(categories);
+
+            // Update the category list (if applicable)
+            updateCategoryList(categories);
+        })
+        .catch(error => {
+            console.error("Error fetching categories:", error);
         });
-        
-        if (!response.ok) {
-            throw new Error(`Error ${response.status}: ${response.statusText}`);
-        }
-        
-        const categories = await response.json();
-        updateCategoryDropdown(categories);
-        updateCategoryList(categories);
-        return categories;
-    } catch (error) {
-        console.error("Error fetching categories:", error);
-        
-        // Show a more user-friendly error in the UI
-        const categoryElements = document.querySelectorAll('.category-list, #category-dropdown');
-        categoryElements.forEach(el => {
-            if (el) {
-                el.innerHTML = `
-                <div class="error-message">
-                    <i class="fa fa-exclamation-triangle"></i>
-                    <p>Unable to load categories. Please try again later.</p>
-                </div>`;
-            }
-        });
-        
-        throw error;
-    }
 }
 
 function updateCategoryDropdown(categories) {
@@ -1105,69 +1083,34 @@ function updateEngagementStatus(views, likes) {
 
 // Hàm khởi tạo trang thread detail
 function initThreadDetailPage() {
-    // Get thread ID from URL
     const threadId = getCurrentThreadId();
-    if (!threadId) {
-        window.location.href = 'forums.html';
-        return;
+    if (threadId) {
+        loadThreadDetails(threadId);
+        loadPosts(threadId);
+        incrementThreadViews(threadId);
+        loadRelatedThreads(threadId);
+        
+        // Initialize CKEditor for post input
+        if (document.getElementById('post-input') && !CKEDITOR.instances['post-input']) {
+            CKEDITOR.replace('post-input');
+        }
     }
-
-    // Load thread details
-    loadThreadDetail(threadId);
-    
-    // Load thread's posts
-    loadPosts(threadId);
-    
-    // Update UI based on login status
-    updateUIAfterLogin();
-    
-    // Initialize CKEditor for the post editor
-    if (document.getElementById('post-input')) {
-        initPostEditor();
-    }
-    
-    // Track thread view
-    incrementThreadViews(threadId);
-    
-    // Load related threads
-    loadRelatedThreads(threadId);
 }
 
-async function fetchUsers() {
-    try {
-        const response = await fetch(`${api_key}User/GetAll`, {
-            method: 'GET',
-            headers: {
-                'Content-Type': 'application/json',
-                'Authorization': `Bearer ${sessionStorage.getItem('token')}`
-            },
-            credentials: 'include'
-        });
-        
-        if (!response.ok) {
-            throw new Error(`Error ${response.status}: ${response.statusText}`);
-        }
-        
-        const users = await response.json();
-        displayUsers(users);
-        return users;
-    } catch (error) {
-        console.error("Error fetching users:", error);
-        
-        // Show a more user-friendly error in the UI
-        const userTableBody = document.getElementById('user-table-body');
-        if (userTableBody) {
-            userTableBody.innerHTML = `
-            <tr>
-                <td colspan="7" class="error-message">
-                    <i class="fa fa-exclamation-triangle"></i>
-                    <p>Unable to load users. Please try again later.</p>
-                </td>
-            </tr>`;
-        }
-        
-        throw error;
-    }
+function fetchUsers() {
+    fetch(`${api_key}User/GetAll`)
+        .then(response => {
+            if (!response.ok) {
+                throw new Error('Failed to fetch users');
+            }
+            return response.json();
+        })
+        .then(users => {
+            // Store users in a global variable for filtering
+            window.allUsers = users;
+            displayUsers(users);
+        })
+        .catch(error => console.error("Error fetching users:", error));
 }
 
 function displayUsers(users) {
@@ -1748,32 +1691,18 @@ async function loadThreadDetails(threadId) {
 
 // Initialize thread detail page
 function initThreadDetailPage() {
-    // Get thread ID from URL
     const threadId = getCurrentThreadId();
-    if (!threadId) {
-        window.location.href = 'forums.html';
-        return;
+    if (threadId) {
+        loadThreadDetails(threadId);
+        loadPosts(threadId);
+        incrementThreadViews(threadId);
+        loadRelatedThreads(threadId);
+        
+        // Initialize CKEditor for post input
+        if (document.getElementById('post-input') && !CKEDITOR.instances['post-input']) {
+            CKEDITOR.replace('post-input');
+        }
     }
-
-    // Load thread details
-    loadThreadDetail(threadId);
-    
-    // Load thread's posts
-    loadPosts(threadId);
-    
-    // Update UI based on login status
-    updateUIAfterLogin();
-    
-    // Initialize CKEditor for the post editor
-    if (document.getElementById('post-input')) {
-        initPostEditor();
-    }
-    
-    // Track thread view
-    incrementThreadViews(threadId);
-    
-    // Load related threads
-    loadRelatedThreads(threadId);
 }
 
 // Get current thread ID from URL
@@ -2069,32 +1998,18 @@ async function submitReply(button, parentPostId) {
 
 // Initialize thread detail page with animations
 function initThreadDetailPage() {
-    // Get thread ID from URL
     const threadId = getCurrentThreadId();
-    if (!threadId) {
-        window.location.href = 'forums.html';
-        return;
+    if (threadId) {
+        loadThreadDetails(threadId);
+        loadPosts(threadId);
+        incrementThreadViews(threadId);
+        loadRelatedThreads(threadId);
+        
+        // Initialize CKEditor for post input
+        if (document.getElementById('post-input') && !CKEDITOR.instances['post-input']) {
+            CKEDITOR.replace('post-input');
+        }
     }
-
-    // Load thread details
-    loadThreadDetail(threadId);
-    
-    // Load thread's posts
-    loadPosts(threadId);
-    
-    // Update UI based on login status
-    updateUIAfterLogin();
-    
-    // Initialize CKEditor for the post editor
-    if (document.getElementById('post-input')) {
-        initPostEditor();
-    }
-    
-    // Track thread view
-    incrementThreadViews(threadId);
-    
-    // Load related threads
-    loadRelatedThreads(threadId);
 }
 
 // Check if we're on the thread detail page and initialize
@@ -2440,29 +2355,16 @@ function createPostElement(post) {
 
 // Toggle comment form visibility
 function toggleCommentForm(button) {
-    const post = button.closest('.post');
-    const commentForm = post.querySelector('.comment-form');
+    if (!sessionStorage.getItem("token")) {
+        alert("Please log in to comment.");
+        return;
+    }
     
-    // Toggle form visibility
-    if (commentForm.classList.contains('hide')) {
-        commentForm.classList.remove('hide');
-        
-        // Generate a unique ID for the editor if it doesn't have one
-        const textarea = commentForm.querySelector('textarea');
-        if (!textarea.id) {
-            const uniqueId = 'comment-editor-' + post.getAttribute('data-post-id');
-            textarea.id = uniqueId;
-        }
-        
-        // Initialize CKEditor for this textarea
-        initCommentEditor(textarea.id);
-    } else {
-        // Destroy the CKEditor instance before hiding
-        const textarea = commentForm.querySelector('textarea');
-        if (textarea.id && CKEDITOR.instances[textarea.id]) {
-            CKEDITOR.instances[textarea.id].destroy();
-        }
-        commentForm.classList.add('hide');
+    const form = button.closest(".post").querySelector(".comment-form");
+    form.classList.toggle("hide");
+    
+    if (!form.classList.contains("hide")) {
+        form.querySelector("textarea").focus();
     }
 }
 
@@ -2488,14 +2390,7 @@ async function submitComment(button) {
     const postId = parseInt(post.getAttribute('data-post-id'));
     const commentForm = post.querySelector('.comment-form');
     const textarea = commentForm.querySelector('textarea');
-    
-    // Get content from CKEditor if it's active
-    let content;
-    if (textarea.id && CKEDITOR.instances[textarea.id]) {
-        content = CKEDITOR.instances[textarea.id].getData();
-    } else {
-        content = textarea.value.trim();
-    }
+    const content = textarea.value.trim();
 
     if (!content) {
         alert('Please write something in your comment.');
@@ -2521,11 +2416,6 @@ async function submitComment(button) {
             throw new Error(errorData || 'Failed to create comment');
         }
 
-        // Destroy CKEditor instance before hiding form
-        if (textarea.id && CKEDITOR.instances[textarea.id]) {
-            CKEDITOR.instances[textarea.id].destroy();
-        }
-        
         // Clear form and reload comments
         textarea.value = '';
         commentForm.classList.add('hide');
@@ -2609,12 +2499,7 @@ function createCommentElement(comment) {
     commentElement.setAttribute('data-comment-id', comment.commentId);
     commentElement.querySelector('.comment-author').textContent = comment.username;
     commentElement.querySelector('.comment-date').textContent = formatDate(comment.createdAt);
-    
-    // Get comment content element and set its innerHTML to preserve HTML formatting
-    const commentContent = commentElement.querySelector('.comment-content');
-    if (commentContent) {
-        commentContent.innerHTML = cleanHtmlContent(comment.content);
-    }
+    commentElement.querySelector('.comment-content').textContent = comment.content;
     
     // Check permissions
     const currentUserId = parseInt(sessionStorage.getItem('userId'));
@@ -3964,32 +3849,31 @@ if (typeof CKEDITOR !== 'undefined') {
 
 // Function to clean HTML content by removing unnecessary paragraph tags
 function cleanHtmlContent(html) {
-    // Create a new div element
-    const tempDiv = document.createElement('div');
-    // Set the HTML content
-    tempDiv.innerHTML = html;
+    if (!html) return '';
     
-    // Remove potentially malicious elements/attributes
-    const scripts = tempDiv.querySelectorAll('script');
-    scripts.forEach(script => script.remove());
+    // Create a safe way to parse the HTML
+    const parser = new DOMParser();
+    const doc = parser.parseFromString(html, 'text/html');
     
-    // Sanitize all elements with event handlers
-    const allElements = tempDiv.querySelectorAll('*');
-    allElements.forEach(el => {
-        // Remove on* attributes (event handlers)
-        for (let i = el.attributes.length - 1; i >= 0; i--) {
-            const attr = el.attributes[i].name;
-            if (attr.startsWith('on')) {
-                el.removeAttribute(attr);
+    // Check for potentially harmful tags and attributes
+    const sanitizedHtml = html
+        // Allow img tags but ensure they have proper attributes
+        .replace(/<img([^>]*)>/gi, (match, attributes) => {
+            // If there's a src attribute, keep it
+            if (attributes.includes('src=')) {
+                return match;
             }
-        }
-        
-        // Handle links - make sure they open in a new tab and have rel="noopener"
-        if (el.tagName === 'A') {
-            el.setAttribute('target', '_blank');
-            el.setAttribute('rel', 'noopener noreferrer');
-        }
-    });
+            return '';
+        });
     
-    return tempDiv.innerHTML;
+    // Check if content is just a single paragraph with no other elements
+    if (sanitizedHtml.startsWith('<p>') && sanitizedHtml.endsWith('</p>')) {
+        const innerContent = sanitizedHtml.substring(3, sanitizedHtml.length - 4);
+        // Only strip paragraph tags if there are no other HTML elements inside
+        if (!/<[a-z][\s\S]*>/i.test(innerContent)) {
+            return innerContent;
+        }
+    }
+    
+    return sanitizedHtml;
 }
