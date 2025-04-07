@@ -3269,6 +3269,9 @@ async function editPost(postId) {
             </div>
             <div class="edit-post-body">
                 <textarea id="edit-post-input">${textOnlyContent}</textarea>
+                <div id="edit-image-preview" class="image-preview">
+                    ${extractImagesFromHTML(originalContent)}
+                </div>
             </div>
             <div class="edit-post-footer">
                 <button class="cancel-edit-btn">Cancel</button>
@@ -3356,6 +3359,71 @@ async function editPost(postId) {
             .save-edit-btn:hover {
                 background-color: #6a1b9a;
                 box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+            }
+            .image-preview {
+                margin-top: 15px;
+                display: flex;
+                flex-wrap: wrap;
+                gap: 10px;
+            }
+            .image-preview h4 {
+                width: 100%;
+                margin: 10px 0;
+                color: #333;
+                border-bottom: 1px solid #eee;
+                padding-bottom: 5px;
+            }
+            .edit-image-item {
+                position: relative;
+                width: 120px;
+                height: 120px;
+                border-radius: 8px;
+                overflow: hidden;
+                box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+                transition: all 0.3s ease;
+            }
+            .edit-image-item:hover {
+                transform: translateY(-3px);
+                box-shadow: 0 5px 15px rgba(0,0,0,0.3);
+            }
+            .edit-image-item img {
+                width: 100%;
+                height: 100%;
+                object-fit: cover;
+            }
+            .edit-image-actions {
+                position: absolute;
+                top: 0;
+                right: 0;
+                bottom: 0;
+                left: 0;
+                background: rgba(0, 0, 0, 0.5);
+                display: flex;
+                justify-content: center;
+                align-items: center;
+                opacity: 0;
+                transition: opacity 0.3s ease;
+            }
+            .edit-image-item:hover .edit-image-actions {
+                opacity: 1;
+            }
+            .delete-image-btn {
+                background: #f44336;
+                color: white;
+                border: none;
+                border-radius: 50%;
+                width: 36px;
+                height: 36px;
+                display: flex;
+                justify-content: center;
+                align-items: center;
+                cursor: pointer;
+                transition: all 0.2s ease;
+                box-shadow: 0 2px 5px rgba(0,0,0,0.3);
+            }
+            .delete-image-btn:hover {
+                background: #d32f2f;
+                transform: scale(1.1);
             }
         `;
         document.head.appendChild(styles);
@@ -3463,7 +3531,13 @@ function stripImageTags(html) {
     const tempDiv = document.createElement('div');
     tempDiv.innerHTML = html;
     
-    // Remove image tags
+    // Remove image containers and images from content for editing
+    const imageContainers = tempDiv.querySelectorAll('.uploaded-image');
+    imageContainers.forEach(container => {
+        container.parentNode.removeChild(container);
+    });
+    
+    // Also remove any direct image tags
     const images = tempDiv.querySelectorAll('img');
     images.forEach(img => {
         img.parentNode.removeChild(img);
@@ -3474,28 +3548,42 @@ function stripImageTags(html) {
 
 // Helper function to merge text content with original images
 function mergeTextAndImages(newText, originalContent) {
+    // Create temporary elements to work with content
     const tempDivOriginal = document.createElement('div');
     tempDivOriginal.innerHTML = originalContent;
     
+    // Extract all image containers from the original content
+    const imageContainers = Array.from(tempDivOriginal.querySelectorAll('.uploaded-image'));
+    
+    // If there are no images to preserve, just return the new text
+    if (imageContainers.length === 0) {
+        return newText;
+    }
+    
+    // Create a new container for the merged content
     const tempDivNew = document.createElement('div');
     tempDivNew.innerHTML = newText;
     
-    // Extract all images from the original content
-    const images = tempDivOriginal.querySelectorAll('img');
-    const imageArray = Array.from(images);
+    // Add each image container that wasn't marked for deletion
+    const deletedImages = document.querySelectorAll('.edit-image-item.deleted');
+    const deletedSrcs = Array.from(deletedImages).map(item => item.dataset.src);
     
-    // Since we no longer have image preview in the edit form, 
-    // preserve all images from the original content
-    if (imageArray.length > 0) {
-        const imageContainer = document.createElement('div');
-        imageContainer.className = 'retained-images';
-        imageContainer.style.marginTop = '20px';
+    const remainingImages = imageContainers.filter(container => {
+        const img = container.querySelector('img');
+        return img && !deletedSrcs.includes(img.src);
+    });
+    
+    // Append the remaining images at the end of the content
+    if (remainingImages.length > 0) {
+        // Add a separator if there's text content
+        if (tempDivNew.textContent.trim()) {
+            tempDivNew.appendChild(document.createElement('br'));
+        }
         
-        imageArray.forEach(img => {
-            imageContainer.appendChild(img.cloneNode(true));
+        // Append each image container
+        remainingImages.forEach(container => {
+            tempDivNew.appendChild(container.cloneNode(true));
         });
-        
-        tempDivNew.appendChild(imageContainer);
     }
     
     return tempDivNew.innerHTML;
