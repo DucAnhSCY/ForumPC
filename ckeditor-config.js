@@ -40,12 +40,12 @@ CKEDITOR.editorConfig = function(config) {
     config.height = 300;
     
     // Upload URL for images
-    config.filebrowserUploadUrl = 'http://ducanhweb.me/api/Upload/Image';
-    config.filebrowserImageUploadUrl = 'http://ducanhweb.me/api/Upload/Image';
-    config.uploadUrl = 'http://ducanhweb.me/api/Upload/Image';
+    config.filebrowserUploadUrl = 'https://ducanhweb.me/api/Upload/Image';
+    config.filebrowserImageUploadUrl = 'https://ducanhweb.me/api/Upload/Image';
+    config.uploadUrl = 'https://ducanhweb.me/api/Upload/Image';
     
     // Image upload configuration
-    config.imageUploadUrl = 'http://ducanhweb.me/api/Upload/Image';
+    config.imageUploadUrl = 'https://ducanhweb.me/api/Upload/Image';
     
     // Disable the security notification message
     config.disableNativeSpellChecker = false;
