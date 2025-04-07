@@ -68,4 +68,98 @@ CKEDITOR.editorConfig = function(config) {
         { name: 'styles' },
         { name: 'colors' }
     ];
-}; 
+};
+
+// Global API key for the application
+const api_key = 'https://178.128.121.241:443/api/';
+
+// Default CKEditor configuration for the thread and post editor
+function getDefaultConfig() {
+    return {
+        // Define toolbar groups
+        toolbar: [
+            { name: 'basicstyles', items: ['Bold', 'Italic', 'Underline', 'Strike'] },
+            { name: 'paragraph', items: ['NumberedList', 'BulletedList', '-', 'Blockquote'] },
+            { name: 'links', items: ['Link', 'Unlink'] },
+            { name: 'insert', items: ['Image', 'Table', 'HorizontalRule', 'SpecialChar'] },
+            { name: 'styles', items: ['Format'] },
+            { name: 'tools', items: ['Maximize'] },
+            { name: 'document', items: ['Source'] }
+        ],
+        // Enable content filtering to prevent XSS
+        extraAllowedContent: 'img[src,alt,width,height,style]; iframe[*]; video[*]; source[*]',
+        removeButtons: '',
+        // Make the editor adapt to the container size
+        width: '100%',
+        // Format tags available in the format dropdown
+        format_tags: 'p;h1;h2;h3;pre',
+        // Remove unnecessary plugins for better performance
+        removePlugins: 'elementspath,save,font',
+        // Set the default language
+        language: 'en',
+        // Configure file browser
+        filebrowserBrowseUrl: '',
+        filebrowserUploadUrl: '',
+        // Custom styling
+        contentsCss: ['ckeditor-custom.css'],
+        // Advanced content filtering
+        allowedContent: true,
+        disableNativeSpellChecker: false,
+        // Image upload configuration for DigitalOcean Spaces
+        filebrowserImageUploadUrl: `${api_key}Upload/ImageSpaces`,
+        // Setup function to handle initialization
+        on: {
+            instanceReady: function(evt) {
+                hideCKEditorSecurityNotification();
+            }
+        }
+    };
+}
+
+// Comment editor configuration (simpler toolbar)
+function getCommentEditorConfig() {
+    const config = getDefaultConfig();
+    // Simplified toolbar for comments
+    config.toolbar = [
+        { name: 'basicstyles', items: ['Bold', 'Italic', 'Underline'] },
+        { name: 'paragraph', items: ['NumberedList', 'BulletedList'] },
+        { name: 'links', items: ['Link'] },
+        { name: 'insert', items: ['Image'] },
+        { name: 'tools', items: ['Maximize'] }
+    ];
+    config.height = '150px';
+    return config;
+}
+
+// Initialize CKEditor for the post editor
+function initPostEditor() {
+    if (CKEDITOR.instances['post-input']) {
+        CKEDITOR.instances['post-input'].destroy();
+    }
+    CKEDITOR.replace('post-input', getDefaultConfig());
+}
+
+// Initialize CKEditor for all comment editors
+function initCommentEditors() {
+    document.querySelectorAll('.comment-editor').forEach(editor => {
+        if (editor.id && !CKEDITOR.instances[editor.id]) {
+            CKEDITOR.replace(editor.id, getCommentEditorConfig());
+        }
+    });
+}
+
+// Function to initialize a single comment editor
+function initCommentEditor(editorId) {
+    if (CKEDITOR.instances[editorId]) {
+        CKEDITOR.instances[editorId].destroy();
+    }
+    CKEDITOR.replace(editorId, getCommentEditorConfig());
+}
+
+// Hide CKEditor security notification
+function hideCKEditorSecurityNotification() {
+    const notification = document.querySelector('.cke_notification_info');
+    if (notification) {
+        notification.style.display = 'none';
+    }
+} 

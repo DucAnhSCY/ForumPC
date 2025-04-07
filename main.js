@@ -1083,18 +1083,32 @@ function updateEngagementStatus(views, likes) {
 
 // Hàm khởi tạo trang thread detail
 function initThreadDetailPage() {
+    // Get thread ID from URL
     const threadId = getCurrentThreadId();
-    if (threadId) {
-        loadThreadDetails(threadId);
-        loadPosts(threadId);
-        incrementThreadViews(threadId);
-        loadRelatedThreads(threadId);
-        
-        // Initialize CKEditor for post input
-        if (document.getElementById('post-input') && !CKEDITOR.instances['post-input']) {
-            CKEDITOR.replace('post-input');
-        }
+    if (!threadId) {
+        window.location.href = 'forums.html';
+        return;
     }
+
+    // Load thread details
+    loadThreadDetail(threadId);
+    
+    // Load thread's posts
+    loadPosts(threadId);
+    
+    // Update UI based on login status
+    updateUIAfterLogin();
+    
+    // Initialize CKEditor for the post editor
+    if (document.getElementById('post-input')) {
+        initPostEditor();
+    }
+    
+    // Track thread view
+    incrementThreadViews(threadId);
+    
+    // Load related threads
+    loadRelatedThreads(threadId);
 }
 
 function fetchUsers() {
@@ -1691,18 +1705,32 @@ async function loadThreadDetails(threadId) {
 
 // Initialize thread detail page
 function initThreadDetailPage() {
+    // Get thread ID from URL
     const threadId = getCurrentThreadId();
-    if (threadId) {
-        loadThreadDetails(threadId);
-        loadPosts(threadId);
-        incrementThreadViews(threadId);
-        loadRelatedThreads(threadId);
-        
-        // Initialize CKEditor for post input
-        if (document.getElementById('post-input') && !CKEDITOR.instances['post-input']) {
-            CKEDITOR.replace('post-input');
-        }
+    if (!threadId) {
+        window.location.href = 'forums.html';
+        return;
     }
+
+    // Load thread details
+    loadThreadDetail(threadId);
+    
+    // Load thread's posts
+    loadPosts(threadId);
+    
+    // Update UI based on login status
+    updateUIAfterLogin();
+    
+    // Initialize CKEditor for the post editor
+    if (document.getElementById('post-input')) {
+        initPostEditor();
+    }
+    
+    // Track thread view
+    incrementThreadViews(threadId);
+    
+    // Load related threads
+    loadRelatedThreads(threadId);
 }
 
 // Get current thread ID from URL
@@ -1998,18 +2026,32 @@ async function submitReply(button, parentPostId) {
 
 // Initialize thread detail page with animations
 function initThreadDetailPage() {
+    // Get thread ID from URL
     const threadId = getCurrentThreadId();
-    if (threadId) {
-        loadThreadDetails(threadId);
-        loadPosts(threadId);
-        incrementThreadViews(threadId);
-        loadRelatedThreads(threadId);
-        
-        // Initialize CKEditor for post input
-        if (document.getElementById('post-input') && !CKEDITOR.instances['post-input']) {
-            CKEDITOR.replace('post-input');
-        }
+    if (!threadId) {
+        window.location.href = 'forums.html';
+        return;
     }
+
+    // Load thread details
+    loadThreadDetail(threadId);
+    
+    // Load thread's posts
+    loadPosts(threadId);
+    
+    // Update UI based on login status
+    updateUIAfterLogin();
+    
+    // Initialize CKEditor for the post editor
+    if (document.getElementById('post-input')) {
+        initPostEditor();
+    }
+    
+    // Track thread view
+    incrementThreadViews(threadId);
+    
+    // Load related threads
+    loadRelatedThreads(threadId);
 }
 
 // Check if we're on the thread detail page and initialize
@@ -2355,16 +2397,29 @@ function createPostElement(post) {
 
 // Toggle comment form visibility
 function toggleCommentForm(button) {
-    if (!sessionStorage.getItem("token")) {
-        alert("Please log in to comment.");
-        return;
-    }
+    const post = button.closest('.post');
+    const commentForm = post.querySelector('.comment-form');
     
-    const form = button.closest(".post").querySelector(".comment-form");
-    form.classList.toggle("hide");
-    
-    if (!form.classList.contains("hide")) {
-        form.querySelector("textarea").focus();
+    // Toggle form visibility
+    if (commentForm.classList.contains('hide')) {
+        commentForm.classList.remove('hide');
+        
+        // Generate a unique ID for the editor if it doesn't have one
+        const textarea = commentForm.querySelector('textarea');
+        if (!textarea.id) {
+            const uniqueId = 'comment-editor-' + post.getAttribute('data-post-id');
+            textarea.id = uniqueId;
+        }
+        
+        // Initialize CKEditor for this textarea
+        initCommentEditor(textarea.id);
+    } else {
+        // Destroy the CKEditor instance before hiding
+        const textarea = commentForm.querySelector('textarea');
+        if (textarea.id && CKEDITOR.instances[textarea.id]) {
+            CKEDITOR.instances[textarea.id].destroy();
+        }
+        commentForm.classList.add('hide');
     }
 }
 
@@ -2390,7 +2445,14 @@ async function submitComment(button) {
     const postId = parseInt(post.getAttribute('data-post-id'));
     const commentForm = post.querySelector('.comment-form');
     const textarea = commentForm.querySelector('textarea');
-    const content = textarea.value.trim();
+    
+    // Get content from CKEditor if it's active
+    let content;
+    if (textarea.id && CKEDITOR.instances[textarea.id]) {
+        content = CKEDITOR.instances[textarea.id].getData();
+    } else {
+        content = textarea.value.trim();
+    }
 
     if (!content) {
         alert('Please write something in your comment.');
@@ -2416,6 +2478,11 @@ async function submitComment(button) {
             throw new Error(errorData || 'Failed to create comment');
         }
 
+        // Destroy CKEditor instance before hiding form
+        if (textarea.id && CKEDITOR.instances[textarea.id]) {
+            CKEDITOR.instances[textarea.id].destroy();
+        }
+        
         // Clear form and reload comments
         textarea.value = '';
         commentForm.classList.add('hide');
@@ -2499,7 +2566,12 @@ function createCommentElement(comment) {
     commentElement.setAttribute('data-comment-id', comment.commentId);
     commentElement.querySelector('.comment-author').textContent = comment.username;
     commentElement.querySelector('.comment-date').textContent = formatDate(comment.createdAt);
-    commentElement.querySelector('.comment-content').textContent = comment.content;
+    
+    // Get comment content element and set its innerHTML to preserve HTML formatting
+    const commentContent = commentElement.querySelector('.comment-content');
+    if (commentContent) {
+        commentContent.innerHTML = cleanHtmlContent(comment.content);
+    }
     
     // Check permissions
     const currentUserId = parseInt(sessionStorage.getItem('userId'));
@@ -3849,31 +3921,32 @@ if (typeof CKEDITOR !== 'undefined') {
 
 // Function to clean HTML content by removing unnecessary paragraph tags
 function cleanHtmlContent(html) {
-    if (!html) return '';
+    // Create a new div element
+    const tempDiv = document.createElement('div');
+    // Set the HTML content
+    tempDiv.innerHTML = html;
     
-    // Create a safe way to parse the HTML
-    const parser = new DOMParser();
-    const doc = parser.parseFromString(html, 'text/html');
+    // Remove potentially malicious elements/attributes
+    const scripts = tempDiv.querySelectorAll('script');
+    scripts.forEach(script => script.remove());
     
-    // Check for potentially harmful tags and attributes
-    const sanitizedHtml = html
-        // Allow img tags but ensure they have proper attributes
-        .replace(/<img([^>]*)>/gi, (match, attributes) => {
-            // If there's a src attribute, keep it
-            if (attributes.includes('src=')) {
-                return match;
+    // Sanitize all elements with event handlers
+    const allElements = tempDiv.querySelectorAll('*');
+    allElements.forEach(el => {
+        // Remove on* attributes (event handlers)
+        for (let i = el.attributes.length - 1; i >= 0; i--) {
+            const attr = el.attributes[i].name;
+            if (attr.startsWith('on')) {
+                el.removeAttribute(attr);
             }
-            return '';
-        });
-    
-    // Check if content is just a single paragraph with no other elements
-    if (sanitizedHtml.startsWith('<p>') && sanitizedHtml.endsWith('</p>')) {
-        const innerContent = sanitizedHtml.substring(3, sanitizedHtml.length - 4);
-        // Only strip paragraph tags if there are no other HTML elements inside
-        if (!/<[a-z][\s\S]*>/i.test(innerContent)) {
-            return innerContent;
         }
-    }
+        
+        // Handle links - make sure they open in a new tab and have rel="noopener"
+        if (el.tagName === 'A') {
+            el.setAttribute('target', '_blank');
+            el.setAttribute('rel', 'noopener noreferrer');
+        }
+    });
     
-    return sanitizedHtml;
+    return tempDiv.innerHTML;
 }
