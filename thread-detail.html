@@ -39,13 +39,13 @@
             <div class="main-content">
                 <!-- Thread Header -->
                 <div class="thread-header">
-                    <div class="thread-header-actions">
+                    <div class="thread-nav">
                         <a href="community.html" class="back-button">
-                            <i class="fa fa-arrow-left"></i> Back
+                            <i class="fa fa-arrow-left"></i> Back to Community
                         </a>
-                        <button id="delete-thread-btn" class="action-button delete-thread hide" onclick="deleteThread()">
-                            <i class="fa fa-trash"></i> Delete Thread
-                        </button>
+                    </div>
+                    <div class="thread-category-badge">
+                        <span id="thread-category-badge" class="category-badge"></span>
                     </div>
                     <h1 id="thread-title" class="thread-title"></h1>
                     <div class="thread-meta">
@@ -57,6 +57,11 @@
                             <i class="fa fa-clock-o"></i>
                             <span id="thread-date"></span>
                         </div>
+                    </div>
+                    <div class="thread-actions">
+                        <button id="delete-thread-btn" class="action-button delete-thread hide" onclick="deleteThread()">
+                            <i class="fa fa-trash"></i> Delete Thread
+                        </button>
                     </div>
                 </div>
 

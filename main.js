@@ -901,6 +901,9 @@ function displayThreads(threads) {
         
         threadElement.innerHTML = `
             <div class="thread-header">
+                <div class="thread-category">
+                    <span class="category-badge">${thread.categoryName || 'Uncategorized'}</span>
+                </div>
                 <h3 class="thread-title">${thread.title}</h3>
                 <div class="thread-meta">
                     <span class="thread-author"><i class="fa fa-user"></i> ${thread.username || 'Unknown User'}</span>
@@ -1638,6 +1641,7 @@ async function loadThreadDetails(threadId) {
         const dateElement = document.getElementById('thread-date');
         const contentElement = document.getElementById('thread-content');
         const categoryElement = document.getElementById('thread-category');
+        const categoryBadgeElement = document.getElementById('thread-category-badge');
         const postedDateElement = document.getElementById('thread-posted-date');
         const likesElement = document.getElementById('thread-likes');
         const viewsElement = document.getElementById('thread-views');
@@ -1651,8 +1655,9 @@ async function loadThreadDetails(threadId) {
             dateElement.textContent = `${createdDate.toLocaleDateString()} at ${createdDate.toLocaleTimeString()}`;
         }
         
-        if (contentElement) contentElement.textContent = thread.content;
+        if (contentElement) contentElement.innerHTML = cleanHtmlContent(thread.content);
         if (categoryElement) categoryElement.textContent = thread.categoryName || 'Uncategorized';
+        if (categoryBadgeElement) categoryBadgeElement.textContent = thread.categoryName || 'Uncategorized';
         if (postedDateElement) {
             const createdDate = new Date(thread.createdAt);
             postedDateElement.textContent = createdDate.toLocaleDateString();
@@ -1685,7 +1690,7 @@ async function loadThreadDetails(threadId) {
             icon: 'error',
             confirmButtonText: 'OK'
         }).then(() => {
-            window.location.href = 'forums.html';
+            window.location.href = 'community.html';
         });
     }
 }
@@ -2683,59 +2688,75 @@ async function editComment(commentId) {
 
 // Cập nhật hàm deleteComment để kết nối với CommentController
 async function deleteComment(commentId) {
-    // Kiểm tra đăng nhập
-    if (!sessionStorage.getItem('token')) {
-        alert('Vui lòng đăng nhập để xóa bình luận.');
-        return;
-    }
-
-    if (!confirm('Bạn có chắc chắn muốn xóa bình luận này?')) {
-        return;
-    }
-
     try {
-        const response = await fetch(`${api_key}Comment/Delete/${commentId}`, {
-            method: 'DELETE',
-            headers: {
-                'Authorization': `Bearer ${sessionStorage.getItem('token')}`
-            }
+        // Confirm deletion
+        const result = await Swal.fire({
+            title: 'Delete Comment',
+            text: 'Are you sure you want to delete this comment? This action cannot be undone.',
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonText: 'Delete',
+            cancelButtonText: 'Cancel',
+            confirmButtonColor: '#d33',
+            cancelButtonColor: '#3085d6'
         });
-
-        if (!response.ok) {
-            const errorText = await response.text();
-            throw new Error(errorText || 'Không thể xóa bình luận');
-        }
-
-        // Xóa bình luận khỏi UI
-        const commentElement = document.querySelector(`[data-comment-id="${commentId}"]`);
-        if (!commentElement) {
-            console.error('Không tìm thấy bình luận để xóa khỏi UI');
+        
+        if (!result.isConfirmed) {
             return;
         }
         
-        const post = commentElement.closest('.post');
+        const token = sessionStorage.getItem('token');
+        if (!token) {
+            throw new Error('You must be logged in to delete a comment');
+        }
         
-        // Hiệu ứng xóa
-        commentElement.style.animation = 'fadeOut 0.5s';
-        setTimeout(() => {
-            commentElement.remove();
-            
-            // Cập nhật số lượng bình luận
-            if (post) {
-                const commentContainer = post.querySelector('.comments-container');
-                const remainingComments = commentContainer.querySelectorAll('.comment').length;
-                const commentCountElement = post.querySelector('.comment-count');
-                if (commentCountElement) {
-                    commentCountElement.textContent = remainingComments;
-                }
+        // Find the comment's parent post to update UI after deletion
+        const commentElement = document.querySelector(`[data-comment-id="${commentId}"]`);
+        const postId = commentElement ? getPostIdFromComment(commentElement) : null;
+        
+        const response = await fetch(`${api_key}Comments/Delete/${commentId}`, {
+            method: 'DELETE',
+            headers: {
+                'Authorization': `Bearer ${token}`
             }
-        }, 500);
-
-        console.log('Bình luận đã được xóa thành công');
-
+        });
+        
+        if (!response.ok) {
+            const errorData = await response.json().catch(() => ({}));
+            throw new Error(errorData.message || 'Failed to delete comment');
+        }
+        
+        // Remove the comment element from the DOM with animation
+        if (commentElement) {
+            commentElement.classList.add('deleting');
+            setTimeout(() => {
+                commentElement.remove();
+                
+                // Update comment count for the parent post
+                if (postId) {
+                    const commentsContainer = document.querySelector(`[data-post-id="${postId}"] .comments-container`);
+                    if (commentsContainer) {
+                        const commentCount = commentsContainer.querySelectorAll('.comment').length;
+                        updateCommentCount(postId, commentCount);
+                    }
+                }
+            }, 500);
+        }
+        
+        Swal.fire({
+            title: 'Success',
+            text: 'Comment deleted successfully',
+            icon: 'success',
+            confirmButtonText: 'OK'
+        });
     } catch (error) {
-        console.error('Lỗi khi xóa bình luận:', error);
-        alert('Không thể xóa bình luận. Vui lòng thử lại.');
+        console.error('Error deleting comment:', error);
+        Swal.fire({
+            title: 'Error',
+            text: error.message || 'Failed to delete comment',
+            icon: 'error',
+            confirmButtonText: 'OK'
+        });
     }
 }
 
@@ -3323,29 +3344,41 @@ async function editPost(postId) {
 
 // Thêm hàm deletePost
 async function deletePost(postId) {
-    // Kiểm tra đăng nhập
-    if (!sessionStorage.getItem('token')) {
-        alert('Vui lòng đăng nhập để xóa bài viết.');
-        return;
-    }
-
-    if (!confirm('Bạn có chắc chắn muốn xóa bài viết này?')) {
-        return;
-    }
-
     try {
+        // Confirm deletion
+        const result = await Swal.fire({
+            title: 'Delete Post',
+            text: 'Are you sure you want to delete this post? This action cannot be undone.',
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonText: 'Delete',
+            cancelButtonText: 'Cancel',
+            confirmButtonColor: '#d33',
+            cancelButtonColor: '#3085d6'
+        });
+        
+        if (!result.isConfirmed) {
+            return;
+        }
+        
+        const token = sessionStorage.getItem('token');
+        if (!token) {
+            throw new Error('You must be logged in to delete a post');
+        }
+        
         const response = await fetch(`${api_key}Post/Delete/${postId}`, {
             method: 'DELETE',
             headers: {
-                'Authorization': `Bearer ${sessionStorage.getItem('token')}`
+                'Authorization': `Bearer ${token}`
             }
         });
-
+        
         if (!response.ok) {
-            throw new Error('Không thể xóa bài viết');
+            const errorData = await response.json().catch(() => ({}));
+            throw new Error(errorData.message || 'Failed to delete post');
         }
-
-        // Xóa bài viết khỏi UI
+        
+        // Remove the post element from the DOM
         const postElement = document.querySelector(`[data-post-id="${postId}"]`);
         if (postElement) {
             // Hiệu ứng xóa
@@ -3358,12 +3391,21 @@ async function deletePost(postId) {
                 updatePostCount(remainingPosts);
             }, 500);
         }
-
-        console.log('Bài viết đã được xóa thành công');
-
+        
+        Swal.fire({
+            title: 'Success',
+            text: 'Post deleted successfully',
+            icon: 'success',
+            confirmButtonText: 'OK'
+        });
     } catch (error) {
-        console.error('Lỗi khi xóa bài viết:', error);
-        alert('Không thể xóa bài viết. Vui lòng thử lại.');
+        console.error('Error deleting post:', error);
+        Swal.fire({
+            title: 'Error',
+            text: error.message || 'Failed to delete post',
+            icon: 'error',
+            confirmButtonText: 'OK'
+        });
     }
 }
 
@@ -3905,8 +3947,8 @@ async function deleteThread() {
             icon: 'success',
             confirmButtonText: 'OK'
         }).then(() => {
-            // Redirect to forums page after successful deletion
-            window.location.href = 'forums.html';
+            // Redirect to community page after successful deletion
+            window.location.href = 'community.html';
         });
     } catch (error) {
         console.error('Error deleting thread:', error);

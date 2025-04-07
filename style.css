@@ -6321,3 +6321,47 @@ footer {
     background-color: #d0d0d0;
     cursor: pointer;
 }
+
+.thread-nav {
+    margin-bottom: 15px;
+}
+
+.back-button {
+    display: inline-flex;
+    align-items: center;
+    padding: 8px 15px;
+    background-color: #333;
+    color: #fff;
+    border-radius: 4px;
+    text-decoration: none;
+    transition: background-color 0.3s;
+    font-size: 14px;
+}
+
+.back-button i {
+    margin-right: 5px;
+}
+
+.back-button:hover {
+    background-color: #444;
+    text-decoration: none;
+}
+
+.thread-category-badge {
+    margin-bottom: 10px;
+}
+
+.category-badge {
+    display: inline-block;
+    padding: 5px 12px;
+    background-color: #4CAF50;
+    color: white;
+    border-radius: 15px;
+    font-size: 14px;
+    font-weight: 500;
+    text-transform: uppercase;
+}
+
+.thread-item .thread-category {
+    margin-bottom: 8px;
+}
