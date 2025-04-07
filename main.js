@@ -1660,11 +1660,13 @@ async function loadThreadDetails(threadId) {
         if (likesElement) likesElement.textContent = thread.likes || '0';
         if (viewsElement) viewsElement.textContent = thread.views || '0';
         
-        // Check if current user is the thread creator and show delete button
+        // Check if current user is the thread creator or admin/moderator
         const currentUsername = sessionStorage.getItem('username');
-        if (deleteThreadBtn && currentUsername && thread.username === currentUsername) {
+        const userRole = sessionStorage.getItem('role');
+        const isAdminOrMod = userRole === 'Admin' || userRole === 'admin' || userRole === 'Moderator' || userRole === 'moderator';
+        
+        if (deleteThreadBtn && (thread.username === currentUsername || isAdminOrMod)) {
             deleteThreadBtn.classList.remove('hide');
-            // Store thread ID as data attribute for delete functionality
             deleteThreadBtn.setAttribute('data-thread-id', threadId);
         } else if (deleteThreadBtn) {
             deleteThreadBtn.classList.add('hide');
@@ -1683,7 +1685,6 @@ async function loadThreadDetails(threadId) {
             icon: 'error',
             confirmButtonText: 'OK'
         }).then(() => {
-            // Redirect to forums page on error
             window.location.href = 'forums.html';
         });
     }
@@ -2422,7 +2423,10 @@ function createPostElement(post) {
     
     // Show/hide edit and delete buttons
     const isAuthor = parseInt(sessionStorage.getItem('userId')) === post.userId;
-    if (isAuthor) {
+    const userRole = sessionStorage.getItem('role');
+    const isAdminOrMod = userRole === 'Admin' || userRole === 'admin' || userRole === 'Moderator' || userRole === 'moderator';
+    
+    if (isAuthor || isAdminOrMod) {
         editButton.classList.remove("hide");
         deleteButton.classList.remove("hide");
         
@@ -2598,7 +2602,7 @@ function createCommentElement(comment) {
     const currentUserId = parseInt(sessionStorage.getItem('userId'));
     const userRole = sessionStorage.getItem('role');
     const isAuthor = currentUserId === comment.userId;
-    const isAdmin = userRole === 'Admin' || userRole === 'admin';
+    const isAdminOrMod = userRole === 'Admin' || userRole === 'admin' || userRole === 'Moderator' || userRole === 'moderator';
     
     // Edit button - only show for author
     const editButton = commentElement.querySelector('.edit-comment');
@@ -2607,9 +2611,9 @@ function createCommentElement(comment) {
         editButton.onclick = () => editComment(comment.commentId);
     }
     
-    // Delete button - show for author and admin
+    // Delete button - show for author and admin/moderator
     const deleteButton = commentElement.querySelector('.delete-comment');
-    if (deleteButton && (isAuthor || isAdmin)) {
+    if (deleteButton && (isAuthor || isAdminOrMod)) {
         deleteButton.classList.remove('hide');
         deleteButton.onclick = () => deleteComment(comment.commentId);
     }
