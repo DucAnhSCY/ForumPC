@@ -269,6 +269,18 @@ function showCustomAlert(title, message, type = "info") {
     });
 }
 
+// Function to sanitize content and hide HTML/code symbols
+function sanitizeDisplayContent(content) {
+    if (!content) return '';
+    
+    // Replace HTML tags with their escaped versions to prevent rendering but show as text
+    return content
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/&lt;br&gt;/g, '\n') // Replace <br> with newlines for better readability
+        .replace(/&lt;\/?(code|pre|script|style)[^&gt;]*&gt;/g, ''); // Remove code/script tags completely
+}
+
 // Logout function to clear session data and update UI
 function logout() {
     // Clear all session storage items
