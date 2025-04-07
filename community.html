@@ -56,8 +56,17 @@
                 <div class="editor-container">
                     <textarea id="thread-content" placeholder="Write your thread content here..." required></textarea>
                     <div class="editor-help">
-                        <p><i class="fa fa-info-circle"></i> Write your thread content here.</p>
+                        <p><i class="fa fa-info-circle"></i> Format your content using the editor tools above.</p>
+                        <p><i class="fa fa-lightbulb-o"></i> Tips: Be clear and descriptive in your writing.</p>
                     </div>
+                </div>
+                <!-- Image Upload Section -->
+                <div class="image-upload-section">
+                    <label for="image-upload" class="image-upload-label">
+                        <i class="fa fa-image"></i> Add Images
+                    </label>
+                    <input type="file" id="image-upload" class="image-upload-input" accept="image/*" multiple>
+                    <div id="image-preview-container" class="image-preview-container"></div>
                 </div>
                 <div class="thread-buttons">
                     <button onclick="createThread()"><i class="fa fa-check"></i> Create Thread</button>

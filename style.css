@@ -6408,3 +6408,292 @@ footer {
 .thread-item .thread-category {
     margin-bottom: 8px;
 }
+
+/* Styles for create thread button and form */
+.create-thread-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 14px 28px;
+    background: linear-gradient(135deg, #6a11cb 0%, #2575fc 100%);
+    color: white;
+    border: none;
+    border-radius: 30px;
+    font-size: 16px;
+    font-weight: 600;
+    cursor: pointer;
+    box-shadow: 0 4px 15px rgba(106, 17, 203, 0.3);
+    transition: all 0.3s ease;
+    position: relative;
+    overflow: hidden;
+    margin-bottom: 30px;
+}
+
+.create-thread-btn i {
+    margin-right: 10px;
+    font-size: 18px;
+    transition: transform 0.3s ease;
+}
+
+.create-thread-btn:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 7px 20px rgba(106, 17, 203, 0.5);
+}
+
+.create-thread-btn:hover i {
+    transform: rotate(90deg);
+}
+
+.create-thread-btn::before {
+    content: "";
+    position: absolute;
+    top: 0;
+    left: -100%;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
+    transition: 0.5s;
+}
+
+.create-thread-btn:hover::before {
+    left: 100%;
+}
+
+#create-thread-section {
+    background: rgba(30, 30, 40, 0.9);
+    border-radius: 15px;
+    padding: 30px;
+    margin-bottom: 40px;
+    transform: translateY(-20px);
+    opacity: 0;
+    transition: all 0.4s ease;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+    border: 1px solid rgba(106, 17, 203, 0.2);
+}
+
+#create-thread-section.show {
+    transform: translateY(0);
+    opacity: 1;
+}
+
+#create-thread-section h2 {
+    color: #fff;
+    font-size: 24px;
+    margin-bottom: 25px;
+    position: relative;
+    padding-bottom: 10px;
+}
+
+#create-thread-section h2::after {
+    content: '';
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    width: 80px;
+    height: 4px;
+    background: linear-gradient(135deg, #6a11cb 0%, #2575fc 100%);
+    border-radius: 2px;
+}
+
+.thread-form {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+}
+
+.thread-form select,
+.thread-form textarea {
+    background-color: rgba(255, 255, 255, 0.07);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 8px;
+    padding: 15px;
+    color: #fff;
+    font-size: 16px;
+    transition: all 0.3s ease;
+}
+
+.thread-form select:focus,
+.thread-form textarea:focus {
+    border-color: #6a11cb;
+    box-shadow: 0 0 10px rgba(106, 17, 203, 0.3);
+    outline: none;
+}
+
+.thread-form select {
+    height: 50px;
+    cursor: pointer;
+}
+
+.thread-form select option {
+    background-color: #1e1e28;
+    color: #fff;
+}
+
+.thread-form textarea::placeholder {
+    color: rgba(255, 255, 255, 0.5);
+}
+
+.thread-form #thread-title {
+    font-size: 18px;
+    font-weight: 600;
+    min-height: 50px;
+}
+
+.thread-form #thread-content {
+    min-height: 200px;
+    resize: vertical;
+}
+
+.editor-container {
+    margin-bottom: 20px;
+    border-radius: 8px;
+    overflow: hidden;
+}
+
+.editor-help {
+    background: rgba(106, 17, 203, 0.1);
+    padding: 10px 15px;
+    border-radius: 8px;
+    font-size: 14px;
+    color: rgba(255, 255, 255, 0.7);
+    margin-top: 10px;
+}
+
+.editor-help i {
+    color: #6a11cb;
+    margin-right: 5px;
+}
+
+.thread-buttons {
+    display: flex;
+    gap: 15px;
+    margin-top: 10px;
+}
+
+.thread-buttons button {
+    flex: 1;
+    padding: 12px 20px;
+    border: none;
+    border-radius: 8px;
+    font-size: 16px;
+    font-weight: 600;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.3s ease;
+}
+
+.thread-buttons button i {
+    margin-right: 8px;
+}
+
+.thread-buttons button:first-of-type {
+    background: linear-gradient(135deg, #6a11cb 0%, #2575fc 100%);
+    color: white;
+}
+
+.thread-buttons button:first-of-type:hover {
+    box-shadow: 0 5px 15px rgba(106, 17, 203, 0.4);
+    transform: translateY(-2px);
+}
+
+.thread-buttons button:last-of-type {
+    background: rgba(51, 51, 51, 0.8);
+    color: #fff;
+}
+
+.thread-buttons button:last-of-type:hover {
+    background: rgba(81, 81, 81, 0.8);
+}
+
+/* Image upload section styles */
+.image-upload-section {
+    margin-top: 20px;
+    margin-bottom: 25px;
+}
+
+.image-upload-label {
+    display: inline-flex;
+    align-items: center;
+    padding: 10px 16px;
+    background: rgba(106, 17, 203, 0.15);
+    color: #fff;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    font-size: 15px;
+    border: 1px dashed rgba(106, 17, 203, 0.4);
+}
+
+.image-upload-label i {
+    margin-right: 8px;
+    font-size: 18px;
+    color: #2575fc;
+}
+
+.image-upload-label:hover {
+    background: rgba(106, 17, 203, 0.25);
+    transform: translateY(-2px);
+}
+
+.image-upload-input {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    border: 0;
+}
+
+.image-preview-container {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    margin-top: 15px;
+}
+
+.image-preview-item {
+    position: relative;
+    width: 100px;
+    height: 100px;
+    border-radius: 8px;
+    overflow: hidden;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+    transition: all 0.3s ease;
+}
+
+.image-preview-item:hover {
+    transform: scale(1.05);
+    box-shadow: 0 6px 12px rgba(0, 0, 0, 0.3);
+}
+
+.image-preview-item img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.remove-image {
+    position: absolute;
+    top: 5px;
+    right: 5px;
+    width: 20px;
+    height: 20px;
+    background: rgba(0, 0, 0, 0.6);
+    color: #fff;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    font-size: 12px;
+    opacity: 0;
+    transition: opacity 0.3s ease;
+}
+
+.image-preview-item:hover .remove-image {
+    opacity: 1;
+}
