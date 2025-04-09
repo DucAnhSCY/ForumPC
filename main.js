@@ -3417,7 +3417,8 @@ async function editPost(postId) {
     const originalContent = contentElement.innerHTML;
     
     // Tạo một bản sao của nội dung gốc để xử lý
-    const textOnlyContent = stripImageTags(originalContent);
+    let textOnlyContent = stripImageTags(originalContent);
+    textOnlyContent = stripVideoTags(textOnlyContent);
     
     // Create modal for editing
     const editModal = document.createElement('div');
@@ -3432,6 +3433,9 @@ async function editPost(postId) {
                 <textarea id="edit-post-input">${textOnlyContent}</textarea>
                 <div id="edit-image-preview" class="image-preview">
                     ${extractImagesFromHTML(originalContent)}
+                </div>
+                <div id="edit-video-preview" class="video-preview">
+                    ${extractVideosFromHTML(originalContent)}
                 </div>
             </div>
             <div class="edit-post-footer">
@@ -3521,13 +3525,13 @@ async function editPost(postId) {
                 background-color: #6a1b9a;
                 box-shadow: 0 2px 5px rgba(0,0,0,0.2);
             }
-            .image-preview {
+            .image-preview, .video-preview {
                 margin-top: 15px;
                 display: flex;
                 flex-wrap: wrap;
                 gap: 10px;
             }
-            .image-preview h4 {
+            .image-preview h4, .video-preview h4 {
                 width: 100%;
                 margin: 10px 0;
                 color: #333;
@@ -3568,7 +3572,7 @@ async function editPost(postId) {
             .edit-image-item:hover .edit-image-actions {
                 opacity: 1;
             }
-            .delete-image-btn {
+            .delete-image-btn, .delete-video-btn {
                 background: #f44336;
                 color: white;
                 border: none;
@@ -3582,9 +3586,61 @@ async function editPost(postId) {
                 transition: all 0.2s ease;
                 box-shadow: 0 2px 5px rgba(0,0,0,0.3);
             }
-            .delete-image-btn:hover {
+            .delete-image-btn:hover, .delete-video-btn:hover {
                 background: #d32f2f;
                 transform: scale(1.1);
+            }
+            .restore-image-btn, .restore-video-btn {
+                background: #4caf50;
+                color: white;
+                border: none;
+                border-radius: 50%;
+                width: 36px;
+                height: 36px;
+                display: flex;
+                justify-content: center;
+                align-items: center;
+                cursor: pointer;
+                transition: all 0.2s ease;
+                box-shadow: 0 2px 5px rgba(0,0,0,0.3);
+            }
+            .restore-image-btn:hover, .restore-video-btn:hover {
+                background: #388e3c;
+                transform: scale(1.1);
+            }
+            .edit-video-item {
+                position: relative;
+                width: 240px;
+                border-radius: 8px;
+                overflow: hidden;
+                box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+                transition: all 0.3s ease;
+                margin-bottom: 10px;
+            }
+            .edit-video-item:hover {
+                transform: translateY(-3px);
+                box-shadow: 0 5px 15px rgba(0,0,0,0.3);
+            }
+            .edit-video-item video {
+                width: 100%;
+                max-height: 180px;
+                object-fit: contain;
+            }
+            .edit-video-actions {
+                position: absolute;
+                top: 0;
+                right: 0;
+                bottom: 0;
+                left: 0;
+                background: rgba(0, 0, 0, 0.5);
+                display: flex;
+                justify-content: center;
+                align-items: center;
+                opacity: 0;
+                transition: opacity 0.3s ease;
+            }
+            .edit-video-item:hover .edit-video-actions {
+                opacity: 1;
             }
         `;
         document.head.appendChild(styles);
@@ -3707,6 +3763,26 @@ function stripImageTags(html) {
     return tempDiv.innerHTML;
 }
 
+// Helper function to strip video tags from content while preserving other HTML
+function stripVideoTags(html) {
+    const tempDiv = document.createElement('div');
+    tempDiv.innerHTML = html;
+    
+    // Remove video containers from content for editing
+    const videoContainers = tempDiv.querySelectorAll('.uploaded-video');
+    videoContainers.forEach(container => {
+        container.parentNode.removeChild(container);
+    });
+    
+    // Also remove any direct video tags
+    const videos = tempDiv.querySelectorAll('video');
+    videos.forEach(video => {
+        video.parentNode.removeChild(video);
+    });
+    
+    return tempDiv.innerHTML;
+}
+
 // Helper function to merge text content with original images
 function mergeTextAndImages(newText, originalContent) {
     // Create temporary elements to work with content
@@ -3716,8 +3792,11 @@ function mergeTextAndImages(newText, originalContent) {
     // Extract all image containers from the original content
     const imageContainers = Array.from(tempDivOriginal.querySelectorAll('.uploaded-image'));
     
-    // If there are no images to preserve, just return the new text
-    if (imageContainers.length === 0) {
+    // Extract all video containers from the original content
+    const videoContainers = Array.from(tempDivOriginal.querySelectorAll('.uploaded-video'));
+    
+    // If there are no media to preserve, just return the new text
+    if (imageContainers.length === 0 && videoContainers.length === 0) {
         return newText;
     }
     
@@ -3725,26 +3804,54 @@ function mergeTextAndImages(newText, originalContent) {
     const tempDivNew = document.createElement('div');
     tempDivNew.innerHTML = newText;
     
-    // Add each image container that wasn't marked for deletion
-    const deletedImages = document.querySelectorAll('.edit-image-item.deleted');
-    const deletedSrcs = Array.from(deletedImages).map(item => item.dataset.src);
-    
-    const remainingImages = imageContainers.filter(container => {
-        const img = container.querySelector('img');
-        return img && !deletedSrcs.includes(img.src);
-    });
-    
-    // Append the remaining images at the end of the content
-    if (remainingImages.length > 0) {
-        // Add a separator if there's text content
-        if (tempDivNew.textContent.trim()) {
-            tempDivNew.appendChild(document.createElement('br'));
-        }
+    // Process images
+    if (imageContainers.length > 0) {
+        // Add each image container that wasn't marked for deletion
+        const deletedImages = document.querySelectorAll('.edit-image-item.deleted');
+        const deletedImageSrcs = Array.from(deletedImages).map(item => item.dataset.src);
         
-        // Append each image container
-        remainingImages.forEach(container => {
-            tempDivNew.appendChild(container.cloneNode(true));
+        const remainingImages = imageContainers.filter(container => {
+            const img = container.querySelector('img');
+            return img && !deletedImageSrcs.includes(img.src);
         });
+        
+        // Append the remaining images at the end of the content
+        if (remainingImages.length > 0) {
+            // Add a separator if there's text content
+            if (tempDivNew.textContent.trim()) {
+                tempDivNew.appendChild(document.createElement('br'));
+            }
+            
+            // Append each image container
+            remainingImages.forEach(container => {
+                tempDivNew.appendChild(container.cloneNode(true));
+            });
+        }
+    }
+    
+    // Process videos
+    if (videoContainers.length > 0) {
+        // Add each video container that wasn't marked for deletion
+        const deletedVideos = document.querySelectorAll('.edit-video-item.deleted');
+        const deletedVideoSrcs = Array.from(deletedVideos).map(item => item.dataset.src);
+        
+        const remainingVideos = videoContainers.filter(container => {
+            const video = container.querySelector('video');
+            return video && !deletedVideoSrcs.includes(video.src);
+        });
+        
+        // Append the remaining videos at the end of the content
+        if (remainingVideos.length > 0) {
+            // Add a separator if there's text content or images
+            if (tempDivNew.textContent.trim() || tempDivNew.querySelector('.uploaded-image')) {
+                tempDivNew.appendChild(document.createElement('br'));
+            }
+            
+            // Append each video container
+            remainingVideos.forEach(container => {
+                tempDivNew.appendChild(container.cloneNode(true));
+            });
+        }
     }
     
     return tempDivNew.innerHTML;
@@ -5608,4 +5715,86 @@ function removeVideoFromForm(fileName, previewElement) {
             timer: 2000
         });
     }
+}
+
+// Helper function to extract video previews from HTML content
+function extractVideosFromHTML(html) {
+    const tempDiv = document.createElement('div');
+    tempDiv.innerHTML = html;
+    
+    const videos = tempDiv.querySelectorAll('video');
+    
+    if (videos.length === 0) {
+        return '';
+    }
+    
+    let previewHTML = '<h4>Videos trong bài viết</h4>';
+    
+    videos.forEach((video, index) => {
+        if (video.src) {
+            // Lưu src của video làm data attribute thay vì hiển thị trực tiếp
+            previewHTML += `
+                <div class="edit-video-item" data-index="${index}" data-src="${video.src}">
+                    <video src="${video.src}" controls preload="metadata"></video>
+                    <div class="edit-video-actions">
+                        <button class="delete-video-btn" onclick="removeVideoFromEdit(this)" title="Xóa video">
+                            <i class="fa fa-trash"></i>
+                        </button>
+                    </div>
+                </div>
+            `;
+        }
+    });
+    
+    return previewHTML;
+}
+
+// Function to remove video from edit form
+function removeVideoFromEdit(button) {
+    const videoItem = button.closest('.edit-video-item');
+    const videoSrc = videoItem.dataset.src;
+    
+    // Confirm before removing
+    if (confirm('Bạn có chắc muốn xóa video này khỏi bài viết?')) {
+        // Add fade-out animation
+        videoItem.style.transition = 'all 0.3s ease';
+        videoItem.style.opacity = '0.3';
+        videoItem.style.transform = 'scale(0.9)';
+        
+        // Mark as deleted instead of removing from DOM
+        videoItem.classList.add('deleted');
+        
+        // Change delete button to undo button
+        const actionDiv = videoItem.querySelector('.edit-video-actions');
+        actionDiv.innerHTML = `
+            <button class="restore-video-btn" onclick="restoreVideoInEdit(this)" title="Hoàn tác">
+                <i class="fa fa-undo"></i>
+            </button>
+        `;
+        
+        // Show restored options after animation completes
+        setTimeout(() => {
+            actionDiv.style.opacity = '1';
+        }, 300);
+    }
+}
+
+// Function to restore a deleted video
+function restoreVideoInEdit(button) {
+    const videoItem = button.closest('.edit-video-item');
+    
+    // Restore styles
+    videoItem.style.opacity = '1';
+    videoItem.style.transform = 'scale(1)';
+    
+    // Remove deleted class
+    videoItem.classList.remove('deleted');
+    
+    // Change back to delete button
+    const actionDiv = videoItem.querySelector('.edit-video-actions');
+    actionDiv.innerHTML = `
+        <button class="delete-video-btn" onclick="removeVideoFromEdit(this)" title="Xóa video">
+            <i class="fa fa-trash"></i>
+        </button>
+    `;
 }
