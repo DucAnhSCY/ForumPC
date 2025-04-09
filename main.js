@@ -1,7 +1,13 @@
 document.addEventListener("DOMContentLoaded", function () {
     fetchCategories();
     initializePage();
-    fetchAndDisplayThreads();
+    
+    // Check if we're on the community page and fetch threads if we are
+    const currentPage = window.location.pathname.split('/').pop();
+    if (currentPage === 'community.html' || currentPage === '') {
+        fetchAndDisplayThreads();
+    }
+    
     fetchUsers();
     if (sessionStorage.getItem("token")) {
         updateUIAfterLogin();
@@ -18,6 +24,17 @@ document.addEventListener("DOMContentLoaded", function () {
         hideCreateThreadSection();
         hideCategoryForm(); // Hide the category form for non-logged-in users
     }
+    
+    // Initialize category links visibility for all pages
+    const categoryLinks = document.querySelectorAll("a[href='categories.html']");
+    categoryLinks.forEach(link => {
+        const role = sessionStorage.getItem('role');
+        if (role === "Admin" || role === "admin") {
+            link.parentElement.classList.remove("hide");
+        } else {
+            link.parentElement.classList.add("hide");
+        }
+    });
 });
 
 function hideCreateThreadSection() {
@@ -34,16 +51,44 @@ function hideCategoryForm() {
 }
 
 function initializePage() {
-    document.querySelectorAll('.nav-bar .nav-link').forEach(link => {
-        link.addEventListener('click', function(event) {
-            event.preventDefault();
-            showContent(this.getAttribute('href'));
-        });
-    });
+    // Set up navigation event listeners
+    const navToggle = document.getElementById('iconBar');
+    const navClose = document.getElementById('close-icon');
+    
+    if (navToggle) {
+        navToggle.addEventListener('click', hideIconBar);
+    }
+    if (navClose) {
+        navClose.addEventListener('click', showIconBar);
+    }
+
+    // Update UI based on login status
+    const token = sessionStorage.getItem('token');
+    if (token) {
+        updateUIAfterLogin();
+    } else {
+        updateUIAfterLogout();
+    }
+    
+    // Check if we need to initialize specific page components
+    const currentPage = window.location.pathname.split('/').pop();
+    
+    if (currentPage === 'thread-detail.html') {
+        const urlParams = new URLSearchParams(window.location.search);
+        const threadId = urlParams.get('id');
+        if (threadId) {
+            loadThreadDetail(threadId);
+            loadPosts(threadId);
+        }
+    }
 }
 
+// Run on DOMContentLoaded to ensure all UI elements are properly set up
+// This event handler has been merged with the main DOMContentLoaded handler at the top of the file
+// to avoid initialization conflicts
+
 // API
-const api_key = "https://api.ducanhweb.me/api/";
+const api_key = "http://localhost:5083/api/";
 
 // NavBar
 function hideIconBar() {
@@ -330,6 +375,16 @@ function updateUIAfterLogin() {
         }
     });
     
+    // Show/hide Categories tab based on role - only for Admin
+    const categoryLinks = document.querySelectorAll("a[href='categories.html']");
+    categoryLinks.forEach(link => {
+        if (role === "Admin" || role === "admin") {
+            link.parentElement.classList.remove("hide");
+        } else {
+            link.parentElement.classList.add("hide");
+        }
+    });
+    
     // Show the create thread button for logged-in users
     const createThreadBtn = document.getElementById("create-thread-btn");
     const createThreadSection = document.getElementById("create-thread-section");
@@ -352,6 +407,9 @@ function updateUIAfterLogout() {
     
     // Hide Mod Control link
     document.querySelectorAll("a[href='Modctrl.html']").forEach(el => el.parentElement.classList.add("hide"));
+    
+    // Hide Categories link
+    document.querySelectorAll("a[href='categories.html']").forEach(el => el.parentElement.classList.add("hide"));
     
     // Hide post form if available
     const postForm = document.querySelector('.post-form');
@@ -520,21 +578,38 @@ function fetchCategories() {
 
 function updateCategoryDropdown(categories) {
     const categoryDropdown = document.getElementById("thread-category");
+    const categoryFilter = document.getElementById("category-filter");
 
-    if (!categoryDropdown) {
-        console.warn("Dropdown element not found.");
+    if (!categoryDropdown && !categoryFilter) {
+        console.warn("No dropdown elements found.");
         return;
     }
 
-    // Clear only the dropdown options
-    categoryDropdown.innerHTML = `<option value="" disabled selected>Select Category</option>`;
+    // Update the thread creation dropdown if it exists
+    if (categoryDropdown) {
+        // Clear only the dropdown options
+        categoryDropdown.innerHTML = `<option value="" disabled selected>Select Category</option>`;
 
-    categories.forEach(category => {
-        const option = document.createElement("option");
-        option.value = category.categoryId; // Use ID as value
-        option.textContent = category.name; // Display name
-        categoryDropdown.appendChild(option);
-    });
+        categories.forEach(category => {
+            const option = document.createElement("option");
+            option.value = category.categoryId; // Use ID as value
+            option.textContent = category.name; // Display name
+            categoryDropdown.appendChild(option);
+        });
+    }
+
+    // Update the filter dropdown if it exists
+    if (categoryFilter) {
+        // Preserve the "All Categories" option
+        categoryFilter.innerHTML = `<option value="all" selected>All Categories</option>`;
+
+        categories.forEach(category => {
+            const option = document.createElement("option");
+            option.value = category.categoryId; // Use ID as value
+            option.textContent = category.name; // Display name
+            categoryFilter.appendChild(option);
+        });
+    }
 }
 
 function updateCategoryList(categories) {
@@ -619,12 +694,6 @@ function addCategoryItems(categories, container) {
         categoryContent.appendChild(folderIcon);
         categoryContent.appendChild(categoryName);
         categoryContent.appendChild(toggleIcon);
-        
-        // Make clicking on the category toggle the thread list
-        categoryContent.addEventListener('click', (e) => {
-            e.stopPropagation();
-            toggleCategoryThreads(category.categoryId, categoryItem);
-        });
         
         categoryItem.appendChild(categoryContent);
         
@@ -778,11 +847,6 @@ function hideNewThreadForm() {
     const createThreadSection = document.getElementById('create-thread-section');
     createThreadSection.classList.remove('show');
     createThreadSection.classList.add('hide');
-    
-    // Clean up any CKEditor instance if it exists
-    if (CKEDITOR.instances['thread-content']) {
-        CKEDITOR.instances['thread-content'].destroy();
-    }
 }
 
 // Đảm bảo rằng hàm clearThreadForm hiện tại chuyển sang gọi cancelThreadForm
@@ -883,7 +947,28 @@ async function fetchAndDisplayThreads() {
                 thread.views = thread.views || 0;
             }
         }
+        
+        // Store threads in session storage for sorting/filtering operations
+        sessionStorage.setItem('threads', JSON.stringify(threads));
+        
+        // Display all threads
         displayThreads(threads);
+        
+        // Set the "All" button as active
+        const sortButtons = document.querySelectorAll('.sort-btn');
+        sortButtons.forEach(btn => {
+            if (btn.getAttribute('data-sort') === 'all') {
+                btn.classList.add('active');
+            } else {
+                btn.classList.remove('active');
+            }
+        });
+        
+        // Initialize category filter if we're on the community page
+        if (document.getElementById('category-filter')) {
+            // Fetch categories for the filter
+            fetchCategories();
+        }
     } catch (error) {
         console.error('Error fetching data:', error);
         document.getElementById('threads-display').innerHTML = 
@@ -927,6 +1012,7 @@ function displayThreads(threads) {
     const threadsDisplay = document.getElementById('threads-display');
     if (!threadsDisplay) return;
     
+    // Clear the display, including any loading indicators
     threadsDisplay.innerHTML = '';
     
     if (threads.length === 0) {
@@ -942,6 +1028,11 @@ function displayThreads(threads) {
     threads.forEach(thread => {
         const threadElement = document.createElement('div');
         threadElement.className = 'thread-item';
+        threadElement.setAttribute('data-thread-id', thread.threadId);
+        threadElement.setAttribute('data-category', thread.categoryName || 'Uncategorized');
+        threadElement.setAttribute('data-likes', thread.total_likes || 0);
+        threadElement.setAttribute('data-views', thread.views || 0);
+        threadElement.setAttribute('data-date', thread.createdAt || '');
         
         // Truncate content - Keep HTML structure but limit length
         const truncatedContent = truncateContent(thread.content, 150);
@@ -1152,13 +1243,6 @@ function initThreadDetailPage() {
     if (threadId) {
         loadThreadDetails(threadId);
         loadPosts(threadId);
-        incrementThreadViews(threadId);
-        loadRelatedThreads(threadId);
-        
-        // Initialize CKEditor for post input
-        if (document.getElementById('post-input') && !CKEDITOR.instances['post-input']) {
-            CKEDITOR.replace('post-input');
-        }
     }
 }
 
@@ -1189,8 +1273,14 @@ function displayUsers(users) {
         if (user.role === "Admin" || user.role === "admin") return;
 
         const row = document.createElement("tr");
+        row.setAttribute('data-user-id', user.userId); // Add data-user-id attribute to the row
+        row.setAttribute('data-changed', 'false'); // Initialize change tracking
+        
         const roleClass = `role-${user.role.toLowerCase()}`; // Thêm class cho role
         const statusClass = `status-${user.status.toLowerCase()}`; // Class cho status
+        
+        // Handle case where user has Inactive status but we're removing that option
+        const statusValue = user.status === 'Inactive' ? 'Active' : user.status;
         
         row.innerHTML = `
             <td>${user.userId}</td>
@@ -1204,9 +1294,8 @@ function displayUsers(users) {
             </td>
             <td>
                 <select class="status-select ${statusClass}" data-user-id="${user.userId}" onchange="handleStatusChange(this)">
-                    <option value="Active" ${user.status === 'Active' ? 'selected' : ''} class="status-active">Active</option>
-                    <option value="Inactive" ${user.status === 'Inactive' ? 'selected' : ''} class="status-inactive">Inactive</option>
-                    <option value="Ban" ${user.status === 'Ban' ? 'selected' : ''} class="status-ban">Ban</option>
+                    <option value="Active" ${statusValue === 'Active' ? 'selected' : ''} class="status-active">Active</option>
+                    <option value="Ban" ${statusValue === 'Ban' ? 'selected' : ''} class="status-ban">Ban</option>
                 </select>
             </td>
             <td class="action-buttons">
@@ -1226,18 +1315,32 @@ function displayUsers(users) {
 const pendingChanges = new Map();
 
 async function saveChanges(userId) {
+    // Find the user row
     const userRow = document.querySelector(`tr[data-user-id="${userId}"]`);
+    if (!userRow) {
+        console.error(`User row with ID ${userId} not found`);
+        showCustomAlert('Error', 'User row not found. Please refresh the page and try again.', 'error');
+        return;
+    }
+    
     const roleSelect = userRow.querySelector('.role-select');
     const statusSelect = userRow.querySelector('.status-select');
+    
+    if (!roleSelect || !statusSelect) {
+        console.error('Role or status select elements not found');
+        showCustomAlert('Error', 'Could not find form elements. Please refresh the page.', 'error');
+        return;
+    }
+    
     const saveButton = userRow.querySelector('.save-btn');
-    const savingIcon = saveButton.querySelector('i');
+    const savingIcon = saveButton ? saveButton.querySelector('i') : null;
     
     // Track changed fields
     const changedFields = [];
-    if (roleSelect.dataset.changed === 'true') {
+    if (roleSelect.getAttribute('data-changed') === 'true') {
         changedFields.push('role');
     }
-    if (statusSelect.dataset.changed === 'true') {
+    if (statusSelect.getAttribute('data-changed') === 'true') {
         changedFields.push('status');
     }
     
@@ -1297,38 +1400,51 @@ async function saveChanges(userId) {
         await refreshTable();
     } catch (error) {
         console.error('Error saving changes:', error);
-        alert(`Error: ${error.message}`);
+        showCustomAlert('Error', `Error: ${error.message}`, 'error');
         await refreshTable();
     }
 }
 
 
 async function saveAllChanges() {
+    // Find all rows marked as changed
     const changedRows = document.querySelectorAll('tr[data-changed="true"]');
+    if (changedRows.length === 0) {
+        showCustomAlert('Information', 'No changes detected to save.', 'info');
+        return;
+    }
+    
     const saveAllBtn = document.querySelector('.save-all-btn');
+    if (!saveAllBtn) {
+        console.error('Save all button not found');
+        return;
+    }
+    
     const spinnerIcon = saveAllBtn.querySelector('i');
     
     try {
         saveAllBtn.classList.add('disabled');
-        spinnerIcon.classList.add('spinning');
+        if (spinnerIcon) spinnerIcon.classList.add('spinning');
         
         // For each changed row, get the user ID and call saveChanges
         const savePromises = [];
         changedRows.forEach(row => {
-            const userId = row.dataset.userId;
-            savePromises.push(saveChanges(userId));
+            const userId = parseInt(row.getAttribute('data-user-id'), 10);
+            if (userId) {
+                savePromises.push(saveChanges(userId));
+            }
         });
         
         // Wait for all save operations to complete
         await Promise.all(savePromises);
         
-        spinnerIcon.classList.remove('spinning');
+        if (spinnerIcon) spinnerIcon.classList.remove('spinning');
         saveAllBtn.classList.remove('disabled');
         showCustomAlert('Success', 'All changes saved successfully!', 'success');
     } catch (error) {
         console.error('Error saving changes:', error);
         showCustomAlert('Error', 'Error saving changes: ' + error.message, 'error');
-        spinnerIcon.classList.remove('spinning');
+        if (spinnerIcon) spinnerIcon.classList.remove('spinning');
         saveAllBtn.classList.remove('disabled');
     }
 }
@@ -1599,12 +1715,22 @@ function handleRoleChange(selectElement) {
         return;
     }
 
+    // Store the change in pendingChanges
     if (!pendingChanges.has(userId)) {
         pendingChanges.set(userId, {}); // Initialize if not set
     }
     pendingChanges.get(userId).role = newRole;
+    
+    // Mark the field as changed
+    selectElement.setAttribute('data-changed', 'true');
+    
+    // Mark the row as changed
+    const row = selectElement.closest('tr');
+    if (row) {
+        row.setAttribute('data-changed', 'true');
+    }
 
-    console.log(`Role change stored for user ${userId}:`, pendingChanges.get(userId)); // Debugging log
+    console.log(`Role change stored for user ${userId}:`, pendingChanges.get(userId));
 }
 
 
@@ -1612,20 +1738,31 @@ function handleStatusChange(selectElement) {
     const userId = parseInt(selectElement.dataset.userId, 10);
     const newStatus = selectElement.value;
 
+    // Note: 'Inactive' status option has been removed from the UI.
+    // Only 'Active' and 'Ban' status options are available to admins.
+
     if (!userId || !newStatus) {
         console.warn('Invalid userId or status:', userId, newStatus);
         return;
     }
 
+    // Store the change in pendingChanges
     if (!pendingChanges.has(userId)) {
         pendingChanges.set(userId, {});
     }
     pendingChanges.get(userId).status = newStatus;
     
-    // Add "status-changed" class to indicate there's a pending change
+    // Mark the field as changed
+    selectElement.setAttribute('data-changed', 'true');
     selectElement.classList.add('status-changed');
+    
+    // Mark the row as changed
+    const row = selectElement.closest('tr');
+    if (row) {
+        row.setAttribute('data-changed', 'true');
+    }
 
-    console.log(`Status change stored for user ${userId}:`, pendingChanges.get(userId)); // Debugging log
+    console.log(`Status change stored for user ${userId}:`, pendingChanges.get(userId));
 }
 
 // Thêm hàm kiểm tra user
@@ -1699,88 +1836,26 @@ async function deleteUser(userId) {
 // Load thread details based on ID
 async function loadThreadDetails(threadId) {
     try {
-        const response = await fetch(`${api_key}Thread/${threadId}`);
+        // Làm mới view count
+        await incrementThreadViews(threadId);
         
-        if (!response.ok) {
-            const errorData = await response.json().catch(() => ({}));
-            throw new Error(errorData.message || 'Failed to fetch thread details');
-        }
+        // Load chi tiết thread
+        const thread = await loadThreadDetail(threadId);
         
-        const thread = await response.json();
-        
-        // Update thread details
-        const titleElement = document.getElementById('thread-title');
-        const authorElement = document.getElementById('thread-author');
-        const dateElement = document.getElementById('thread-date');
-        const contentElement = document.getElementById('thread-content');
-        const categoryElement = document.getElementById('thread-category');
-        const categoryBadgeElement = document.getElementById('thread-category-badge');
-        const postedDateElement = document.getElementById('thread-posted-date');
-        const likesElement = document.getElementById('thread-likes');
-        const viewsElement = document.getElementById('thread-views');
-        const deleteThreadBtn = document.getElementById('delete-thread-btn');
-        
-        if (titleElement) titleElement.textContent = thread.title;
-        if (authorElement) authorElement.textContent = thread.username || 'Unknown User';
-        
-        if (dateElement) {
-            const createdDate = new Date(thread.createdAt);
-            dateElement.textContent = `${createdDate.toLocaleDateString()} at ${createdDate.toLocaleTimeString()}`;
-        }
-        
-        if (contentElement) contentElement.innerHTML = cleanHtmlContent(thread.content);
-        if (categoryElement) categoryElement.textContent = thread.categoryName || 'Uncategorized';
-        if (categoryBadgeElement) categoryBadgeElement.textContent = thread.categoryName || 'Uncategorized';
-        if (postedDateElement) {
-            const createdDate = new Date(thread.createdAt);
-            postedDateElement.textContent = createdDate.toLocaleDateString();
-        }
-        if (likesElement) likesElement.textContent = thread.likes || '0';
-        if (viewsElement) viewsElement.textContent = thread.views || '0';
-        
-        // Check if current user is the thread creator or admin/moderator
-        const currentUsername = sessionStorage.getItem('username');
-        const userRole = sessionStorage.getItem('role');
-        const isAdminOrMod = userRole === 'Admin' || userRole === 'admin' || userRole === 'Moderator' || userRole === 'moderator';
-        
-        if (deleteThreadBtn && (thread.username === currentUsername || isAdminOrMod)) {
-            deleteThreadBtn.classList.remove('hide');
-            deleteThreadBtn.setAttribute('data-thread-id', threadId);
-        } else if (deleteThreadBtn) {
-            deleteThreadBtn.classList.add('hide');
-        }
-        
-        document.title = `${thread.title} - Forum`;
-        
-        // Load posts after thread details are loaded
-        await loadPosts(threadId);
-        
+        return thread;
     } catch (error) {
         console.error('Error loading thread details:', error);
-        Swal.fire({
-            title: 'Error',
-            text: 'Failed to load thread details or posts. Please try again later.',
-            icon: 'error',
-            confirmButtonText: 'OK'
-        }).then(() => {
-            window.location.href = 'community.html';
-        });
+        document.querySelector('.thread-content').innerHTML = 
+            '<p class="error-message">Failed to load thread. Please try again later.</p>';
     }
 }
 
-// Initialize thread detail page
+// Initialize thread detail page with animations
 function initThreadDetailPage() {
     const threadId = getCurrentThreadId();
     if (threadId) {
         loadThreadDetails(threadId);
         loadPosts(threadId);
-        incrementThreadViews(threadId);
-        loadRelatedThreads(threadId);
-        
-        // Initialize CKEditor for post input
-        if (document.getElementById('post-input') && !CKEDITOR.instances['post-input']) {
-            CKEDITOR.replace('post-input');
-        }
     }
 }
 
@@ -2131,13 +2206,6 @@ function initThreadDetailPage() {
     if (threadId) {
         loadThreadDetails(threadId);
         loadPosts(threadId);
-        incrementThreadViews(threadId);
-        loadRelatedThreads(threadId);
-        
-        // Initialize CKEditor for post input
-        if (document.getElementById('post-input') && !CKEDITOR.instances['post-input']) {
-            CKEDITOR.replace('post-input');
-        }
     }
 }
 
@@ -2309,54 +2377,22 @@ async function loadThreadDetail(threadId) {
         document.getElementById('thread-date').textContent = formatDate(thread.createdAt);
         document.getElementById('thread-content').innerHTML = cleanedContent;
         
-        // Lấy và hiển thị tổng số lượt like
-        const threadWithLikes = await getThreadTotalLikes(threadId, thread);
-        const likesElement = document.getElementById('thread-likes');
+        // Show delete button for thread owner or admin
+        const userId = sessionStorage.getItem('userId');
+        const role = sessionStorage.getItem('role');
+        const deleteThreadBtn = document.getElementById('delete-thread-btn');
         
-        if (likesElement) {
-            // Check if likes count has changed
-            const oldLikes = parseInt(likesElement.textContent) || 0;
-            const newLikes = threadWithLikes.total_likes || 0;
-            
-            likesElement.textContent = newLikes;
-            
-            // Add highlight animation if likes have changed
-            if (oldLikes !== newLikes && oldLikes > 0) {
-                likesElement.classList.add('updated');
-                setTimeout(() => {
-                    likesElement.classList.remove('updated');
-                }, 2000);
+        if (deleteThreadBtn) {
+            if (userId && (userId == thread.userId || role === 'Admin' || role === 'Moderator')) {
+                deleteThreadBtn.classList.remove('hide');
+            } else {
+                deleteThreadBtn.classList.add('hide');
             }
         }
-        
-        // Get and display view count
-        const viewsElement = document.getElementById('thread-views');
-        if (viewsElement) {
-            const oldViews = parseInt(viewsElement.textContent) || 0;
-            viewsElement.textContent = thread.views || '0';
-            
-            // Add highlight animation if views have changed and this isn't the first load
-            if (oldViews > 0 && oldViews !== thread.views) {
-                viewsElement.classList.add('updated');
-                setTimeout(() => {
-                    viewsElement.classList.remove('updated');
-                }, 2000);
-            }
-        }
-        
-        // Cập nhật sidebar
-        updateSidebarInfo(thread);
-        
-        // Cập nhật badge engagement
-        updateEngagementStatus(
-            thread.views || 0,
-            threadWithLikes.total_likes || 0
-        );
-        
-        return thread;
     } catch (error) {
-        console.error('Error loading thread detail:', error);
-        throw error;
+        console.error('Error loading thread details:', error);
+        document.querySelector('.thread-content').innerHTML = 
+            '<p class="error-message">Failed to load thread content. Please try again.</p>';
     }
 }
 
@@ -2589,11 +2625,24 @@ async function submitComment(button) {
         return;
     }
     
-    const commentContent = document.getElementById('comment-text').value.trim();
+    // Get the post element
+    const post = button.closest('.post');
+    if (!post) {
+        console.error('Post element not found');
+        return;
+    }
+    
+    // Get the comment form and textarea
+    const form = post.querySelector('.comment-form');
+    const textarea = form.querySelector('textarea');
+    const commentContent = textarea.value.trim();
+    
     if (!commentContent) {
         showCustomAlert('Error', 'Please write something in your comment.', 'error');
         return;
     }
+    
+    const postId = parseInt(post.getAttribute('data-post-id'));
     
     try {
         const response = await fetch(`${api_key}Comment/Insert`, {
@@ -2604,7 +2653,7 @@ async function submitComment(button) {
             },
             body: JSON.stringify({
                 content: commentContent,
-                postId: parseInt(post.getAttribute('data-post-id')),
+                postId: postId,
                 userId: parseInt(sessionStorage.getItem('userId'))
             })
         });
@@ -2615,7 +2664,7 @@ async function submitComment(button) {
         }
 
         // Clear form and reload comments
-        form.querySelector('textarea').value = '';
+        textarea.value = '';
         form.classList.add('hide');
         
         // Reload comments
@@ -2693,8 +2742,11 @@ function createCommentElement(comment) {
     // Add new-comment class for entry animation
     commentElement.classList.add('new-comment');
     
-    // Set comment data
+    // Store the user ID in the comment element for permission checking
     commentElement.setAttribute('data-comment-id', comment.commentId);
+    commentElement.setAttribute('data-user-id', comment.userId);
+    
+    // Set comment data
     commentElement.querySelector('.comment-author').textContent = comment.username;
     commentElement.querySelector('.comment-date').textContent = formatDate(comment.createdAt);
     commentElement.querySelector('.comment-content').textContent = comment.content;
@@ -2717,6 +2769,14 @@ function createCommentElement(comment) {
     if (deleteButton && (isAuthor || isAdminOrMod)) {
         deleteButton.classList.remove('hide');
         deleteButton.onclick = () => deleteComment(comment.commentId);
+        
+        // Add tooltip to indicate delete action
+        deleteButton.setAttribute('title', 'Delete this comment');
+    }
+    
+    // Highlight if this is the user's own comment
+    if (isAuthor) {
+        commentElement.classList.add('own-comment');
     }
     
     // Remove the animation class after animation completes
@@ -2731,20 +2791,35 @@ function createCommentElement(comment) {
 async function editComment(commentId) {
     const token = sessionStorage.getItem('token');
     if (!token) {
-        showCustomAlert('Authentication Required', 'Vui lòng đăng nhập để chỉnh sửa bình luận.', 'warning');
+        showCustomAlert('Authentication Required', 'Please log in to edit comments.', 'warning');
         return;
     }
     
     const commentElement = document.querySelector(`[data-comment-id="${commentId}"]`);
     if (!commentElement) {
-        console.error('Không tìm thấy bình luận để chỉnh sửa');
+        console.error('Comment not found');
+        return;
+    }
+    
+    // Get the comment's user ID and the current user ID
+    const commentUserId = parseInt(commentElement.getAttribute('data-user-id'));
+    const currentUserId = parseInt(sessionStorage.getItem('userId'));
+    const userRole = sessionStorage.getItem('role');
+    
+    // Check if current user is the comment author or an admin/mod
+    const isAuthor = currentUserId === commentUserId;
+    const isAdminOrMod = userRole === 'Admin' || userRole === 'admin' || userRole === 'Moderator' || userRole === 'moderator';
+    
+    // Users can only edit their own comments (not even admins can edit others' comments)
+    if (!isAuthor) {
+        showCustomAlert('Permission Denied', 'You can only edit your own comments.', 'error');
         return;
     }
 
     const contentElement = commentElement.querySelector('.comment-content');
     const currentContent = contentElement.textContent;
     
-    const newContent = prompt('Chỉnh sửa bình luận:', currentContent);
+    const newContent = prompt('Edit comment:', currentContent);
     if (!newContent || newContent === currentContent) {
         return;
     }
@@ -2754,7 +2829,7 @@ async function editComment(commentId) {
             method: 'PUT',
             headers: {
                 'Content-Type': 'application/json',
-                'Authorization': `Bearer ${sessionStorage.getItem('token')}`
+                'Authorization': `Bearer ${token}`
             },
             body: JSON.stringify({
                 content: newContent
@@ -2763,28 +2838,53 @@ async function editComment(commentId) {
 
         if (!response.ok) {
             const errorText = await response.text();
-            throw new Error(errorText || 'Không thể cập nhật bình luận');
+            throw new Error(errorText || 'Failed to update comment');
         }
 
         contentElement.textContent = newContent;
         
-        // Hiệu ứng thành công
+        // Success animation
         commentElement.classList.add('comment-updated');
         setTimeout(() => {
             commentElement.classList.remove('comment-updated');
         }, 1500);
 
-        console.log('Bình luận đã được cập nhật thành công');
+        console.log('Comment updated successfully');
 
     } catch (error) {
         console.error('Error updating comment:', error);
-        showCustomAlert('Error', 'Không thể cập nhật bình luận. Vui lòng thử lại.', 'error');
+        showCustomAlert('Error', 'Failed to update comment. Please try again.', 'error');
     }
 }
 
 // Cập nhật hàm deleteComment để kết nối với CommentController
 async function deleteComment(commentId) {
     try {
+        const token = sessionStorage.getItem('token');
+        if (!token) {
+            throw new Error('You must be logged in to delete a comment');
+        }
+        
+        // Find the comment element
+        const commentElement = document.querySelector(`[data-comment-id="${commentId}"]`);
+        if (!commentElement) {
+            throw new Error('Comment not found');
+        }
+        
+        // Get the comment's user ID and the current user ID
+        const commentUserId = parseInt(commentElement.getAttribute('data-user-id'));
+        const currentUserId = parseInt(sessionStorage.getItem('userId'));
+        const userRole = sessionStorage.getItem('role');
+        
+        // Check if current user is the comment author or an admin/mod
+        const isAuthor = currentUserId === commentUserId;
+        const isAdminOrMod = userRole === 'Admin' || userRole === 'admin' || userRole === 'Moderator' || userRole === 'moderator';
+        
+        // Only allow deletion if user is the author or an admin/moderator
+        if (!isAuthor && !isAdminOrMod) {
+            throw new Error('You can only delete your own comments');
+        }
+        
         // Confirm deletion
         const result = await Swal.fire({
             title: 'Delete Comment',
@@ -2801,16 +2901,10 @@ async function deleteComment(commentId) {
             return;
         }
         
-        const token = sessionStorage.getItem('token');
-        if (!token) {
-            throw new Error('You must be logged in to delete a comment');
-        }
+        const postId = getPostIdFromComment(commentElement);
         
-        // Find the comment's parent post to update UI after deletion
-        const commentElement = document.querySelector(`[data-comment-id="${commentId}"]`);
-        const postId = commentElement ? getPostIdFromComment(commentElement) : null;
-        
-        const response = await fetch(`${api_key}Comments/Delete/${commentId}`, {
+        // Send delete request to API
+        const response = await fetch(`${api_key}Comment/Delete/${commentId}`, {
             method: 'DELETE',
             headers: {
                 'Authorization': `Bearer ${token}`
@@ -2823,21 +2917,24 @@ async function deleteComment(commentId) {
         }
         
         // Remove the comment element from the DOM with animation
-        if (commentElement) {
-            commentElement.classList.add('deleting');
-            setTimeout(() => {
-                commentElement.remove();
-                
-                // Update comment count for the parent post
-                if (postId) {
-                    const commentsContainer = document.querySelector(`[data-post-id="${postId}"] .comments-container`);
-                    if (commentsContainer) {
-                        const commentCount = commentsContainer.querySelectorAll('.comment').length;
-                        updateCommentCount(postId, commentCount);
+        commentElement.classList.add('deleting');
+        setTimeout(() => {
+            commentElement.remove();
+            
+            // Update comment count for the parent post
+            if (postId) {
+                const commentsContainer = document.querySelector(`[data-post-id="${postId}"] .comments-container`);
+                if (commentsContainer) {
+                    const commentCount = commentsContainer.querySelectorAll('.comment').length;
+                    updateCommentCount(postId, commentCount);
+                    
+                    // Check if there are no comments left
+                    if (commentCount === 0) {
+                        commentsContainer.innerHTML = '<p class="no-comments">No comments yet. Be the first to comment!</p>';
                     }
                 }
-            }, 500);
-        }
+            }
+        }, 500);
         
         Swal.fire({
             title: 'Success',
@@ -4556,30 +4653,6 @@ async function deleteThread() {
     }
 }
 
-// Function to hide CKEditor security notification
-function hideCKEditorSecurityNotification() {
-    // Wait for CKEditor instances to initialize
-    setTimeout(() => {
-        // Find all CKEditor notification elements
-        const notifications = document.querySelectorAll('.cke_notification_warning');
-        notifications.forEach(notification => {
-            if (notification.textContent.includes('This CKEditor') && 
-                notification.textContent.includes('is not secure')) {
-                notification.style.display = 'none';
-            }
-        });
-    }, 1000);
-}
-
-// Add event listener to hide notifications when instances are created
-if (typeof CKEDITOR !== 'undefined') {
-    CKEDITOR.on('instanceReady', function(evt) {
-        hideCKEditorSecurityNotification();
-    });
-    
-    // Call it directly for any existing instances
-    hideCKEditorSecurityNotification();
-}
 
 // Function to clean HTML content by removing unnecessary paragraph tags
 function cleanHtmlContent(html) {
@@ -4614,7 +4687,7 @@ function cleanHtmlContent(html) {
 
 // Global variables for image upload
 let uploadedImages = [];
-const apiBaseUrl = 'https://api.ducanhweb.me/api/';
+const apiBaseUrl = 'http://localhost:5083/api/';
 
 // Function to initialize image upload handler
 function initImageUpload() {
@@ -4806,9 +4879,6 @@ function initializeThreadDetailPage() {
         sessionStorage.setItem(`viewed_thread_${threadId}`, 'true');
     }
     
-    // Load related threads in sidebar
-    loadRelatedThreads(threadId);
-    
     // Initialize image upload
     initImageUpload();
     
@@ -4848,3 +4918,462 @@ document.addEventListener('DOMContentLoaded', function() {
         initializeThreadDetailPage();
     }
 });
+
+function filterThreadsByCategory() {
+    const categoryFilter = document.getElementById("category-filter");
+    const selectedCategoryId = categoryFilter.value;
+    const currentSortButton = document.querySelector('.sort-btn.active');
+    const currentSortOption = currentSortButton ? currentSortButton.getAttribute('data-sort') : 'newest';
+    
+    // Get threads from session storage
+    const threads = JSON.parse(sessionStorage.getItem('threads') || '[]');
+    
+    let filteredThreads = threads;
+    
+    if (selectedCategoryId !== 'all') {
+        // Filter threads by category ID
+        const selectedOption = categoryFilter.options[categoryFilter.selectedIndex];
+        const selectedCategoryName = selectedOption.textContent.trim();
+        
+        filteredThreads = threads.filter(thread => 
+            (thread.categoryName || 'Uncategorized') === selectedCategoryName
+        );
+    }
+    
+    // Re-apply current sorting
+    applySorting(filteredThreads, currentSortOption);
+}
+
+function searchCategories() {
+    const searchInput = document.getElementById("category-search");
+    const searchTerm = searchInput.value.toLowerCase();
+    const categoryFilter = document.getElementById("category-filter");
+    
+    // Loop through all options in the category filter dropdown
+    for (let i = 1; i < categoryFilter.options.length; i++) { // Start from 1 to skip "All Categories"
+        const option = categoryFilter.options[i];
+        const categoryName = option.textContent.toLowerCase();
+        
+        // Show or hide options based on search term match
+        if (categoryName.includes(searchTerm)) {
+            option.style.display = '';
+        } else {
+            option.style.display = 'none';
+        }
+    }
+    
+    // If search is cleared, reset filter and show all threads
+    if (searchTerm === '') {
+        categoryFilter.value = 'all';
+        filterThreadsByCategory();
+    }
+}
+
+function sortThreads(sortOption) {
+    // Update active button
+    const sortButtons = document.querySelectorAll('.sort-btn');
+    sortButtons.forEach(btn => {
+        if (btn.getAttribute('data-sort') === sortOption) {
+            btn.classList.add('active');
+        } else {
+            btn.classList.remove('active');
+        }
+    });
+    
+    // Get the search term if there is one
+    const searchInput = document.getElementById("thread-search");
+    const hasSearchTerm = searchInput && searchInput.value.trim() !== '';
+    
+    // If there's an active search, rerun the search with the new sort option
+    if (hasSearchTerm) {
+        searchThreads();
+        return;
+    }
+    
+    // Otherwise, apply category filter first
+    const categoryFilter = document.getElementById("category-filter");
+    const selectedCategoryId = categoryFilter ? categoryFilter.value : 'all';
+    
+    // Get threads from session storage
+    const threads = JSON.parse(sessionStorage.getItem('threads') || '[]');
+    
+    let filteredThreads = threads;
+    
+    // Apply category filter if not "all"
+    if (categoryFilter && selectedCategoryId !== 'all') {
+        const selectedOption = categoryFilter.options[categoryFilter.selectedIndex];
+        const selectedCategoryName = selectedOption.textContent.trim();
+        
+        filteredThreads = threads.filter(thread => 
+            (thread.categoryName || 'Uncategorized') === selectedCategoryName
+        );
+    }
+    
+    // Apply sorting
+    applySorting(filteredThreads, sortOption);
+}
+
+function applySorting(threads, sortOption) {
+    let sortedThreads = [...threads]; // Create a copy to avoid mutating the original
+    
+    switch (sortOption) {
+        case 'all':
+            // No sorting needed for the 'all' option - displays threads in their original order
+            break;
+        case 'newest':
+            sortedThreads.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+            break;
+        case 'oldest':
+            sortedThreads.sort((a, b) => new Date(a.createdAt) - new Date(b.createdAt));
+            break;
+        case 'most-likes':
+            sortedThreads.sort((a, b) => (b.total_likes || 0) - (a.total_likes || 0));
+            break;
+        case 'least-likes':
+            sortedThreads.sort((a, b) => (a.total_likes || 0) - (b.total_likes || 0));
+            break;
+        case 'most-views':
+            sortedThreads.sort((a, b) => (b.views || 0) - (a.views || 0));
+            break;
+        default:
+            // Default to newest
+            sortedThreads.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+    }
+    
+    // Display the sorted/filtered threads
+    displayThreads(sortedThreads);
+    
+    // Add animation to show the sort change
+    const threadItems = document.querySelectorAll('.thread-item');
+    threadItems.forEach((item, index) => {
+        item.style.animationDelay = `${index * 0.05}s`;
+        item.classList.add('sort-animation');
+        
+        // Remove animation class after animation completes
+        setTimeout(() => {
+            item.classList.remove('sort-animation');
+        }, 500 + index * 50);
+    });
+}
+
+function searchCategories() {
+    const searchInput = document.getElementById("category-search");
+    const searchTerm = searchInput.value.toLowerCase();
+    const categoryFilter = document.getElementById("category-filter");
+    
+    // Loop through all options in the category filter dropdown
+    for (let i = 1; i < categoryFilter.options.length; i++) { // Start from 1 to skip "All Categories"
+        const option = categoryFilter.options[i];
+        const categoryName = option.textContent.toLowerCase();
+        
+        // Show or hide options based on search term match
+        if (categoryName.includes(searchTerm)) {
+            option.style.display = '';
+        } else {
+            option.style.display = 'none';
+        }
+    }
+    
+    // If search is cleared, reset filter and show all threads
+    if (searchTerm === '') {
+        categoryFilter.value = 'all';
+        filterThreadsByCategory();
+    }
+    
+    // If search term matches a specific category, automatically select it
+    const matchingOption = Array.from(categoryFilter.options).find(option => 
+        option.textContent.toLowerCase() === searchTerm && option.value !== 'all'
+    );
+    
+    if (matchingOption) {
+        categoryFilter.value = matchingOption.value;
+        filterThreadsByCategory();
+    }
+}
+
+function searchThreads() {
+    const searchInput = document.getElementById("thread-search");
+    const searchTerm = searchInput.value.toLowerCase().trim();
+    const searchTitles = document.getElementById("search-titles").checked;
+    const searchContent = document.getElementById("search-content").checked;
+    
+    // If both search options are unchecked, show a message and don't search
+    if (!searchTitles && !searchContent) {
+        // Simple notification that at least one option must be checked
+        document.getElementById("search-titles").checked = true;
+        return;
+    }
+    
+    // Get the current category filter
+    const categoryFilter = document.getElementById("category-filter");
+    const selectedCategoryId = categoryFilter ? categoryFilter.value : 'all';
+    const selectedOption = categoryFilter ? categoryFilter.options[categoryFilter.selectedIndex] : null;
+    const selectedCategoryName = selectedOption ? selectedOption.textContent.trim() : '';
+    
+    // Get threads from session storage
+    const allThreads = JSON.parse(sessionStorage.getItem('threads') || '[]');
+    
+    // First filter by category
+    let filteredThreads = allThreads;
+    if (selectedCategoryId !== 'all') {
+        filteredThreads = allThreads.filter(thread => 
+            (thread.categoryName || 'Uncategorized') === selectedCategoryName
+        );
+    }
+    
+    // Then filter by search term
+    if (searchTerm !== '') {
+        filteredThreads = filteredThreads.filter(thread => {
+            let matchesTitle = false;
+            let matchesContent = false;
+            
+            if (searchTitles && thread.title) {
+                matchesTitle = thread.title.toLowerCase().includes(searchTerm);
+            }
+            
+            if (searchContent && thread.content) {
+                // Strip HTML tags for text search
+                const contentText = stripHtmlTags(thread.content).toLowerCase();
+                matchesContent = contentText.includes(searchTerm);
+            }
+            
+            return matchesTitle || matchesContent;
+        });
+        
+        // Highlight search terms in the UI
+        setTimeout(() => {
+            highlightSearchTerms(searchTerm);
+        }, 100);
+    }
+    
+    // Get current sort option
+    const currentSortButton = document.querySelector('.sort-btn.active');
+    const currentSortOption = currentSortButton ? currentSortButton.getAttribute('data-sort') : 'newest';
+    
+    // Apply sorting
+    applySorting(filteredThreads, currentSortOption);
+    
+    // Show search results count
+    updateSearchResultsCount(filteredThreads.length);
+}
+
+// Helper function to strip HTML tags for text search
+function stripHtmlTags(html) {
+    if (!html) return '';
+    
+    const tempDiv = document.createElement('div');
+    tempDiv.innerHTML = html;
+    return tempDiv.textContent || tempDiv.innerText || '';
+}
+
+// Highlight search terms in the displayed results
+function highlightSearchTerms(searchTerm) {
+    if (!searchTerm) return;
+    
+    const threadItems = document.querySelectorAll('.thread-item');
+    
+    threadItems.forEach(item => {
+        // Highlight in title
+        const titleElement = item.querySelector('.thread-title');
+        if (titleElement) {
+            const originalTitle = titleElement.getAttribute('data-original-title') || titleElement.innerHTML;
+            titleElement.setAttribute('data-original-title', originalTitle);
+            
+            const highlightedTitle = highlightText(originalTitle, searchTerm);
+            titleElement.innerHTML = highlightedTitle;
+        }
+        
+        // Highlight in content
+        const contentElement = item.querySelector('.thread-content');
+        if (contentElement) {
+            const originalContent = contentElement.getAttribute('data-original-content') || contentElement.innerHTML;
+            contentElement.setAttribute('data-original-content', originalContent);
+            
+            const highlightedContent = highlightText(originalContent, searchTerm);
+            contentElement.innerHTML = highlightedContent;
+        }
+    });
+}
+
+// Helper function to highlight text occurrences
+function highlightText(text, searchTerm) {
+    if (!text || !searchTerm) return text;
+    
+    const regex = new RegExp(`(${escapeRegExp(searchTerm)})`, 'gi');
+    return text.replace(regex, '<span class="search-highlight">$1</span>');
+}
+
+// Update the count of search results
+function updateSearchResultsCount(count) {
+    const threadsDisplay = document.getElementById('threads-display');
+    const existingCount = document.querySelector('.search-results-count');
+    
+    if (existingCount) {
+        // Update existing count element
+        if (count === 0) {
+            existingCount.innerHTML = `<i class="fa fa-info-circle"></i> No threads match your search criteria`;
+        } else {
+            existingCount.innerHTML = `<i class="fa fa-check-circle"></i> Found ${count} thread${count !== 1 ? 's' : ''}`;
+        }
+    } else {
+        // Create new count element
+        const countElement = document.createElement('div');
+        countElement.className = 'search-results-count';
+        
+        if (count === 0) {
+            countElement.innerHTML = `<i class="fa fa-info-circle"></i> No threads match your search criteria`;
+        } else {
+            countElement.innerHTML = `<i class="fa fa-check-circle"></i> Found ${count} thread${count !== 1 ? 's' : ''}`;
+        }
+        
+        // Insert at the top of the threads display
+        if (threadsDisplay && threadsDisplay.firstChild) {
+            threadsDisplay.insertBefore(countElement, threadsDisplay.firstChild);
+        } else if (threadsDisplay) {
+            threadsDisplay.appendChild(countElement);
+        }
+    }
+}
+
+function filterThreadsByCategory() {
+    const categoryFilter = document.getElementById("category-filter");
+    const selectedCategoryId = categoryFilter.value;
+    const currentSortButton = document.querySelector('.sort-btn.active');
+    const currentSortOption = currentSortButton ? currentSortButton.getAttribute('data-sort') : 'newest';
+    
+    // Get threads from session storage
+    const threads = JSON.parse(sessionStorage.getItem('threads') || '[]');
+    
+    let filteredThreads = threads;
+    
+    if (selectedCategoryId !== 'all') {
+        // Filter threads by category ID
+        const selectedOption = categoryFilter.options[categoryFilter.selectedIndex];
+        const selectedCategoryName = selectedOption.textContent.trim();
+        
+        filteredThreads = threads.filter(thread => 
+            (thread.categoryName || 'Uncategorized') === selectedCategoryName
+        );
+    }
+    
+    // Check if we need to apply search filtering too
+    const searchInput = document.getElementById("thread-search");
+    if (searchInput && searchInput.value.trim() !== '') {
+        // If there's a search term, trigger a search instead
+        searchThreads();
+        return;
+    }
+    
+    // Re-apply current sorting
+    applySorting(filteredThreads, currentSortOption);
+}
+
+// Initialize thread detail page without sidebar
+function initializeThreadDetailPage() {
+    // Get thread ID from URL
+    const urlParams = new URLSearchParams(window.location.search);
+    const threadId = urlParams.get('id');
+    
+    if (!threadId) {
+        window.location.href = 'community.html';
+        return;
+    }
+    
+    // Initialize the thread detail page
+    loadThreadDetails(threadId);
+    loadPosts(threadId);
+    
+    // Initialize image upload functionality
+    initImageUpload();
+    
+    // For debugging purposes
+    console.log('Thread detail page initialized without sidebar');
+}
+
+// Check if we're on the thread detail page and initialize
+document.addEventListener('DOMContentLoaded', function() {
+    if (window.location.href.includes('thread-detail.html')) {
+        initializeThreadDetailPage();
+        
+        // Make sure modal is hidden initially
+        const reportModal = document.getElementById('report-modal');
+        if (reportModal) {
+            reportModal.classList.add('hide');
+        }
+    }
+});
+
+/**
+ * Updates UI elements based on current login status
+ */
+function updateUIBasedOnLoginStatus() {
+    const isLoggedIn = !!sessionStorage.getItem('token');
+    const username = sessionStorage.getItem('username');
+    const role = sessionStorage.getItem('role');
+
+    if (isLoggedIn) {
+        // User is logged in
+        document.querySelectorAll('.login-link').forEach(elem => elem.classList.add('hide'));
+        document.querySelectorAll('.logout-link').forEach(elem => elem.classList.remove('hide'));
+        
+        const usernameElem = document.getElementById('top-right-username');
+        if (usernameElem) {
+            usernameElem.textContent = username;
+            usernameElem.classList.remove('hide');
+        }
+
+        // Show mod control link for admin/moderator
+        const modControlLinks = document.querySelectorAll("a[href='Modctrl.html']");
+        modControlLinks.forEach(link => {
+            if (role === "Admin" || role === "admin" || role === "Moderator" || role === "moderator") {
+                link.parentElement.classList.remove("hide");
+            } else {
+                link.parentElement.classList.add("hide");
+            }
+        });
+
+        // Show Categories tab only for Admin
+        const categoryLinks = document.querySelectorAll("a[href='categories.html']");
+        categoryLinks.forEach(link => {
+            if (role === "Admin" || role === "admin") {
+                link.parentElement.classList.remove("hide");
+            } else {
+                link.parentElement.classList.add("hide");
+            }
+        });
+
+        // Enable Create Thread button if it exists
+        const createThreadBtn = document.querySelector('.create-thread-btn');
+        if (createThreadBtn) {
+            createThreadBtn.disabled = false;
+        }
+    } else {
+        // User is not logged in
+        document.querySelectorAll('.login-link').forEach(elem => elem.classList.remove('hide'));
+        document.querySelectorAll('.logout-link').forEach(elem => elem.classList.add('hide'));
+        
+        const usernameElem = document.getElementById('top-right-username');
+        if (usernameElem) {
+            usernameElem.textContent = '';
+            usernameElem.classList.add('hide');
+        }
+
+        // Hide mod control link
+        const modControlLinks = document.querySelectorAll("a[href='Modctrl.html']");
+        modControlLinks.forEach(link => {
+            link.parentElement.classList.add("hide");
+        });
+
+        // Hide Categories tab for non-logged in users
+        const categoryLinks = document.querySelectorAll("a[href='categories.html']");
+        categoryLinks.forEach(link => {
+            link.parentElement.classList.add("hide");
+        });
+
+        // Disable Create Thread button if it exists
+        const createThreadBtn = document.querySelector('.create-thread-btn');
+        if (createThreadBtn) {
+            createThreadBtn.disabled = true;
+        }
+    }
+}

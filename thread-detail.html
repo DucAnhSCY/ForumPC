@@ -93,54 +93,6 @@
                     <!-- Posts will be loaded here -->
                 </div>
             </div>
-
-            <!-- Sidebar -->
-            <div class="sidebar">
-                <!-- Thread Info -->
-                <div class="sidebar-section">
-                    <h3 class="sidebar-title">Thread Information</h3>
-                    <div class="thread-info">
-                        <div class="thread-info-item">
-                            <span>Category</span>
-                            <span id="thread-category">Loading...</span>
-                        </div>
-                        <div class="thread-info-item">
-                            <span>Categories</span>
-                            <div id="thread-categories" class="thread-categories">
-                                <!-- Categories will be loaded here -->
-                            </div>
-                        </div>
-                        <div class="thread-info-item">
-                            <span>Created</span>
-                            <span id="thread-posted-date">Loading...</span>
-                        </div>
-                        <div class="thread-info-item">
-                            <span>Likes</span>
-                            <span id="thread-likes">0</span>
-                        </div>
-                        <div class="thread-info-item">
-                            <span>Views</span>
-                            <span id="thread-views">0</span>
-                        </div>
-                        <div class="thread-info-item">
-                            <span>Posts</span>
-                            <span id="post-count">0</span>
-                        </div>
-                        <div class="thread-info-item">
-                            <span>Status</span>
-                            <span id="thread-status" class="thread-status">Active</span>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Related Threads -->
-                <div class="sidebar-section">
-                    <h3 class="sidebar-title">Related Threads</h3>
-                    <ul class="related-threads" id="related-threads">
-                        <!-- Related threads will be loaded here -->
-                    </ul>
-                </div>
-            </div>
         </div>
     </div>
 
@@ -206,15 +158,14 @@
                     </div>
                 </div>
                 <div class="comment-actions">
-                    <button class="action-button edit-comment hide">
+                    <button class="action-button edit-comment ">
                         <i class="fa fa-edit"></i>
                     </button>
-                    <button class="action-button delete-comment hide">
+                    <button class="action-button delete-comment " onclick="deleteComment(this.closest('.comment').getAttribute('data-comment-id'))">
                         <i class="fa fa-trash"></i>
                     </button>
-                    <button class="action-button report-comment" onclick="showReportForm(this, 'comment')">
-                        <i class="fa fa-flag"></i>
-                    </button>
+                
+        
                 </div>
             </div>
             <div class="comment-content"></div>

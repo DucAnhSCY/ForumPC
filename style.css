@@ -2210,9 +2210,9 @@ section h2 {
 /* ########################################### */
 .thread-detail {
     display: flex;
-    flex-wrap: wrap;
+    flex-direction: column;
     gap: 20px;
-    margin: 20px auto;
+    margin: 0 auto 20px;
     max-width: 1200px;
     color: #FEFEFE;
     background-color: #111314;
@@ -2222,18 +2222,10 @@ section h2 {
 
 .main-content {
     flex: 1;
-    min-width: 65%;
+    width: 100%;
     padding: 20px;
     background-color: #1a1d1f;
     border-radius: 8px;
-}
-
-.sidebar {
-    width: 30%;
-    min-width: 250px;
-    padding: 20px;
-    background-color: #111314;
-    border-left: 1px solid #2c2f33;
 }
 
 /* Style cho header của thread */
@@ -4469,7 +4461,6 @@ h2::after, h3::after {
 
 /* Enhanced Thread Detail Styling */
 .thread-detail {
-    display: grid;
     grid-template-columns: 1fr 300px;
     gap: 30px;
     margin-top: 30px;
@@ -7105,4 +7096,394 @@ footer {
 .deleted-content i {
     margin-right: 8px;
     font-size: 16px;
+}
+
+/* ########################################### */
+/*           Categories.html                  */
+/* ########################################### */
+
+/* Category Filter Section */
+.category-filter-section {
+    background-color: rgba(106, 17, 203, 0.05);
+    border-radius: 10px;
+    padding: 1.5rem;
+    margin: 1.5rem 0;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+    animation: fadeInUp var(--anim-duration-medium) ease-out;
+    transition: all var(--anim-duration-fast) ease;
+}
+
+.category-filter-section:hover {
+    box-shadow: 0 6px 16px rgba(0, 0, 0, 0.1);
+}
+
+.category-filter-section h3 {
+    font-size: 1.2rem;
+    color: var(--primary-color);
+    margin-bottom: 1rem;
+    display: flex;
+    align-items: center;
+}
+
+.category-filter-section h3 i {
+    margin-right: 0.5rem;
+    color: var(--accent-color);
+}
+
+.category-filter-container {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 1rem;
+    align-items: center;
+    margin-bottom: 1rem;
+}
+
+.filter-dropdown, .search-container {
+    flex: 1;
+    min-width: 200px;
+    position: relative;
+}
+
+.filter-dropdown label, .search-container label, .sort-options label {
+    display: block;
+    font-size: 0.9rem;
+    margin-bottom: 0.5rem;
+    color: var(--text-secondary);
+    font-weight: 600;
+}
+
+#category-filter {
+    width: 100%;
+    padding: 0.8rem 1rem;
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    background-color: var(--card-bg);
+    color: var(--text-primary);
+    font-size: 1rem;
+    transition: all var(--anim-duration-fast) ease;
+    appearance: none;
+    background-image: url("data:image/svg+xml;charset=UTF-8,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%236a11cb' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3e%3cpolyline points='6 9 12 15 18 9'%3e%3c/polyline%3e%3c/svg%3e");
+    background-repeat: no-repeat;
+    background-position: right 1rem center;
+    background-size: 1em;
+}
+
+#category-filter:focus {
+    border-color: var(--primary-color);
+    box-shadow: 0 0 0 2px rgba(106, 17, 203, 0.2);
+    outline: none;
+}
+
+#thread-search {
+    width: 100%;
+    padding: 0.8rem 1rem;
+    padding-right: 2.5rem;
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    background-color: var(--card-bg);
+    color: var(--text-primary);
+    font-size: 1rem;
+    transition: all var(--anim-duration-fast) ease;
+}
+
+#thread-search:focus {
+    border-color: var(--primary-color);
+    box-shadow: 0 0 0 2px rgba(106, 17, 203, 0.2);
+    outline: none;
+}
+
+.search-icon {
+    position: absolute;
+    right: 1rem;
+    top: 50%;
+    transform: translateY(-50%);
+    color: var(--text-light);
+    pointer-events: none;
+    transition: all var(--anim-duration-fast) ease;
+}
+
+#thread-search:focus + .search-icon {
+    color: var(--primary-color);
+}
+
+/* Search Options */
+.search-options {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 1rem;
+    margin-bottom: 1rem;
+}
+
+/* Checkbox styling */
+.checkbox-container {
+    display: flex;
+    align-items: center;
+    font-size: 0.9rem;
+    color: var(--text-secondary);
+    cursor: pointer;
+    user-select: none;
+    position: relative;
+    padding-left: 28px;
+    margin-right: 1rem;
+}
+
+.checkbox-container input {
+    position: absolute;
+    opacity: 0;
+    height: 0;
+    width: 0;
+}
+
+.checkmark {
+    position: absolute;
+    top: 0;
+    left: 0;
+    height: 18px;
+    width: 18px;
+    background-color: #fff;
+    border: 1px solid var(--border-color);
+    border-radius: 3px;
+    transition: all 0.2s ease;
+}
+
+.checkbox-container:hover input ~ .checkmark {
+    background-color: rgba(106, 17, 203, 0.05);
+    border-color: var(--primary-color);
+}
+
+.checkbox-container input:checked ~ .checkmark {
+    background-color: var(--primary-color);
+    border-color: var(--primary-color);
+}
+
+.checkmark:after {
+    content: "";
+    position: absolute;
+    display: none;
+}
+
+.checkbox-container input:checked ~ .checkmark:after {
+    display: block;
+}
+
+.checkbox-container .checkmark:after {
+    left: 6px;
+    top: 2px;
+    width: 4px;
+    height: 9px;
+    border: solid white;
+    border-width: 0 2px 2px 0;
+    transform: rotate(45deg);
+}
+
+/* Search Results Count */
+.search-results-count {
+    background-color: rgba(106, 17, 203, 0.1);
+    padding: 0.6rem 1rem;
+    margin-bottom: 1rem;
+    border-radius: 8px;
+    font-size: 0.9rem;
+    color: var(--primary-color);
+    display: flex;
+    align-items: center;
+    animation: fadeIn 0.3s ease-out;
+}
+
+.search-results-count i {
+    margin-right: 0.5rem;
+}
+
+/* Search Highlighting */
+.search-highlight {
+    background-color: rgba(255, 222, 85, 0.6);
+    color: #333;
+    border-radius: 2px;
+    padding: 0 2px;
+    font-weight: bold;
+}
+
+/* Sort options styles */
+.sort-options {
+    margin-top: 1rem;
+    border-top: 1px solid var(--border-color);
+    padding-top: 1rem;
+}
+
+.sort-buttons {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    margin-top: 0.5rem;
+}
+
+.sort-btn {
+    display: inline-flex;
+    align-items: center;
+    padding: 0.5rem 0.8rem;
+    background-color: var(--card-bg);
+    color: var(--text-secondary);
+    border: 1px solid var(--border-color);
+    border-radius: 6px;
+    font-size: 0.9rem;
+    cursor: pointer;
+    transition: all var(--anim-duration-fast) ease;
+}
+
+.sort-btn i {
+    margin-right: 0.4rem;
+    font-size: 0.9rem;
+}
+
+.sort-btn:hover {
+    background-color: rgba(106, 17, 203, 0.05);
+    border-color: var(--primary-color);
+    color: var(--primary-color);
+    transform: translateY(-2px);
+}
+
+.sort-btn.active {
+    background-color: var(--primary-color);
+    color: white;
+    border-color: var(--primary-color);
+    box-shadow: 0 2px 8px rgba(106, 17, 203, 0.3);
+}
+
+/* Add animation for thread sorting */
+@keyframes sortAnimation {
+    0% {
+        opacity: 0;
+        transform: translateY(10px);
+    }
+    100% {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.thread-item.sort-animation {
+    animation: sortAnimation 0.5s ease-out forwards;
+}
+
+@media screen and (max-width: 768px) {
+    .category-filter-container {
+        flex-direction: column;
+    }
+    
+    .filter-dropdown, .search-container {
+        width: 100%;
+    }
+    
+    .sort-buttons {
+        flex-direction: row;
+        overflow-x: auto;
+        padding-bottom: 0.5rem;
+        margin-bottom: 0.5rem;
+    }
+    
+    .sort-btn {
+        flex: 0 0 auto;
+        white-space: nowrap;
+    }
+    
+    .search-options {
+        flex-direction: column;
+        gap: 0.5rem;
+    }
+}
+
+/* Media queries for thread detail page */
+@media screen and (max-width: 768px) {
+    .thread-detail {
+        padding: 10px;
+    }
+    
+    .main-content {
+        padding: 15px;
+    }
+    
+    .thread-title {
+        font-size: 1.5rem;
+    }
+    
+    .thread-meta {
+        flex-wrap: wrap;
+    }
+    
+    .post-form {
+        flex-direction: column;
+    }
+
+    .user-avatar {
+        margin-bottom: 10px;
+    }
+}
+
+@media screen and (max-width: 480px) {
+    .thread-detail {
+        padding: 5px;
+    }
+    
+    .main-content {
+        padding: 10px;
+    }
+    
+    .thread-title {
+        font-size: 1.3rem;
+    }
+    
+    .thread-meta {
+        font-size: 0.8rem;
+    }
+    
+    .post {
+        padding: 15px;
+    }
+    
+    .post-header, .post-footer {
+        flex-direction: column;
+    }
+    
+    .post-actions {
+        margin-top: 10px;
+    }
+}
+
+/* User's own comments highlight */
+.comment.own-comment {
+    background-color: rgba(106, 17, 203, 0.05);
+    border-left: 3px solid var(--primary-color);
+}
+
+/* Comment delete and edit buttons styling */
+.delete-comment, .edit-comment {
+    opacity: 0.7;
+    transition: all 0.3s ease;
+}
+
+.delete-comment:hover {
+    color: #d32f2f;
+    opacity: 1;
+}
+
+.edit-comment:hover {
+    color: #2196f3;
+    opacity: 1;
+}
+
+/* Comment deletion animation */
+.comment.deleting {
+    animation: fadeOut 0.5s ease forwards;
+    transform: translateX(10px);
+    opacity: 0;
+}
+
+@keyframes fadeOut {
+    from {
+        opacity: 1;
+        transform: translateX(0);
+    }
+    to {
+        opacity: 0;
+        transform: translateX(10px);
+    }
 }

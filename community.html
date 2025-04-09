@@ -63,6 +63,60 @@
             </div>
         </div>
 
+        <!-- Category Filter Section -->
+        <div class="category-filter-section">
+            <h3><i class="fa fa-filter"></i> Filter & Sort Threads</h3>
+            <div class="category-filter-container">
+                <div class="filter-dropdown">
+                    <label for="category-filter">Category</label>
+                    <select id="category-filter" onchange="filterThreadsByCategory()">
+                        <option value="all" selected>All Categories</option>
+                        <!-- Categories will be dynamically added here -->
+                    </select>
+                </div>
+                <div class="search-container">
+                    <label for="thread-search">Search</label>
+                    <input type="text" id="thread-search" placeholder="Search threads by title/content..." onkeyup="searchThreads()" />
+                    <i class="fa fa-search search-icon"></i>
+                </div>
+            </div>
+            <div class="search-options">
+                <label class="checkbox-container">
+                    <input type="checkbox" id="search-titles" checked onchange="searchThreads()">
+                    <span class="checkmark"></span>
+                    Search in titles
+                </label>
+                <label class="checkbox-container">
+                    <input type="checkbox" id="search-content" checked onchange="searchThreads()">
+                    <span class="checkmark"></span>
+                    Search in content
+                </label>
+            </div>
+            <div class="sort-options">
+                <label>Sort by:</label>
+                <div class="sort-buttons">
+                    <button class="sort-btn active" data-sort="all" onclick="sortThreads('all')">
+                        <i class="fa fa-list"></i> All
+                    </button>
+                    <button class="sort-btn" data-sort="newest" onclick="sortThreads('newest')">
+                        <i class="fa fa-clock-o"></i> Newest
+                    </button>
+                    <button class="sort-btn" data-sort="oldest" onclick="sortThreads('oldest')">
+                        <i class="fa fa-history"></i> Oldest
+                    </button>
+                    <button class="sort-btn" data-sort="most-likes" onclick="sortThreads('most-likes')">
+                        <i class="fa fa-heart"></i> Most Likes
+                    </button>
+                    <button class="sort-btn" data-sort="least-likes" onclick="sortThreads('least-likes')">
+                        <i class="fa fa-heart-o"></i> Least Likes
+                    </button>
+                    <button class="sort-btn" data-sort="most-views" onclick="sortThreads('most-views')">
+                        <i class="fa fa-eye"></i> Most Views
+                    </button>
+                </div>
+            </div>
+        </div>
+
         <!-- Threads Display Section -->
         <div class="threads-section">
             <h2>Recent Threads</h2>
