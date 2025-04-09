@@ -2089,11 +2089,24 @@ async function submitPost() {
         content += imageHtml;
     }
     
+    // If we have uploaded videos, add them to the content
+    if (typeof uploadedVideos !== 'undefined' && uploadedVideos.length > 0) {
+        const videoHtml = uploadedVideos.map(video => 
+            `<div class="uploaded-video"><video src="${video.url}" controls preload="metadata"></video></div>`
+        ).join('');
+        
+        // Add videos to content
+        if (content) {
+            content += '<br>';
+        }
+        content += videoHtml;
+    }
+    
     if (!content) {
         Swal.fire({
             icon: 'warning',
             title: 'Empty Content',
-            text: 'Please add some content or upload an image.',
+            text: 'Please add some content, upload an image, or upload a video.',
         });
         return;
     }
@@ -2119,12 +2132,21 @@ async function submitPost() {
             throw new Error("Failed to create post");
         }
 
-        // Clear input and uploaded images
+        // Clear input and uploaded media
         document.getElementById("post-input").value = "";
         uploadedImages = [];
-        const previewContainer = document.getElementById('image-preview-container');
-        if (previewContainer) {
-            previewContainer.innerHTML = '';
+        if (typeof uploadedVideos !== 'undefined') {
+            uploadedVideos = [];
+        }
+        
+        const imagePreviewContainer = document.getElementById('image-preview-container');
+        if (imagePreviewContainer) {
+            imagePreviewContainer.innerHTML = '';
+        }
+        
+        const videoPreviewContainer = document.getElementById('video-preview-container');
+        if (videoPreviewContainer) {
+            videoPreviewContainer.innerHTML = '';
         }
 
         // Reload posts
@@ -2432,11 +2454,24 @@ async function submitPost() {
         content += imageHtml;
     }
     
+    // If we have uploaded videos, add them to the content
+    if (typeof uploadedVideos !== 'undefined' && uploadedVideos.length > 0) {
+        const videoHtml = uploadedVideos.map(video => 
+            `<div class="uploaded-video"><video src="${video.url}" controls preload="metadata"></video></div>`
+        ).join('');
+        
+        // Add videos to content
+        if (content) {
+            content += '<br>';
+        }
+        content += videoHtml;
+    }
+    
     if (!content) {
         Swal.fire({
             icon: 'warning',
             title: 'Empty Content',
-            text: 'Please add some content or upload an image.',
+            text: 'Please add some content, upload an image, or upload a video.',
         });
         return;
     }
@@ -2462,12 +2497,21 @@ async function submitPost() {
             throw new Error("Failed to create post");
         }
 
-        // Clear input and uploaded images
+        // Clear input and uploaded media
         document.getElementById("post-input").value = "";
         uploadedImages = [];
-        const previewContainer = document.getElementById('image-preview-container');
-        if (previewContainer) {
-            previewContainer.innerHTML = '';
+        if (typeof uploadedVideos !== 'undefined') {
+            uploadedVideos = [];
+        }
+        
+        const imagePreviewContainer = document.getElementById('image-preview-container');
+        if (imagePreviewContainer) {
+            imagePreviewContainer.innerHTML = '';
+        }
+        
+        const videoPreviewContainer = document.getElementById('video-preview-container');
+        if (videoPreviewContainer) {
+            videoPreviewContainer.innerHTML = '';
         }
 
         // Reload posts
@@ -4695,6 +4739,11 @@ function initImageUpload() {
     if (imageUploadInput) {
         imageUploadInput.addEventListener('change', handleImageUpload);
     }
+    
+    const videoUploadInput = document.getElementById('video-upload');
+    if (videoUploadInput) {
+        videoUploadInput.addEventListener('change', handleVideoUpload);
+    }
 }
 
 // Function to handle image upload
@@ -4879,16 +4928,17 @@ function initializeThreadDetailPage() {
         sessionStorage.setItem(`viewed_thread_${threadId}`, 'true');
     }
     
-    // Initialize image upload
-    initImageUpload();
+    // Initialize media uploads
+    initMediaUploads();
     
     console.log("Thread detail page initialization complete");
 }
 
-// Specific function to initialize image upload
-function initImageUpload() {
-    console.log("Initializing image upload functionality...");
+// Function to initialize both image and video uploads
+function initMediaUploads() {
+    console.log("Initializing media upload functionality...");
     
+    // Initialize image upload
     const imageUploadInput = document.getElementById('image-upload');
     if (imageUploadInput) {
         // Remove any existing listeners first to prevent duplicates
@@ -4901,14 +4951,33 @@ function initImageUpload() {
         console.error("Image upload input element not found");
     }
     
-    // Clear any existing images on page load
-    const previewContainer = document.getElementById('image-preview-container');
-    if (previewContainer) {
-        previewContainer.innerHTML = '';
+    // Initialize video upload
+    const videoUploadInput = document.getElementById('video-upload');
+    if (videoUploadInput) {
+        // Remove any existing listeners first to prevent duplicates
+        videoUploadInput.removeEventListener('change', handleVideoUpload);
+        
+        // Add new listener
+        videoUploadInput.addEventListener('change', handleVideoUpload);
+        console.log("Video upload input listener attached");
+    } else {
+        console.error("Video upload input element not found");
     }
     
-    // Reset uploaded images array
+    // Clear any existing media on page load
+    const imagePreviewContainer = document.getElementById('image-preview-container');
+    if (imagePreviewContainer) {
+        imagePreviewContainer.innerHTML = '';
+    }
+    
+    const videoPreviewContainer = document.getElementById('video-preview-container');
+    if (videoPreviewContainer) {
+        videoPreviewContainer.innerHTML = '';
+    }
+    
+    // Reset uploaded media arrays
     uploadedImages = [];
+    uploadedVideos = [];
 }
 
 // Main initialization when the DOM is loaded
@@ -5375,5 +5444,168 @@ function updateUIBasedOnLoginStatus() {
         if (createThreadBtn) {
             createThreadBtn.disabled = true;
         }
+    }
+}
+
+// Global variables
+let uploadedVideos = [];
+
+// Function to handle video upload
+async function handleVideoUpload(event) {
+    const file = event.target.files[0];
+    if (!file) return;
+    
+    // Check file type
+    const validTypes = ['video/mp4', 'video/webm', 'video/ogg'];
+    if (!validTypes.includes(file.type)) {
+        Swal.fire({
+            icon: 'error',
+            title: 'Invalid file type',
+            text: 'Please select a video file (MP4, WebM, or OGG)'
+        });
+        return;
+    }
+    
+    // Check file size (max 50MB)
+    if (file.size > 50 * 1024 * 1024) {
+        Swal.fire({
+            icon: 'error',
+            title: 'File too large',
+            text: 'Please select a video smaller than 50MB'
+        });
+        return;
+    }
+    
+    try {
+        // Show loading indicator
+        Swal.fire({
+            title: 'Uploading...',
+            text: 'Please wait while we upload your video',
+            allowOutsideClick: false,
+            didOpen: () => {
+                Swal.showLoading();
+            }
+        });
+        
+        // Create form data
+        const formData = new FormData();
+        formData.append('file', file);
+        
+        // Upload to server
+        const response = await fetch(`${api_key}Video/upload`, {
+            method: 'POST',
+            body: formData
+        });
+        
+        // Close loading indicator
+        Swal.close();
+        
+        if (!response.ok) {
+            throw new Error(`Upload failed: ${response.statusText}`);
+        }
+        
+        const data = await response.json();
+        
+        if (data.uploaded !== 1) {
+            throw new Error(data.error?.message || 'Upload failed');
+        }
+        
+        // Add to uploaded videos array
+        uploadedVideos.push({
+            url: data.url,
+            fileName: data.fileName
+        });
+        
+        // Display preview
+        addVideoPreview(data.url, data.fileName);
+        
+        // Reset file input
+        event.target.value = '';
+        
+        // Show success message
+        Swal.fire({
+            icon: 'success',
+            title: 'Upload Successful',
+            text: 'Your video has been uploaded successfully',
+            timer: 1500,
+            showConfirmButton: false
+        });
+        
+    } catch (error) {
+        console.error('Error uploading video:', error);
+        Swal.fire({
+            icon: 'error',
+            title: 'Upload Failed',
+            text: error.message || 'Failed to upload video'
+        });
+    }
+}
+
+// Function to add video preview
+function addVideoPreview(videoUrl, fileName) {
+    const previewContainer = document.getElementById('video-preview-container');
+    
+    const previewItem = document.createElement('div');
+    previewItem.className = 'video-preview-item';
+    previewItem.dataset.fileName = fileName;
+    
+    const video = document.createElement('video');
+    video.src = videoUrl;
+    video.controls = true;
+    video.preload = 'metadata';
+    video.className = 'preview-video';
+    
+    const removeBtn = document.createElement('button');
+    removeBtn.className = 'remove-video';
+    removeBtn.innerHTML = '×';
+    removeBtn.onclick = function() {
+        removeVideoFromForm(fileName, previewItem);
+    };
+    
+    previewItem.appendChild(video);
+    previewItem.appendChild(removeBtn);
+    previewContainer.appendChild(previewItem);
+}
+
+// Function to remove video from form only (not from server)
+function removeVideoFromForm(fileName, previewElement) {
+    try {
+        // Remove from uploaded videos array
+        uploadedVideos = uploadedVideos.filter(video => video.fileName !== fileName);
+        
+        // Add fade-out animation
+        previewElement.style.transition = 'all 0.3s ease';
+        previewElement.style.opacity = '0';
+        previewElement.style.transform = 'scale(0.8)';
+        
+        // Remove preview after animation
+        setTimeout(() => {
+            if (previewElement && previewElement.parentNode) {
+                previewElement.parentNode.removeChild(previewElement);
+            }
+        }, 300);
+        
+        // Show feedback toast
+        Swal.fire({
+            icon: 'success',
+            title: 'Video removed from post',
+            toast: true,
+            position: 'top-end',
+            showConfirmButton: false,
+            timer: 2000,
+            timerProgressBar: true
+        });
+        
+    } catch (error) {
+        console.error('Error removing video from form:', error);
+        Swal.fire({
+            icon: 'error',
+            title: 'Error',
+            text: 'Failed to remove video from form',
+            toast: true,
+            position: 'top-end',
+            showConfirmButton: false,
+            timer: 2000
+        });
     }
 }

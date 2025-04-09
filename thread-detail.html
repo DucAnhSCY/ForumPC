@@ -77,11 +77,16 @@
                         <div class="editor-container">
                             <textarea id="post-input" placeholder="Create a new post..."></textarea>
                             <div class="image-preview-container" id="image-preview-container"></div>
+                            <div class="video-preview-container" id="video-preview-container"></div>
                         </div>
                         <div class="form-actions">
                             <input type="file" id="image-upload" style="display: none" accept="image/*">
+                            <input type="file" id="video-upload" style="display: none" accept="video/*">
                             <button class="image-upload-btn" onclick="document.getElementById('image-upload').click()">
                                 <i class="fa fa-image"></i> Upload Image
+                            </button>
+                            <button class="video-upload-btn" onclick="document.getElementById('video-upload').click()">
+                                <i class="fa fa-video-camera"></i> Upload Video
                             </button>
                             <button class="button" onclick="submitPost()">Create Post</button>
                         </div>
