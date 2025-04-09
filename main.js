@@ -1257,9 +1257,21 @@ function fetchUsers() {
         .then(users => {
             // Store users in a global variable for filtering
             window.allUsers = users;
+            
+            // Display users and update counts
             displayUsers(users);
+            
+            // Check if search input has value
+            const searchInput = document.getElementById('user-search');
+            if (searchInput && searchInput.value.trim()) {
+                // If there's a search term, apply the search
+                searchUsers();
+            }
         })
-        .catch(error => console.error("Error fetching users:", error));
+        .catch(error => {
+            console.error("Error fetching users:", error);
+            showCustomAlert('Error', 'Failed to fetch users: ' + error.message, 'error');
+        });
 }
 
 function displayUsers(users) {
@@ -1267,6 +1279,9 @@ function displayUsers(users) {
     if (!userTableBody) return;
 
     userTableBody.innerHTML = "";
+    
+    // Update user counts
+    updateUserCounts(users);
     
     users.forEach(user => {
         // Skip displaying admin users
@@ -1309,6 +1324,145 @@ function displayUsers(users) {
         `;
         userTableBody.appendChild(row);
     });
+}
+
+// Function to update user counts
+function updateUserCounts(users) {
+    if (!users) return;
+    
+    const totalUsersElement = document.getElementById('total-users-count');
+    const adminUsersElement = document.getElementById('admin-users-count');
+    const moderatorUsersElement = document.getElementById('moderator-users-count');
+    const normalUsersElement = document.getElementById('normal-users-count');
+    
+    if (!totalUsersElement || !adminUsersElement || !moderatorUsersElement || !normalUsersElement) return;
+    
+    const totalUsers = users.length;
+    const adminUsers = users.filter(u => u.role === 'Admin' || u.role === 'admin').length;
+    const moderatorUsers = users.filter(u => u.role === 'Moderator' || u.role === 'moderator').length;
+    const normalUsers = users.filter(u => u.role === 'User' || u.role === 'user').length;
+    
+    totalUsersElement.textContent = totalUsers;
+    adminUsersElement.textContent = adminUsers;
+    moderatorUsersElement.textContent = moderatorUsers;
+    normalUsersElement.textContent = normalUsers;
+}
+
+// Function to search users
+function searchUsers() {
+    if (!window.allUsers) {
+        console.error("No users data available for search");
+        showCustomAlert('Error', 'User data not loaded. Please refresh the page.', 'error');
+        return;
+    }
+    
+    const searchInput = document.getElementById('user-search');
+    if (!searchInput) {
+        console.error("Search input element not found");
+        return;
+    }
+    
+    const searchTerm = searchInput.value.toLowerCase().trim();
+    
+    // If search is empty, show all users based on current filter
+    if (!searchTerm) {
+        const activeFilterBtn = document.querySelector('.filter-btn.active');
+        if (activeFilterBtn) {
+            const filterType = activeFilterBtn.textContent.trim();
+            if (filterType === 'All Users') {
+                displayUsers(window.allUsers);
+            } else if (filterType === 'Moderators') {
+                displayUsers(window.allUsers.filter(user => user.role === 'Moderator'));
+            } else if (filterType === 'Users') {
+                displayUsers(window.allUsers.filter(user => user.role === 'User'));
+            } else {
+                displayUsers(window.allUsers);
+            }
+        } else {
+            displayUsers(window.allUsers);
+        }
+        return;
+    }
+    
+    // Filter users based on search term
+    const filteredUsers = window.allUsers.filter(user => {
+        const userId = user.userId.toString().toLowerCase();
+        const username = user.username ? user.username.toLowerCase() : '';
+        const email = user.email ? user.email.toLowerCase() : '';
+        const status = user.status ? user.status.toLowerCase() : '';
+        const role = user.role ? user.role.toLowerCase() : '';
+        
+        return userId.includes(searchTerm) || 
+               username.includes(searchTerm) || 
+               email.includes(searchTerm) || 
+               status.includes(searchTerm) ||
+               role.includes(searchTerm);
+    });
+    
+    console.log(`Search found ${filteredUsers.length} users matching "${searchTerm}"`);
+    
+    // Display filtered users
+    displayUsers(filteredUsers);
+    
+    // Show "no results" message if needed
+    const userTableBody = document.getElementById("user-table-body");
+    if (userTableBody && filteredUsers.length === 0) {
+        userTableBody.innerHTML = `
+            <tr class="no-results">
+                <td colspan="6">No users found matching "${searchTerm}". Try a different search term.</td>
+            </tr>
+        `;
+    }
+    
+    // Update active filter button - remove active class from all buttons
+    document.querySelectorAll('.filter-btn').forEach(btn => {
+        btn.classList.remove('active');
+    });
+}
+
+// Add event listener for search input to enable real-time search
+document.addEventListener("DOMContentLoaded", function() {
+    const searchInput = document.getElementById('user-search');
+    if (searchInput) {
+        searchInput.addEventListener('input', function(e) {
+            searchUsers();
+        });
+        
+        // Add key event listener to reset filters when pressing Escape
+        searchInput.addEventListener('keydown', function(e) {
+            if (e.key === 'Escape') {
+                this.value = '';
+                filterUsers('all');
+            }
+            // Add Enter key support for search
+            if (e.key === 'Enter') {
+                searchUsers();
+            }
+        });
+    }
+});
+
+function filterUsers(role) {
+    if (!window.allUsers) return;
+
+    // Clear search input
+    const searchInput = document.getElementById('user-search');
+    if (searchInput) {
+        searchInput.value = '';
+    }
+
+    // Update active button
+    document.querySelectorAll('.filter-btn').forEach(btn => {
+        btn.classList.remove('active');
+    });
+    event.target.classList.add('active');
+
+    // Filter users
+    const filteredUsers = role === 'all' 
+        ? window.allUsers 
+        : window.allUsers.filter(user => user.role === role);
+
+    displayUsers(filteredUsers);
 }
 
 // Lưu trữ các thay đổi tạm thời
@@ -1458,11 +1612,49 @@ async function refreshTable() {
         spinnerIcon.classList.add('spinning');
         
         // Re-fetch the users
-        await fetchUsers();
+        const response = await fetch(`${api_key}User/GetAll`);
+        if (!response.ok) {
+            throw new Error('Failed to fetch users');
+        }
+        
+        const users = await response.json();
+        window.allUsers = users;
+        
+        // Get current active filter
+        const activeFilter = document.querySelector('.filter-btn.active');
+        if (activeFilter) {
+            const filterType = activeFilter.textContent.trim();
+            if (filterType === 'All Users') {
+                displayUsers(users);
+            } else if (filterType === 'Moderators') {
+                displayUsers(users.filter(user => user.role === 'Moderator'));
+            } else if (filterType === 'Users') {
+                displayUsers(users.filter(user => user.role === 'User'));
+            }
+        } else {
+            displayUsers(users);
+        }
+        
+        // Check if there's an active search
+        const searchInput = document.getElementById('user-search');
+        if (searchInput && searchInput.value.trim()) {
+            searchUsers();
+        }
         
         // Remove spinning class and disabled state
         spinnerIcon.classList.remove('spinning');
         refreshBtn.classList.remove('disabled');
+        
+        // Show success message
+        Swal.fire({
+            icon: 'success',
+            title: 'Refreshed',
+            text: 'User table has been refreshed successfully',
+            toast: true,
+            position: 'top-end',
+            showConfirmButton: false,
+            timer: 2000
+        });
     } catch (error) {
         console.error('Error refreshing table:', error);
         showCustomAlert('Error', 'Error refreshing table: ' + error.message, 'error');

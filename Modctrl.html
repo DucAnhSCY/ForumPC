@@ -42,6 +42,18 @@
     <!-- User Management Section -->
     <section id="user-management" class="tab-content admin-only">
         <h2>User Management</h2>
+        <div class="user-management-header">
+            <div class="user-counts">
+                <span class="count-badge total-users">Total Users: <span id="total-users-count">0</span></span>
+                <span class="count-badge admin-users">Admins: <span id="admin-users-count">0</span></span>
+                <span class="count-badge moderator-users">Moderators: <span id="moderator-users-count">0</span></span>
+                <span class="count-badge normal-users">Users: <span id="normal-users-count">0</span></span>
+            </div>
+            <div class="search-container">
+                <input type="text" id="user-search" placeholder="Search by ID, username, email or status...">
+                <button onclick="searchUsers()" class="search-btn"><i class="fa fa-search"></i></button>
+            </div>
+        </div>
         <div class="filter-buttons">
             <button onclick="filterUsers('all')" class="filter-btn active">All Users</button>
             <button onclick="filterUsers('Moderator')" class="filter-btn">Moderators</button>
@@ -206,6 +218,17 @@
                 if (btn.getAttribute('onclick').includes(tabId)) {
                     btn.classList.add('active');
                     break;
+                }
+            }
+            
+            // Reset search if switching to user management
+            if (tabId === 'user-management') {
+                const searchInput = document.getElementById('user-search');
+                if (searchInput) {
+                    searchInput.value = '';
+                }
+                if (typeof filterUsers === 'function') {
+                    filterUsers('all');
                 }
             }
             
