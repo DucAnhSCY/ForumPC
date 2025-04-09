@@ -1051,7 +1051,6 @@ function displayThreads(threads) {
             <div class="thread-content">${truncatedContent}</div>
             <div class="thread-footer">
                 <div class="thread-stats">
-                    <span class="thread-views"><i class="fa fa-eye"></i> ${thread.views || 0} views</span>
                     <span class="thread-likes"><i class="fa fa-heart"></i> ${thread.total_likes || 0} likes</span>
                 </div>
                 <a href="thread-detail.html?id=${thread.threadId}" class="thread-read-more">Read More</a>
@@ -2142,7 +2141,7 @@ function createPostElement(post) {
     const currentUserId = sessionStorage.getItem('userId');
     const isAuthor = currentUserId && parseInt(currentUserId) === post.userId;
     const isAdmin = sessionStorage.getItem('role') === 'Admin' || sessionStorage.getItem('role') === 'admin';
-    const canModify = isAuthor || isAdmin;
+    const isModerator = sessionStorage.getItem('role') === 'Moderator' || sessionStorage.getItem('role') === 'moderator';
     
     // Clean post content to remove unnecessary paragraph tags
     const cleanedContent = cleanHtmlContent(post.content);
@@ -2158,9 +2157,9 @@ function createPostElement(post) {
                     <div class="post-time">${formattedDate}</div>
                 </div>
             </div>
-            <div class="post-actions ${canModify ? '' : 'hide'}">
-                <button class="edit-button" onclick="editPost(${post.postId})"><i class="fa fa-pencil"></i></button>
-                <button class="delete-button" onclick="deletePost(${post.postId})"><i class="fa fa-trash"></i></button>
+            <div class="post-actions">
+                <button class="edit-button ${isAuthor ? '' : 'hide'}" onclick="editPost(${post.postId})"><i class="fa fa-pencil"></i></button>
+                <button class="delete-button ${isAuthor || isAdmin || isModerator ? '' : 'hide'}" onclick="deletePost(${post.postId})"><i class="fa fa-trash"></i></button>
             </div>
         </div>
         <div class="post-content">${cleanedContent}</div>
@@ -2789,6 +2788,7 @@ function createPostElement(post) {
     
     // Thiết lập ID cho post element
     postElement.setAttribute('data-post-id', post.postId);
+    postElement.setAttribute('data-user-id', post.userId);
     
     const authorElement = postElement.querySelector(".post-author");
     if (authorElement) authorElement.textContent = post.username;
@@ -2811,13 +2811,18 @@ function createPostElement(post) {
     // Show/hide edit and delete buttons
     const isAuthor = parseInt(sessionStorage.getItem('userId')) === post.userId;
     const userRole = sessionStorage.getItem('role');
-    const isAdminOrMod = userRole === 'Admin' || userRole === 'admin' || userRole === 'Moderator' || userRole === 'moderator';
+    const isAdmin = userRole === 'Admin' || userRole === 'admin';
+    const isModerator = userRole === 'Moderator' || userRole === 'moderator';
     
-    if (isAuthor || isAdminOrMod) {
+    // Only post author can edit their own post
+    if (isAuthor) {
         editButton.classList.remove("hide");
-        deleteButton.classList.remove("hide");
-        
         editButton.onclick = () => editPost(post.postId);
+    }
+    
+    // Post author can delete their own post, admins and moderators can delete any post
+    if (isAuthor || isAdmin || isModerator) {
+        deleteButton.classList.remove("hide");
         deleteButton.onclick = () => deletePost(post.postId);
     }
     
@@ -2981,6 +2986,7 @@ function createCommentElement(comment) {
     // Store the user ID in the comment element for permission checking
     commentElement.setAttribute('data-comment-id', comment.commentId);
     commentElement.setAttribute('data-user-id', comment.userId);
+    commentElement.setAttribute('data-post-id', comment.postId);
     
     // Set comment data
     commentElement.querySelector('.comment-author').textContent = comment.username;
@@ -2993,21 +2999,36 @@ function createCommentElement(comment) {
     const isAuthor = currentUserId === comment.userId;
     const isAdminOrMod = userRole === 'Admin' || userRole === 'admin' || userRole === 'Moderator' || userRole === 'moderator';
     
-    // Edit button - only show for author
+    // Get post information to check if current user is the post author
+    const post = document.querySelector(`[data-post-id="${comment.postId}"]`);
+    let isPostAuthor = false;
+    
+    if (post) {
+        const postUserId = parseInt(post.getAttribute('data-user-id'));
+        isPostAuthor = currentUserId === postUserId;
+    }
+    
+    // Edit button - only show for comment author
     const editButton = commentElement.querySelector('.edit-comment');
     if (editButton && isAuthor) {
         editButton.classList.remove('hide');
         editButton.onclick = () => editComment(comment.commentId);
     }
     
-    // Delete button - show for author and admin/moderator
+    // Delete button - show for comment author, post author, and admin/moderator
     const deleteButton = commentElement.querySelector('.delete-comment');
-    if (deleteButton && (isAuthor || isAdminOrMod)) {
+    if (deleteButton && (isAuthor || isPostAuthor || isAdminOrMod)) {
         deleteButton.classList.remove('hide');
         deleteButton.onclick = () => deleteComment(comment.commentId);
         
         // Add tooltip to indicate delete action
-        deleteButton.setAttribute('title', 'Delete this comment');
+        if (isAuthor) {
+            deleteButton.setAttribute('title', 'Delete your comment');
+        } else if (isPostAuthor) {
+            deleteButton.setAttribute('title', 'Delete comment on your post');
+        } else {
+            deleteButton.setAttribute('title', 'Delete this comment (moderator action)');
+        }
     }
     
     // Highlight if this is the user's own comment
@@ -3116,15 +3137,37 @@ async function deleteComment(commentId) {
         const isAuthor = currentUserId === commentUserId;
         const isAdminOrMod = userRole === 'Admin' || userRole === 'admin' || userRole === 'Moderator' || userRole === 'moderator';
         
-        // Only allow deletion if user is the author or an admin/moderator
-        if (!isAuthor && !isAdminOrMod) {
-            throw new Error('You can only delete your own comments');
+        // Get the post ID from the comment element
+        const postId = commentElement.getAttribute('data-post-id') || getPostIdFromComment(commentElement);
+        
+        // Check if the current user is the post author
+        let isPostAuthor = false;
+        if (postId) {
+            const post = document.querySelector(`[data-post-id="${postId}"]`);
+            if (post) {
+                const postUserId = parseInt(post.getAttribute('data-user-id'));
+                isPostAuthor = currentUserId === postUserId;
+            }
+        }
+        
+        // Only allow deletion if user is the comment author, post author, or an admin/moderator
+        if (!isAuthor && !isPostAuthor && !isAdminOrMod) {
+            throw new Error('You do not have permission to delete this comment');
+        }
+        
+        // Confirm deletion with different messages based on who is deleting
+        let confirmMessage = 'Are you sure you want to delete this comment? This action cannot be undone.';
+        
+        if (isPostAuthor && !isAuthor) {
+            confirmMessage = 'Are you sure you want to delete this comment on your post? This action cannot be undone.';
+        } else if (isAdminOrMod && !isAuthor) {
+            confirmMessage = 'Are you sure you want to delete this user\'s comment? This action cannot be undone.';
         }
         
         // Confirm deletion
         const result = await Swal.fire({
             title: 'Delete Comment',
-            text: 'Are you sure you want to delete this comment? This action cannot be undone.',
+            text: confirmMessage,
             icon: 'warning',
             showCancelButton: true,
             confirmButtonText: 'Delete',
@@ -3136,8 +3179,6 @@ async function deleteComment(commentId) {
         if (!result.isConfirmed) {
             return;
         }
-        
-        const postId = getPostIdFromComment(commentElement);
         
         // Send delete request to API
         const response = await fetch(`${api_key}Comment/Delete/${commentId}`, {
@@ -3602,6 +3643,32 @@ async function editPost(postId) {
     const postElement = document.querySelector(`[data-post-id="${postId}"]`);
     if (!postElement) {
         console.error('Không tìm thấy bài viết để chỉnh sửa');
+        return;
+    }
+    
+    // Check if current user is the post author (IMPORTANT: Only post author can edit)
+    try {
+        const response = await fetch(`${api_key}Post/${postId}`, {
+            method: 'GET',
+            headers: {
+                'Authorization': `Bearer ${token}`
+            }
+        });
+        
+        if (!response.ok) {
+            throw new Error('Không thể tải thông tin bài viết');
+        }
+        
+        const postData = await response.json();
+        const currentUserId = parseInt(sessionStorage.getItem('userId'));
+        
+        if (postData.userId !== currentUserId) {
+            showCustomAlert('Permission Denied', 'Bạn chỉ có thể chỉnh sửa bài viết của mình.', 'error');
+            return;
+        }
+    } catch (error) {
+        console.error('Error checking post ownership:', error);
+        showCustomAlert('Error', `Không thể xác minh quyền sở hữu bài viết: ${error.message}`, 'error');
         return;
     }
 
@@ -4859,6 +4926,8 @@ function setupPostActionButtons() {
     // Thiết lập các nút edit và delete cho người dùng là tác giả
     const userId = sessionStorage.getItem('userId');
     const userRole = sessionStorage.getItem('role');
+    const isAdmin = userRole === 'Admin' || userRole === 'admin';
+    const isModerator = userRole === 'Moderator' || userRole === 'moderator';
     
     // Nếu người dùng đã đăng nhập
     if (userId) {
@@ -4867,26 +4936,26 @@ function setupPostActionButtons() {
             const editBtn = post.querySelector('.edit-post');
             const deleteBtn = post.querySelector('.delete-post');
             
-            // Hiện nút chỉnh sửa và xóa nếu là người viết hoặc là admin/mod
-            if (postUserId === userId || userRole === 'Admin' || userRole === 'Moderator') {
-                if (editBtn) editBtn.classList.remove('hide');
-                if (deleteBtn) deleteBtn.classList.remove('hide');
+            // Only author can edit their own post
+            if (postUserId === userId && editBtn) {
+                editBtn.classList.remove('hide');
                 
-                // Thêm sự kiện cho nút edit
-                if (editBtn) {
-                    editBtn.addEventListener('click', function() {
-                        const postId = post.getAttribute('data-post-id');
-                        editPost(postId);
-                    });
-                }
+                // Add event listener for edit button
+                editBtn.addEventListener('click', function() {
+                    const postId = post.getAttribute('data-post-id');
+                    editPost(postId);
+                });
+            }
+            
+            // Author, admin, or moderator can delete posts
+            if ((postUserId === userId || isAdmin || isModerator) && deleteBtn) {
+                deleteBtn.classList.remove('hide');
                 
-                // Thêm sự kiện cho nút delete
-                if (deleteBtn) {
-                    deleteBtn.addEventListener('click', function() {
-                        const postId = post.getAttribute('data-post-id');
-                        deletePost(postId);
-                    });
-                }
+                // Add event listener for delete button
+                deleteBtn.addEventListener('click', function() {
+                    const postId = post.getAttribute('data-post-id');
+                    deletePost(postId);
+                });
             }
         });
     }
