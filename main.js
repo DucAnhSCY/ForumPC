@@ -4788,7 +4788,7 @@ async function handleImageUpload(event) {
         formData.append('file', file);
         
         // Upload to server
-        const response = await fetch(`${api_key}Image/upload`, {
+        const response = await fetch(`${api_key}Upload/image`, {
             method: 'POST',
             body: formData
         });
@@ -5492,7 +5492,7 @@ async function handleVideoUpload(event) {
         formData.append('file', file);
         
         // Upload to server
-        const response = await fetch(`${api_key}Video/upload`, {
+        const response = await fetch(`${api_key}Upload/video`, {
             method: 'POST',
             body: formData
         });
