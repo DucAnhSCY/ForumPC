@@ -88,7 +88,7 @@ function initializePage() {
 // to avoid initialization conflicts
 
 // API
-const api_key = "http://localhost:5083/api/";
+const api_key = "http://localhost:81//api/";
 
 // NavBar
 function hideIconBar() {
